@@ -28,6 +28,7 @@ module.exports = async ({page, assert}) => {
 
   await page.locator('#question').fill('圆x²+y²=25，A(3,4)、B(-4,3)在圆上，证明A点和B点处的切线互相垂直。');
   await page.locator('#solveButton').click();
+  await page.waitForFunction(() => document.querySelector('#solution')?.textContent.includes('证明A点和B点处的切线互相垂直。') && !document.querySelector('#solveButton').disabled);
   await page.waitForFunction(() => document.querySelector('#solution')?.textContent.includes('方向向量点积为 0'));
   scene=JSON.parse(await page.locator('#sceneJson').inputValue());
   assert.deepEqual(new Set(scene.lines.filter(line=>line.role==='tangent').map(line=>line.point)),new Set(['A','B']),'带“点”字后缀的复数表述也必须建立两条切线');
@@ -151,6 +152,9 @@ module.exports = async ({page, assert}) => {
 
   await page.locator('#question').fill('已知椭圆x²/4+y²/3=1，点P(1,3/2)在椭圆上，求在点P处的法线。（1）写出法线方程；（2）求离心率。');
   await page.locator('#solveButton').click();
+  // The previous problem has the same answer. Await the new restatement and
+  // completed solve, not merely an equation still rendered from that result.
+  await page.waitForFunction(() => document.querySelector('#solution')?.textContent.includes('（1）写出法线方程；（2）求离心率。') && !document.querySelector('#solveButton').disabled);
   await page.waitForFunction(() => document.querySelector('#solution')?.textContent.includes('4x-2y-1=0'));
   scene=JSON.parse(await page.locator('#sceneJson').inputValue());
   normal=scene.lines.find(line=>line.role==='normal');
