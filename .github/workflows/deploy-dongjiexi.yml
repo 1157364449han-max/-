@@ -1,0 +1,112 @@
+name: Test and deploy Dongjiexi
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+    branches: [master, main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dongjiexi-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      pages: write
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+      - name: Locate application
+        id: app
+        shell: bash
+        run: |
+          if [ -d apps/dongjiexi/dist ]; then
+            echo "root=apps/dongjiexi" >> "$GITHUB_OUTPUT"
+            echo "web_path=dongjiexi" >> "$GITHUB_OUTPUT"
+          else
+            echo "root=." >> "$GITHUB_OUTPUT"
+            echo "web_path=." >> "$GITHUB_OUTPUT"
+          fi
+      - name: Test mathematical and release contracts
+        working-directory: ${{ steps.app.outputs.root }}
+        run: |
+          python -m pip install -r requirements.txt
+          python -m unittest discover -s tests -p '*_tests.py'
+          node tests/native_geometry_tests.cjs
+          node tests/browser_contract_tests.cjs
+          node tests/pwa_contract_tests.cjs
+      - name: Test actual browser workflows
+        working-directory: ${{ steps.app.outputs.root }}
+        env:
+          DONG_TEST_OUTPUT: ${{ runner.temp }}/dongjiexi-browser
+        run: |
+          npm install --no-save --no-package-lock playwright@1.62.1
+          npx playwright install --with-deps chromium
+          node tests/run_browser_smoke.cjs
+      - name: Preserve test screenshots
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: dongjiexi-browser
+          path: ${{ runner.temp }}/dongjiexi-browser
+          if-no-files-found: ignore
+      - name: Build matched web and desktop artifacts
+        env:
+          APP_ROOT: ${{ steps.app.outputs.root }}
+          WEB_PATH: ${{ steps.app.outputs.web_path }}
+          API_BASE: ${{ vars.DONGJIEXI_API_BASE }}
+          REPOSITORY: ${{ github.repository }}
+          BUILD_COMMIT: ${{ github.sha }}
+        shell: bash
+        run: |
+          OWNER="${REPOSITORY%%/*}"
+          REPO="${REPOSITORY#*/}"
+          BASE="https://$OWNER.github.io/$REPO"
+          TARGET="_site"
+          if [ "$WEB_PATH" != "." ]; then
+            BASE="$BASE/$WEB_PATH"
+            TARGET="_site/$WEB_PATH"
+          fi
+          # Generates update-manifest.json, a sha256 digest and dongjiexi-v{version}.zip.
+          python "$APP_ROOT/deploy/build_release.py" --source "$APP_ROOT" --output "_release" --site-base "$BASE" --api-base "$API_BASE" --commit "$BUILD_COMMIT"
+          mkdir -p "$TARGET"
+          cp -a _release/site/. "$TARGET/"
+          if [ "$WEB_PATH" != "." ] && [ -f index.html ]; then cp index.html _site/index.html; fi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dongjiexi-release-${{ github.sha }}
+          path: |
+            _release/*.zip
+            _release/build-report.json
+      - uses: actions/configure-pages@v5
+        if: github.event_name != 'pull_request'
+      - uses: actions/upload-pages-artifact@v4
+        if: github.event_name != 'pull_request'
+        with:
+          path: _site
+  deploy:
+    if: github.event_name != 'pull_request'
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy only after tests pass
+        id: deployment
+        uses: actions/deploy-pages@v4

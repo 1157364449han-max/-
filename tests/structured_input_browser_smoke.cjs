@@ -1,0 +1,138 @@
+module.exports = async ({page, assert, screenshot}) => {
+  assert.equal(await page.locator('#objectType').inputValue(), 'point');
+  assert.equal(await page.locator('#equationTemplate').inputValue(), 'coordinates');
+  assert.equal(await page.locator('#objectParam-x').count(), 1);
+  assert.equal(await page.locator('#objectParam-y').count(), 1);
+  assert.equal(await page.locator('#objectInput').isVisible(), false, '完整方程应默认收进高级输入');
+
+  await page.locator('#objectParam-x').fill('3/2');
+  await page.locator('#objectParam-y').fill('-√4');
+  await page.locator('#objectName').fill('P');
+  await page.locator('#addObject').click();
+  let scene = JSON.parse(await page.locator('#sceneJson').inputValue());
+  let object = scene.objects.at(-1);
+  assert.equal(object.kind, 'point');
+  assert.equal(object.x, 1.5);
+  assert.equal(object.y, -2);
+  assert.equal(object.label, 'P');
+
+  await page.locator('#objectType').selectOption('line');
+  await page.locator('#equationTemplate').selectOption('pointSlope');
+  await page.locator('#objectParam-x0').fill('1');
+  await page.locator('#objectParam-y0').fill('2');
+  await page.locator('#objectParam-k').fill('3/2');
+  await page.locator('#addObject').click();
+  scene = JSON.parse(await page.locator('#sceneJson').inputValue());
+  object = scene.objects.at(-1);
+  assert.equal(object.kind, 'line');
+  assert.equal(object.m, 1.5);
+  assert.equal(object.b, 0.5);
+
+  await page.locator('#objectType').selectOption('circle');
+  await page.locator('#equationTemplate').selectOption('threePoints');
+  await page.locator('#objectParam-x1').fill('-2');
+  await page.locator('#objectParam-y1').fill('0');
+  await page.locator('#objectParam-x2').fill('2');
+  await page.locator('#objectParam-y2').fill('0');
+  await page.locator('#objectParam-x3').fill('0');
+  await page.locator('#objectParam-y3').fill('2');
+  await page.locator('#addObject').click();
+  scene = JSON.parse(await page.locator('#sceneJson').inputValue());
+  object = scene.objects.at(-1);
+  assert.equal(object.kind, 'circle');
+  assert(Math.abs(object.r - 2) < 1e-9);
+
+  await page.locator('#objectType').selectOption('ellipse');
+  await page.locator('#equationTemplate').selectOption('eccentricity');
+  await page.locator('#objectParam-a').fill('4');
+  await page.locator('#objectParam-e').fill('1/2');
+  await page.locator('#objectParam-orientation').selectOption('vertical');
+  await page.locator('#addObject').click();
+  scene = JSON.parse(await page.locator('#sceneJson').inputValue());
+  object = scene.objects.at(-1);
+  assert.equal(object.kind, 'conic');
+  assert.equal(object.conicType, 'ellipse');
+  assert.equal(object.orientation, 'vertical');
+  assert(Math.abs(object.b - 2*Math.sqrt(3)) < 1e-9);
+
+  await page.locator('#objectType').selectOption('parabola');
+  await page.locator('#equationTemplate').selectOption('vertexP');
+  await page.locator('#objectParam-h').fill('1');
+  await page.locator('#objectParam-k').fill('-2');
+  await page.locator('#objectParam-p').fill('3/2');
+  await page.locator('#objectParam-direction').selectOption('left');
+  await page.locator('#addObject').click();
+  scene = JSON.parse(await page.locator('#sceneJson').inputValue());
+  object = scene.objects.at(-1);
+  assert.equal(object.conicType, 'parabola');
+  assert.equal(object.p, 1.5);
+  assert.equal(object.direction, -1);
+
+  await page.locator('#objectType').selectOption('function');
+  await page.locator('#equationTemplate').selectOption('sine');
+  await page.locator('#objectParam-A').fill('2');
+  await page.locator('#objectParam-w').fill('π/2');
+  await page.locator('#addObject').click();
+  scene = JSON.parse(await page.locator('#sceneJson').inputValue());
+  object = scene.objects.at(-1);
+  assert.equal(object.kind, 'function');
+  assert.equal(object.family, 'sine');
+  assert(Math.abs(object.params.w - Math.PI/2) < 1e-9);
+
+  await page.locator('#question').fill('已知');
+  await page.locator('.controls [data-open-math-keyboard]').click();
+  await page.locator('.math-keyboard-tabs button', {hasText:'几何与圆锥'}).click();
+  await page.locator('.math-keyboard-keys button', {hasText:'椭圆'}).click();
+  assert.equal(await page.locator('#question').inputValue(), '已知(x−h)²/a²+(y−k)²/b²=1');
+
+  await page.locator('#objectType').selectOption('point');
+  await page.locator('#objectParam-x').fill('1');
+  await page.locator('#objectParam-x').focus();
+  await page.locator('.math-keyboard-tabs button', {hasText:'代数与函数'}).click();
+  await page.locator('.math-keyboard-keys button', {hasText:'π'}).click();
+  assert.equal(await page.locator('#objectParam-x').inputValue(), '1π');
+  await screenshot('math-keyboard.png', null);
+  await page.locator('[data-key-command="close"]').click();
+  assert.equal(await page.locator('#mathKeyboard').isVisible(), false);
+
+  await page.locator('.controls [data-quick-conic="ellipse"]').click();
+  await page.locator('#params input[data-key="a"][data-param-expression]').fill('√25');
+  scene = JSON.parse(await page.locator('#sceneJson').inputValue());
+  assert.equal(scene.a, 5, '主曲线参数应直接计算根式');
+  const hParam = page.locator('#params input[data-key="h"][data-param-expression]');
+  await hParam.focus();
+  await hParam.selectText();
+  await page.locator('.panel-title-row [data-open-math-keyboard]').click();
+  await page.locator('.math-keyboard-tabs button', {hasText:'代数与函数'}).click();
+  await page.locator('.math-keyboard-keys button', {hasText:'π'}).click();
+  scene = JSON.parse(await page.locator('#sceneJson').inputValue());
+  assert(Math.abs(scene.h - Math.PI) < 1e-9, '主曲线参数键盘应写入并计算 π');
+  assert.equal(await hParam.inputValue(), 'π');
+  await page.locator('[data-key-command="close"]').click();
+
+  await page.route('**/api/solve', route => route.abort('failed'));
+  await page.locator('#question').fill('椭圆 C：x²/25+y²/9=1。');
+  await page.locator('#parseButton').click();
+  await page.locator('#scenePreviewDialog').waitFor({state:'visible'});
+  await page.locator('#previewA').fill('√16');
+  await page.locator('#previewB').fill('3/2');
+  await page.locator('#previewPoints').fill('P, √4, 3/2');
+  let preview = JSON.parse(await page.locator('#scenePreviewJson').inputValue());
+  assert.equal(preview.a, 4);
+  assert.equal(preview.b, 1.5);
+  assert.deepEqual(preview.points.P, [2, 1.5]);
+  await page.locator('#previewK').focus();
+  await page.locator('#previewK').selectText();
+  await page.locator('#scenePreviewDialog [data-open-math-keyboard]').click();
+  await page.locator('.math-keyboard-tabs button', {hasText:'代数与函数'}).click();
+  await page.locator('.math-keyboard-keys button', {hasText:'π'}).click();
+  preview = JSON.parse(await page.locator('#scenePreviewJson').inputValue());
+  assert(Math.abs(preview.k - Math.PI) < 1e-9, '识别确认参数键盘应写入并计算 π');
+  await page.locator('[data-key-command="close"]').click();
+  await page.locator('#cancelScenePreview').click();
+  await page.unroute('**/api/solve');
+
+  assert.match(await page.locator('#status').innerText(), /返回题目输入/);
+  await screenshot('structured-input-and-keyboard.png', '.inspect');
+  console.log('PASS: point coordinate fields, structured equation templates, extended function curves and offline math keyboard.');
+};

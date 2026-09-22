@@ -1,0 +1,17 @@
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+node_modules/
+.env
+.env.*
+!*.env.example
+deploy/cloud.env
+*.log
+*.zip
+_release/
+_site/
+runtime/
+董解析数据/
+playwright-report/
+test-results/

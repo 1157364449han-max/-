@@ -1,0 +1,18 @@
+{
+  "id": "./",
+  "name": "董解析",
+  "short_name": "董解析",
+  "description": "面向高中生与教师的解析几何解题、验证和动态展示平台",
+  "lang": "zh-CN",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#f6f8fb",
+  "theme_color": "#0c1b33",
+  "categories": ["education", "productivity"],
+  "icons": [
+    {"src": "icons/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any"},
+    {"src": "icons/maskable.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "maskable"}
+  ]
+}

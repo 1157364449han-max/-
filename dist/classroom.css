@@ -1,0 +1,25 @@
+.study-tools { margin-top:.6rem;padding:.6rem;border:1px solid #d7e0eb;border-radius:9px;background:#f6f9fd; }
+.study-mode-row { display:flex;align-items:center;gap:.5rem; }
+.study-mode-row label { margin:0;white-space:nowrap; }
+.study-tools select { min-width:0;width:100%;border:1px solid #bdcadd;border-radius:6px;padding:.4rem;font-size:.83rem; }
+#studyNotes { padding:.4rem; }
+#studyNotes summary { padding:.4rem;font-size:.82rem; }
+#studyNotes textarea { min-height:130px;font-size:.85rem; }
+.step-navigation { display:flex;flex-wrap:wrap;gap:.4rem;margin:.6rem 0;font-size:.78rem; }
+.step-navigation span { width:100%;color:#64748b; }
+.step-navigation button { padding:.4rem;border:1px solid #b8d7d2;border-radius:6px;background:#fff;color:#075e5b; }
+.step-learning .method-overview,.step-learning .lesson-assumptions,.step-learning>.lesson-actions { display:none; }
+#classroomBar { display:flex;gap:.4rem;align-items:center;flex-wrap:wrap;padding:.6rem 1rem;background:#eaf3fa;color:#0c1b33; }
+#classroomBar button,#classroomBar select { padding:.4rem .6rem;border:1px solid #aebfd1;border-radius:7px;background:white;font-size:.88rem;color:#173956; }
+#classroomBar button[aria-pressed=true] { color:white;background:#ba2330; }
+#classroomProgress { font-size:.85rem;min-width:70px; }
+.classroom-mode .topbar,.classroom-mode .controls,.classroom-mode .footer { display:none; }
+.classroom-mode .workspace { grid-template-columns:minmax(0,1.15fr) minmax(340px,1fr);padding:.6rem;max-width:none; }
+.classroom-mode .board-shell { top:0;height:calc(100vh - 112px);min-height:480px; }
+.classroom-mode .inspect { max-height:calc(100vh - 112px); }
+.classroom-mode #solution p,.classroom-mode #solution ol,.classroom-mode #solution .math-content { font-size:var(--lecture-font,18px);line-height:1.9; }
+.classroom-mode #studyTools,.classroom-mode #followupPanel { display:none; }
+#classroomInk { position:absolute;inset:0;z-index:3;touch-action:none;cursor:crosshair; }
+.worksheet-space { margin-top:2rem;min-height:170mm;border-top:1px solid #777;padding-top:1rem; }
+@media (max-width:760px) { .classroom-mode .workspace { display:flex; } .classroom-mode .board-shell { height:65vh;min-height:480px; } .classroom-mode .inspect { max-height:none; } #classroomBar { padding:.4rem;gap:.3rem; } #classroomBar button { padding:.35rem;font-size:.8rem; } }
+@media print { #classroomBar { display:none!important; } }

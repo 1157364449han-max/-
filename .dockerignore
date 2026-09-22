@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+.git/
+.github/
+tests/
+deploy/
+董解析数据/
+runtime/
+*.zip
+*.png

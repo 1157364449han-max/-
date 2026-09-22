@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="112" fill="#0c1b33"/>
+  <path d="M82 341C150 105 362 105 430 341M82 341h348" fill="none" stroke="#f9bd57" stroke-width="38" stroke-linecap="round"/>
+  <circle cx="256" cy="205" r="34" fill="#54d6c8"/>
+  <text x="256" y="445" text-anchor="middle" font-family="sans-serif" font-size="92" font-weight="700" fill="#ffffff">董</text>
+</svg>

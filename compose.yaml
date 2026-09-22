@@ -1,0 +1,13 @@
+services:
+  dongjiexi:
+    build: .
+    ports:
+      - "8765:8765"
+    environment:
+      DONGJIEXI_CLOUD: "1"
+      DONGJIEXI_OLLAMA_URL: "${DONGJIEXI_OLLAMA_URL:-http://host.docker.internal:11434}"
+      DONGJIEXI_OLLAMA_TOKEN: "${DONGJIEXI_OLLAMA_TOKEN:-}"
+      DONGJIEXI_ACCESS_KEY: "${DONGJIEXI_ACCESS_KEY:-}"
+      DONGJIEXI_ALLOWED_MODELS: "${DONGJIEXI_ALLOWED_MODELS:-qwen3.5:4b}"
+      DONGJIEXI_ALLOWED_ORIGINS: "${DONGJIEXI_ALLOWED_ORIGINS:-}"
+    restart: unless-stopped
