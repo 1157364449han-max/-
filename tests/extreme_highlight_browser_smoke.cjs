@@ -1,0 +1,24 @@
+module.exports=async({page,assert})=>{
+  await page.locator('[data-quick-conic="ellipse"]').click();
+  await page.locator('#layers .layer-row').filter({hasText:'动直线'}).locator('input').check();
+  await page.locator('#extremeMetric').selectOption('chord');
+  await page.locator('#scanButton').click();
+  assert.match(await page.locator('#scanResult').innerText(),/采样最小.*采样最大/);
+  await page.locator('#jumpMaximum').click();
+  assert.match(await page.locator('#extremeHitStatus').innerText(),/采样最大|近似定值/);
+  assert.equal(await page.locator('.scan.extreme-hit').count(),1);
+  await page.locator('#jumpMinimum').click();
+  assert.match(await page.locator('#extremeHitStatus').innerText(),/采样最小|近似定值/);
+  await page.locator('#extremeMetric').selectOption('sin');
+  await page.locator('#scanButton').click();
+  await page.locator('#jumpMaximum').click();
+  assert.match(await page.locator('#extremeHitStatus').innerText(),/sin θ≈1/);
+  await page.locator('#extremeMetric').selectOption('cos');
+  await page.locator('#scanButton').click();
+  await page.locator('#jumpMinimum').click();
+  assert.match(await page.locator('#extremeHitStatus').innerText(),/cos θ≈-1/);
+  await page.locator('#r-a').fill('5');
+  await page.locator('#r-a').dispatchEvent('input');
+  assert.match(await page.locator('#scanResult').innerText(),/请重新扫描/);
+  assert.equal(await page.locator('.scan.extreme-hit').count(),0);
+};
