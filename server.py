@@ -33,7 +33,7 @@ DIST = ROOT / "dist"
 CONFIG = ROOT / "version.json"
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
-from learning_engine import LearningEngine, EngineError, OLLAMA_BASE_URL, ollama_headers
+from learning_engine import LearningEngine, EngineError, EngineBusy, OLLAMA_BASE_URL, ollama_headers
 from verification_engine import attach_trust_report, has_uncertainty
 
 
@@ -1951,7 +1951,7 @@ CLOUD_MODE = os.environ.get("DONGJIEXI_CLOUD", "").strip().lower() in {"1", "tru
 ALLOWED_ORIGINS = {item.strip().rstrip("/") for item in os.environ.get("DONGJIEXI_ALLOWED_ORIGINS", "").split(",") if item.strip()}
 ACCESS_KEY = os.environ.get("DONGJIEXI_ACCESS_KEY", "").strip()
 TRUST_PROXY = os.environ.get("DONGJIEXI_TRUST_PROXY", "").strip().lower() in {"1", "true", "yes"}
-ALLOWED_MODELS = {item.strip() for item in os.environ.get("DONGJIEXI_ALLOWED_MODELS", "qwen3.5:4b").split(",") if item.strip()}
+ALLOWED_MODELS = {item.strip() for item in os.environ.get("DONGJIEXI_ALLOWED_MODELS", os.environ.get("DONGJIEXI_MODEL_ID", "qwen3.5:4b")).split(",") if item.strip()}
 
 
 def env_integer(name: str, default: int, low: int, high: int) -> int:
@@ -2156,7 +2156,10 @@ class AppHandler(SimpleHTTPRequestHandler):
                     self.json_response({"error": "所选模型不在在线服务允许列表中。"}, 400); return
                 if body.get("kind") == "pull" and self.client_address[0] not in {"127.0.0.1", "::1"}:
                     self.json_response({"error": "请在主机电脑上下载模型。"}, 403); return
-                job = LEARNING.submit(body)
+                try:
+                    job = LEARNING.submit(body)
+                except EngineBusy as error:
+                    self.json_response({"error": str(error)}, 429, {"Retry-After": "10"}); return
                 if CLOUD_MODE:
                     with AUTH_LOCK:
                         JOB_OWNERS[job["id"]] = identity

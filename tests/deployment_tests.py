@@ -23,7 +23,7 @@ class DeploymentTests(unittest.TestCase):
         desktop = json.loads((ROOT / "version.json").read_text(encoding="utf-8"))["version"]
         web = json.loads((ROOT / "dist" / "app-version.json").read_text(encoding="utf-8"))["version"]
         releases = json.loads((ROOT / "dist" / "releases.json").read_text(encoding="utf-8"))["current"]
-        self.assertEqual((desktop, web, releases), ("0.22.0",) * 3)
+        self.assertEqual((desktop, web, releases), ("0.23.0",) * 3)
 
     def test_cloud_runtime_and_exact_cors_allowlist(self):
         port = free_port()

@@ -1,6 +1,6 @@
 module.exports=async({page,context,assert})=>{
   await page.evaluate(async()=>{for(const r of await navigator.serviceWorker.getRegistrations())await r.unregister();for(const k of await caches.keys())await caches.delete(k);localStorage.clear();});
-  await context.route('**/runtime-config.js',route=>route.fulfill({contentType:'application/javascript',body:'window.DONGJIEXI_CONFIG={version:"0.22.0",deployment:"web",apiEnabled:true,apiBase:"",requiresAuth:false};'}));
+  await context.route('**/runtime-config.js',route=>route.fulfill({contentType:'application/javascript',body:'window.DONGJIEXI_CONFIG={version:"0.23.0",deployment:"web",apiEnabled:true,apiBase:"",requiresAuth:false};'}));
   await context.route('**/api/health',route=>route.fulfill({json:{default_model:'test',engine:{available:false,installed:false,models:[]}}}));
   let release,started=false,requests=0;
   const gate=new Promise(resolve=>release=resolve);
@@ -26,7 +26,7 @@ module.exports=async({page,context,assert})=>{
   assert.equal((await page.locator('#solution').textContent()).includes('旧题答案'),false);
   assert.equal(await page.locator('#question').inputValue(),'椭圆x²/9+y²/4=1，求焦点。');
   await context.unroute('**/runtime-config.js');
-  await context.route('**/runtime-config.js',route=>route.fulfill({contentType:'application/javascript',body:'window.DONGJIEXI_CONFIG={version:"0.22.0",deployment:"web",apiEnabled:false,apiBase:"",requiresAuth:false};'}));
+  await context.route('**/runtime-config.js',route=>route.fulfill({contentType:'application/javascript',body:'window.DONGJIEXI_CONFIG={version:"0.23.0",deployment:"web",apiEnabled:false,apiBase:"",requiresAuth:false};'}));
   await page.reload({waitUntil:'domcontentloaded'});
   await page.locator('#question').fill('圆x²+y²=9，求半径。');
   await page.locator('#solveButton').click();

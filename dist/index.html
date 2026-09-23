@@ -12,8 +12,8 @@
   <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
   <link rel="apple-touch-icon" href="icons/icon.svg">
   <link rel="stylesheet" href="vendor/katex/katex.min.css">
-  <link rel="stylesheet" href="learning-ui.css?v=0.22.0">
-  <link rel="stylesheet" href="classroom.css?v=0.22.0">
+  <link rel="stylesheet" href="learning-ui.css?v=0.23.0">
+  <link rel="stylesheet" href="classroom.css?v=0.23.0">
   <style>
     :root { --ink:#0c1b33; --ink-2:#1a3152; --paper:#f6f8fb; --panel:#ffffff; --line:#d7e0eb; --muted:#64748b; --teal:#0f9f99; --teal-soft:#e1f7f4; --amber:#f2a33c; --amber-soft:#fff2d9; --red:#df5b62; --blue:#3f78d8; --shadow:0 10px 30px rgba(12,27,51,.09); }
     * { box-sizing:border-box; }
@@ -319,7 +319,7 @@
 <body>
   <main class="app">
     <header class="topbar">
-      <div class="brand"><span class="brand-mark">董</span><span class="brand-name">董解析</span><button class="version-button" id="versionButton" title="查看版本、更新记录和能力边界">v0.22.0 · 更新记录</button></div>
+      <div class="brand"><span class="brand-mark">董</span><span class="brand-name">董解析</span><button class="version-button" id="versionButton" title="查看版本、更新记录和能力边界">v0.23.0 · 更新记录</button></div>
       <div class="top-actions"><span class="top-note">内置符号解题 · 动态几何 · 可选智能增强 · 我的题本</span><button id="pwaInstall" class="install-button" hidden>安装到设备</button></div>
     </header>
     <section id="pwaBanner" class="pwa-banner" hidden role="status"><span id="pwaMessage"></span><button id="pwaUpdate" hidden>立即更新</button><button id="pwaDismiss">稍后</button></section>
@@ -365,7 +365,7 @@
           <p class="help" id="deploymentNotice" hidden></p>
           <div id="imagePreview" hidden><img id="questionImage" alt="待识别题图"><button class="button secondary" id="removeImage">移除题图</button></div>
           <div id="jobPanel" class="job-panel" hidden role="status"><span id="jobPhase"></span><button id="cancelJob" class="button secondary">停止</button></div>
-          <details id="engineSetup"><summary>可选：开放题智能增强</summary><div><p class="help">内置符号解题不需要模型。只有规则尚未覆盖的开放题，才可选择本机或独立云端智能引擎补充；生成内容仍需核验。</p><div class="model-row" id="cloudAuth" hidden><input id="cloudAccessKey" type="password" autocomplete="current-password" placeholder="在线解题访问口令" aria-label="在线解题访问口令"><button class="button secondary" id="cloudLogin">连接在线增强</button></div><div class="model-row"><select id="modelName" aria-label="可选智能增强模型"><option>qwen3.5:4b</option></select><button class="button secondary" id="engineRefresh">检测可选增强</button></div><div class="learning-settings"><label for="solveDepth">增强模式</label><select id="solveDepth"><option value="deep">深入推导</option><option value="normal">快速草稿（需仔细核对）</option></select></div><button id="pullModel" class="button secondary">可选下载本机增强模型</button></div></details>
+<details id="engineSetup"><summary>解题引擎与本机模型</summary><div><p class="help">独立云端接通后会优先处理完整题目，图形与推理结果仍需核验。本机版可自愿下载模型处理题目；公开网页不会自动连接你的电脑。</p><div class="model-row" id="cloudAuth" hidden><input id="cloudAccessKey" type="password" autocomplete="current-password" placeholder="在线解题访问口令" aria-label="在线解题访问口令"><button class="button secondary" id="cloudLogin">连接在线解题</button></div><div class="model-row"><select id="modelName" aria-label="解题模型"><option>qwen3.5:4b</option></select><button class="button secondary" id="engineRefresh">检测解题引擎</button></div><div class="learning-settings"><label for="solveDepth">增强模式</label><select id="solveDepth"><option value="deep">深入推导</option><option value="normal">快速草稿（需仔细核对）</option></select></div><button id="pullModel" class="button secondary">可选下载本机模型</button></div></details>
           <p class="help">绿色“已完成”表示内置规则确实算出了该问；定值、最值或证明若未覆盖，会明确标为待推导，不会伪造结论。</p>
         </section>
         <div class="actions"><button id="openNotebook" class="button secondary">我的题本</button><button id="saveLesson" class="button secondary">保存本题</button></div>
@@ -486,17 +486,17 @@
   </dialog>
 
   <script src="runtime-config.js"></script>
-  <script src="runtime.js?v=0.22.0"></script>
+  <script src="runtime.js?v=0.23.0"></script>
   <script src="vendor/katex/katex.min.js"></script>
   <script src="vendor/katex/contrib/auto-render.min.js"></script>
-  <script src="math-input.js?v=0.22.0"></script>
-  <script src="tangent-solver.js?v=0.22.0"></script>
-  <script src="learning-ui.js?v=0.22.0"></script>
-  <script src="classroom.js?v=0.22.0"></script>
-  <script src="construction-board.js?v=0.22.0"></script>
-  <script src="drag-board.js?v=0.22.0"></script>
-  <script src="equation-builder.js?v=0.22.0"></script>
-  <script src="math-keyboard.js?v=0.22.0"></script>
+  <script src="math-input.js?v=0.23.0"></script>
+  <script src="tangent-solver.js?v=0.23.0"></script>
+  <script src="learning-ui.js?v=0.23.0"></script>
+  <script src="classroom.js?v=0.23.0"></script>
+  <script src="construction-board.js?v=0.23.0"></script>
+  <script src="drag-board.js?v=0.23.0"></script>
+  <script src="equation-builder.js?v=0.23.0"></script>
+  <script src="math-keyboard.js?v=0.23.0"></script>
   <script src="geogebra-bridge.js?v=0.7.0"></script>
   <script>
   (() => {
@@ -1093,6 +1093,6 @@ function motionStep(timestamp){if(!state.model){stopMotion(false);return;}const 
     document.getElementById('closeReleases').addEventListener('click',()=>dialog.close());
   })();
   </script>
-  <script src="pwa.js?v=0.22.0"></script>
+  <script src="pwa.js?v=0.23.0"></script>
 </body>
 </html>

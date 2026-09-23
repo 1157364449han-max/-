@@ -106,7 +106,7 @@ module.exports = async ({page, context, assert, screenshot}) => {
   });
   await context.route('**/runtime-config.js', route => route.fulfill({
     contentType: 'application/javascript',
-    body: `window.DONGJIEXI_CONFIG=Object.freeze({version:'0.22.0',deployment:'web',apiBase:'',apiEnabled:false,requiresAuth:false,updateChannel:'stable'});`,
+    body: `window.DONGJIEXI_CONFIG=Object.freeze({version:'0.23.0',deployment:'web',apiBase:'',apiEnabled:false,requiresAuth:false,updateChannel:'stable'});`,
   }));
   await page.reload({waitUntil: 'domcontentloaded'});
   scene = await solve();

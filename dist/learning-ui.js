@@ -25,6 +25,8 @@
     let draftTimer = null;
     let lastModel = localStorage.getItem(modelKey) || '';
     let engineReady = false;
+    let cloudPrimary = false;
+    let visionAvailable = true;
     const inspector=find('.inspect');
     const studyPane=document.createElement('div');studyPane.id='studyPane';
     studyPane.append(find('#solution'),find('#followupPanel'));
@@ -93,6 +95,7 @@
       processing=value;
       ['solveButton','recognizeButton','sendFollowup','pullModel','parseButton','clearButton','saveLesson','openNotebook','confirmRecognition','engineRefresh','reviewAttempt'].forEach(identifier=>{const button=find('#'+identifier);if(button)button.disabled=value;});
       if(!value&&!runtime.config.apiEnabled){for(const id of ['recognizeButton','engineRefresh'])find('#'+id).disabled=true;}
+      if(!value&&!visionAvailable)find('#recognizeButton').disabled=true;
       find('#jobPanel').hidden=!value;
       find('#solveButton').textContent=value?'正在处理…':'一站式解题';
     }
@@ -122,19 +125,22 @@
         return;
       }
       try{
-        if(start)await request('/api/ai/start',{});
+        if(start&&!remote)await request('/api/ai/start',{});
         const data=await request('/api/health');
+        cloudPrimary=data.engine.remote===true;
+        visionAvailable=data.engine.vision!==false;
         const names=data.engine.models||[];
-        const choices=[...new Set([...names,data.default_model||'qwen3.5:4b','qwen3.5:9b'])];
+        const choices=remote?[...names]:[...new Set([...names,data.default_model||'qwen3.5:4b','qwen3.5:9b'])];
         const select=find('#modelName');
         const chosen=lastModel||select.value||data.default_model;
-        select.replaceChildren(...choices.map(name=>{const option=document.createElement('option');option.value=name;option.textContent=name+(names.includes(name)?' · 已下载':' · 未下载');return option;}));
+        select.replaceChildren(...choices.map(name=>{const option=document.createElement('option');option.value=name;option.textContent=name+(remote?' · 云端服务':names.includes(name)?' · 已下载':' · 未下载');return option;}));
         select.value=choices.includes(chosen)?chosen:(names[0]||choices[0]);
         const selectedReady=data.engine.available&&names.includes(select.value);
         engineReady=selectedReady;
+        if(!visionAvailable)find('#recognizeButton').disabled=true;
         find('#engineStatus').classList.toggle('ready',selectedReady);
         find('#engineStatus').textContent=selectedReady?(remote?'内置解题 + 在线智能增强已就绪':'内置解题 + 可选本机智能增强已就绪'):data.engine.available?(remote?'内置解题可用 · 在线增强模型未选择':'内置解题可用 · 可选择已安装模型增强'):data.engine.installed?'内置解题可用 · 智能增强组件可选':remote?'内置解题可用 · 在线增强暂不可用':'内置解题已就绪 · 无需安装额外模型';
-        find('#pullModel').hidden=remote||selectedReady;
+        find('#pullModel').hidden=remote||cloudPrimary||selectedReady;
         find('#engineSetup').hidden=false;
       }catch(error){engineReady=false;find('#engineStatus').classList.remove('ready');find('#engineStatus').textContent=remote?'内置浏览器解题可用；在线增强暂不可用。':'无法连接本机服务；浏览器内置解题仍可使用。';find('#solveButton').disabled=processing;if(start)report(error);}
     }
@@ -236,14 +242,19 @@
       const acceptResult=result=>{
         if(api.question.value.trim()!==original){api.setStatus('题目已修改，本次旧题结果未应用。请点击“一站式解题”求解当前题目。');return;}
         api.showSolution(result);
-        if(result.scene){try{api.installScene(api.modelFromJson(JSON.stringify(result.scene)),result.mode==='local-ollama'?'智能增强图形':'内置精确建模');}catch(error){result.scene_notice='图形未能载入，解析已保留：'+error.message;}}
+        if(result.scene){try{api.installScene(api.modelFromJson(JSON.stringify(result.scene)),['local-ollama','cloud-ai'].includes(result.mode)?'智能生成图形（需核验）':'内置精确建模');}catch(error){result.scene_notice='图形未能载入，解析已保留：'+error.message;}}
         else if(api.state.model){api.state.exploring=true;find('#exploreNotice').hidden=false;find('#exploreNotice').textContent='本题没有生成新图形，画板仍是此前的图稿，不对应当前解析。';}
         inspectorView='lesson';renderSolution();api.remember();
         if(api.question.value.trim()===original){try{saveLesson(true);}catch(error){report(error);return;}}
         const completion=result.completion||{answered:0,total:(result.parts||[]).length||1};
-        api.setStatus(`内置引擎已完成 ${completion.answered}/${completion.total} 问；${verificationNames[result.verification?.status]||'请核对步骤'}。${result.scene_notice||''}`);
+        api.setStatus(`${result.mode==='cloud-ai'?'云端 AI 返回':'内置引擎已完成'} ${completion.answered}/${completion.total} 问；${verificationNames[result.verification?.status]||'请核对步骤'}。${result.scene_notice||''}`);
         return completion;
       };
+      if(engineReady&&cloudPrimary){
+        api.setStatus('正在由独立云端理解完整题目、生成解析并进行数学核验；不会占用你的电脑运行模型。');
+        await runJob({kind:'solve',text:original,model:find('#modelName').value,depth:find('#solveDepth').value},acceptResult);
+        return;
+      }
       let deterministic;
       busy(true);find('#jobPhase').textContent='正在进行内置识题、符号推导与图形校验…';
       try{
@@ -300,6 +311,10 @@
     find('#clearButton').addEventListener('click',renderSolution);
     find('#modelName').addEventListener('change',event=>{lastModel=event.target.value;localStorage.setItem(modelKey,lastModel);refreshEngine();});
     find('#pullModel').addEventListener('click',()=>runJob({kind:'pull',model:find('#modelName').value},result=>api.setStatus(result.message)));
+    const localChoice=document.createElement('details');localChoice.id='localModelChoice';
+    const localTitle=document.createElement('summary');localTitle.textContent='可选：使用本机模型，分担云端压力';
+    const localHelp=document.createElement('p');localHelp.className='help';localHelp.textContent='已有 Windows 本机版：运行程序目录中的“安装本地AI.bat”，再在本机版检测并下载模型。题目在本机处理，不自动转发云端。模型占用下载流量、磁盘和内存；手机仍建议使用云端。公开网页不会擅自连接你的 localhost；通用免环境桌面安装包尚待完善。';
+    localChoice.append(localTitle,localHelp);find('#engineSetup').after(localChoice);
     find('#cancelJob').addEventListener('click',async()=>{if(activeJob){try{await request('/api/jobs/'+activeJob+'/cancel',{});find('#jobPhase').textContent='正在停止，请稍候…';}catch(error){report(error);}}});
     find('#recognizeButton').addEventListener('click',()=>recognize().catch(report));
     find('#imageFile').addEventListener('change',()=>{if(imageURL)URL.revokeObjectURL(imageURL);const file=find('#imageFile').files[0];find('#imagePreview').hidden=!file;if(file){imageURL=URL.createObjectURL(file);find('#questionImage').src=imageURL;api.setStatus('已添加题图。点击“识别题图”，核对后再解答。');}});

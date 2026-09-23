@@ -1,6 +1,6 @@
 module.exports=async({page,context,assert,screenshot})=>{
   await page.evaluate(async()=>{for(const s of await navigator.serviceWorker.getRegistrations())await s.unregister();for(const k of await caches.keys())await caches.delete(k);});
-  await context.route('**/runtime-config.js',route=>route.fulfill({contentType:'application/javascript',body:"window.DONGJIEXI_CONFIG={version:'0.22.0',deployment:'web',apiEnabled:false};"}));
+  await context.route('**/runtime-config.js',route=>route.fulfill({contentType:'application/javascript',body:"window.DONGJIEXI_CONFIG={version:'0.23.0',deployment:'web',apiEnabled:false};"}));
   await page.reload({waitUntil:'domcontentloaded'});
   const question=String.raw`已知椭圆 C：$\frac{x^{2}}{9}+\frac{y^{2}}{4}=1$，过点 P(5,0) 作椭圆的两条切线，切点分别为 A、B。
 （1）求切点坐标和切线方程。

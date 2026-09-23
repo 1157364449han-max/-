@@ -17,6 +17,7 @@ import urllib.request
 from urllib.parse import urlparse
 
 from verification_engine import has_uncertainty
+from cloud_inference import CloudInference
 
 
 OLLAMA_BASE_URL = os.environ.get("DONGJIEXI_OLLAMA_URL", "http://127.0.0.1:11434").strip().rstrip("/")
@@ -112,6 +113,10 @@ class EngineError(ValueError):
 
 
 class Cancelled(Exception):
+    pass
+
+
+class EngineBusy(EngineError):
     pass
 
 
@@ -250,7 +255,12 @@ class LearningEngine:
         except ValueError:
             self.job_ttl = 3600
         self.lock = threading.RLock()
-        self.busy = threading.Lock()
+        self.cloud = CloudInference()
+        try:
+            slots = max(1, min(8, int(os.environ.get('DONGJIEXI_MAX_CONCURRENT', '2')))) if self.cloud.enabled else 1
+        except ValueError:
+            slots = 1
+        self.busy = threading.BoundedSemaphore(slots)
         self.process = None
         atexit.register(self.close)
 
@@ -262,6 +272,8 @@ class LearningEngine:
         return next((str(path) for path in candidates if path.is_file()), None) or shutil.which("ollama")
 
     def health(self):
+        if self.cloud.enabled:
+            return self.cloud.health()
         try:
             models = request_json("/api/tags").get("models", [])
             names = [item["name"] for item in models if isinstance(item.get("name"), str)]
@@ -272,6 +284,8 @@ class LearningEngine:
                     "remote": REMOTE_OLLAMA}
 
     def start(self):
+        if self.cloud.enabled:
+            return self.health()
         with self.lock:
             if self.health()["available"]:
                 return self.health()
@@ -329,7 +343,7 @@ class LearningEngine:
             raise EngineError("题面仍含“[看不清]”或其它未确认字段。请先在识别结果中补正，再开始解题。")
         if kind == "pull" and model not in {"qwen3.5:4b", "qwen3.5:9b"}:
             raise EngineError("内置下载支持 qwen3.5:4b 和 qwen3.5:9b。其它本地模型可自行安装后选择。")
-        if kind == "pull" and REMOTE_OLLAMA:
+        if kind == "pull" and (REMOTE_OLLAMA or self.cloud.enabled):
             raise EngineError("在线版不能从浏览器下载模型，请由服务管理员配置推理模型。")
         health = self.health()
         if not health["available"]:
@@ -337,7 +351,7 @@ class LearningEngine:
         if kind != "pull" and model not in health["models"]:
             raise EngineError(f"推理服务尚未提供 {model}。请改选可用模型或联系管理员配置。")
         if not self.busy.acquire(blocking=False):
-            raise EngineError("已有任务正在处理，请先等待完成或停止该任务。")
+            raise EngineBusy("解题服务并发已满，请稍后重试；也可自愿使用本机模型。")
         with self.lock:
             now = time.time()
             expired = [key for key, job in self.jobs.items()
@@ -375,6 +389,10 @@ class LearningEngine:
         return self.snapshot(identifier)
 
     def _stream(self, job, path, payload):
+        if self.cloud.enabled:
+            if path != '/api/chat':
+                raise EngineError('云端服务不支持下载模型，请在本机版自愿安装。')
+            return self.cloud.stream(job, payload, Cancelled)
         request = urllib.request.Request(OLLAMA_BASE_URL + path,
                                          data=json.dumps(payload, ensure_ascii=False).encode(),
                                          headers=ollama_headers())
@@ -430,7 +448,7 @@ class LearningEngine:
                 self._stream(job, "/api/pull", {"model": model, "stream": True})
                 result = {"message": "模型已下载，可以开始 AI 解题。"}
             else:
-                information = request_json("/api/show", {"model": model}, timeout=15)
+                information = {"capabilities": []} if self.cloud.enabled else request_json("/api/show", {"model": model}, timeout=15)
                 if not REMOTE_OLLAMA and (information.get("remote_host") or information.get("remote_model")):
                     raise EngineError("所选模型是云端模型；当前本机模式不发送题目到云端。")
                 capabilities = information.get("capabilities", [])
@@ -471,9 +489,13 @@ class LearningEngine:
                 if kind == "solve":
                     raw = json.loads(content)
                     result = assemble_solution(raw, text, expected, model)
+                    repairs = 0
                     for part in result["parts"]:
                         if part["status"] != "partial" or part["steps"]:
                             continue
+                        if self.cloud.enabled and repairs >= 2:
+                            continue
+                        repairs += 1
                         job["phase"] = "补充遗漏的" + part["label"]
                         repair_schema = {**PART_SCHEMA, "properties": {**PART_SCHEMA["properties"], "index": {"type": "integer", "enum": [part["index"]]}}}
                         repair = {**payload, "messages": [messages[0], {"role": "user", "content": f"原题：{text}\n已有解答供核对：{json.dumps(raw, ensure_ascii=False)[:22000]}\n请完整解答被遗漏的第 {part['index']} 问：{part.get('body', part['question'])}。只返回该小问 JSON，并给出 index、answer、steps、status、equations、substitutions、candidate_solutions、domain、proof_obligations。公式必须用 $ 包围。"}], "format": repair_schema}
@@ -500,6 +522,8 @@ class LearningEngine:
                             pass
                     if self.verify:
                         result = self.verify(result)
+                    if self.cloud.enabled:
+                        result['mode'] = 'cloud-ai'
                 else:
                     result = {"text": content, "model": model}
             if job["cancel"].is_set():
