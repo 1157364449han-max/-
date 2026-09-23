@@ -20,6 +20,7 @@
     const draftKey = 'dongjiexi:draft:v1';
     const modelKey = 'dongjiexi:model';
     let activeJob = null;
+    let processing = false;
     let imageURL = null;
     let draftTimer = null;
     let lastModel = localStorage.getItem(modelKey) || '';
@@ -89,7 +90,9 @@
       }));
     }
     function busy(value) {
+      processing=value;
       ['solveButton','recognizeButton','sendFollowup','pullModel','parseButton','clearButton','saveLesson','openNotebook','confirmRecognition','engineRefresh','reviewAttempt'].forEach(identifier=>{const button=find('#'+identifier);if(button)button.disabled=value;});
+      if(!value&&!runtime.config.apiEnabled){for(const id of ['recognizeButton','engineRefresh'])find('#'+id).disabled=true;}
       find('#jobPanel').hidden=!value;
       find('#solveButton').textContent=value?'正在处理…':'一站式解题';
     }
@@ -103,7 +106,7 @@
         find('#engineStatus').classList.remove('ready');
         find('#engineStatus').textContent='内置解题与离线画板已就绪 · 开放题智能增强未配置';
         find('#pullModel').hidden=true;
-        find('#solveButton').disabled=false;
+        find('#solveButton').disabled=processing;
         for(const id of ['recognizeButton','engineRefresh'])find('#'+id).disabled=true;
         return;
       }
@@ -114,7 +117,7 @@
         find('#engineStatus').classList.remove('ready');
         find('#engineStatus').textContent='在线解题需要授权 · 请输入访问口令';
         find('#pullModel').hidden=true;
-        find('#solveButton').disabled=false;
+        find('#solveButton').disabled=processing;
         for(const id of ['recognizeButton','engineRefresh'])find('#'+id).disabled=true;
         return;
       }
@@ -133,7 +136,7 @@
         find('#engineStatus').textContent=selectedReady?(remote?'内置解题 + 在线智能增强已就绪':'内置解题 + 可选本机智能增强已就绪'):data.engine.available?(remote?'内置解题可用 · 在线增强模型未选择':'内置解题可用 · 可选择已安装模型增强'):data.engine.installed?'内置解题可用 · 智能增强组件可选':remote?'内置解题可用 · 在线增强暂不可用':'内置解题已就绪 · 无需安装额外模型';
         find('#pullModel').hidden=remote||selectedReady;
         find('#engineSetup').hidden=false;
-      }catch(error){engineReady=false;find('#engineStatus').classList.remove('ready');find('#engineStatus').textContent=remote?'内置浏览器解题可用；在线增强暂不可用。':'无法连接本机服务；浏览器内置解题仍可使用。';find('#solveButton').disabled=false;if(start)report(error);}
+      }catch(error){engineReady=false;find('#engineStatus').classList.remove('ready');find('#engineStatus').textContent=remote?'内置浏览器解题可用；在线增强暂不可用。':'无法连接本机服务；浏览器内置解题仍可使用。';find('#solveButton').disabled=processing;if(start)report(error);}
     }
     async function runJob(body,done) {
       if(activeJob)return;
@@ -226,10 +229,12 @@
       typeset(target);window.print();
     }
     async function solve() {
+      if(processing)return;
       const original=api.question.value.trim();
       if(!original){report(new Error(find('#imageFile').files[0]?'请先点击“识别题图”，核对文字后解答。':'请先输入完整题目。'));return;}
       if(hasUncertainty(original)){report(new Error('题面仍含“[看不清]”或其它未确认字段。请先补正后再解题。'));return;}
       const acceptResult=result=>{
+        if(api.question.value.trim()!==original){api.setStatus('题目已修改，本次旧题结果未应用。请点击“一站式解题”求解当前题目。');return;}
         api.showSolution(result);
         if(result.scene){try{api.installScene(api.modelFromJson(JSON.stringify(result.scene)),result.mode==='local-ollama'?'智能增强图形':'内置精确建模');}catch(error){result.scene_notice='图形未能载入，解析已保留：'+error.message;}}
         else if(api.state.model){api.state.exploring=true;find('#exploreNotice').hidden=false;find('#exploreNotice').textContent='本题没有生成新图形，画板仍是此前的图稿，不对应当前解析。';}
@@ -248,6 +253,7 @@
         acceptResult(deterministic);
       }catch(error){report(error);return;}
       finally{busy(false);}
+      if(api.question.value.trim()!==original)return;
       const completion=deterministic.completion||{answered:0,total:(deterministic.parts||[]).length||1};
       if(completion.answered<completion.total&&engineReady){
         api.setStatus(`内置引擎先完成 ${completion.answered}/${completion.total} 问；正在用可选智能引擎补充其余小问。`);

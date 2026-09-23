@@ -82,7 +82,7 @@
         });
         if (sessionStorage.getItem('dongjiexi:just-updated')) {
           sessionStorage.removeItem('dongjiexi:just-updated');
-          localStorage.setItem('dongjiexi:app-version', window.DongRuntime?.config.version || '0.21.0');
+          localStorage.setItem('dongjiexi:app-version', window.DongRuntime?.config.version || '0.21.1');
           show('董解析已更新到最新版本。', {dismiss: true});
         }
         await registration.update();

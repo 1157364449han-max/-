@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '0.21.0';
+const VERSION = '0.21.1';
 const CACHE = `dongjiexi-app-${VERSION}`;
 const CORE = [
   './', './index.html', './offline.html', './manifest.webmanifest', './app-version.json',
