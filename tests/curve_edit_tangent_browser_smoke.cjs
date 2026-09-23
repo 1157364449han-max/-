@@ -1,6 +1,6 @@
 module.exports=async({page,context,assert,screenshot})=>{
   await page.evaluate(async()=>{for(const sw of await navigator.serviceWorker.getRegistrations())await sw.unregister();for(const key of await caches.keys())await caches.delete(key);});
-  await context.route('**/runtime-config.js',route=>route.fulfill({contentType:'application/javascript',body:`window.DONGJIEXI_CONFIG=Object.freeze({version:'0.21.1',deployment:'web',apiBase:'',apiEnabled:false,requiresAuth:false});`}));
+  await context.route('**/runtime-config.js',route=>route.fulfill({contentType:'application/javascript',body:`window.DONGJIEXI_CONFIG=Object.freeze({version:'0.22.0',deployment:'web',apiBase:'',apiEnabled:false,requiresAuth:false});`}));
   await page.reload({waitUntil:'domcontentloaded'});
   const scene=async()=>JSON.parse(await page.locator('#sceneJson').inputValue());
   await page.locator('#question').fill('已知椭圆x²/9+y²/4=1，求焦点坐标和离心率。');
@@ -53,7 +53,8 @@ module.exports=async({page,context,assert,screenshot})=>{
   assert.equal(circle.equation,'(x−0.5)²+y²=4');
   assert.deepEqual(edited.objects.find(o=>o.id===circleTangent.id).refs,[circlePoint.id,'c']);
   [t,n]=await evaluate();assert(Math.abs(Math.hypot(t.o.x-.5,t.o.y)-2)<1e-8);assert(Math.abs(t.d.x*n.d.x+t.d.y*n.d.y)<1e-8);
-  assert.match(await page.locator('#nativeInspector [data-live-equation]').innerText(),/0.5.*=4/);
+  await page.locator('#nativeInspector [data-live-equation] .katex').waitFor();
+  assert.match(await page.locator('#nativeInspector [data-live-equation]').getAttribute('data-math-source'),/0.5.*=4/);
   assert.equal(await page.locator('#question').inputValue(),originalQuestion);
   assert.equal(await page.locator('#solution').textContent(),originalSolution);
   await page.locator('#undoDrag').click();assert.equal((await scene()).objects.find(o=>o.id==='c').r,1);await page.locator('#redoDrag').click();

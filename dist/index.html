@@ -12,8 +12,8 @@
   <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
   <link rel="apple-touch-icon" href="icons/icon.svg">
   <link rel="stylesheet" href="vendor/katex/katex.min.css">
-  <link rel="stylesheet" href="learning-ui.css?v=0.21.1">
-  <link rel="stylesheet" href="classroom.css?v=0.21.1">
+  <link rel="stylesheet" href="learning-ui.css?v=0.22.0">
+  <link rel="stylesheet" href="classroom.css?v=0.22.0">
   <style>
     :root { --ink:#0c1b33; --ink-2:#1a3152; --paper:#f6f8fb; --panel:#ffffff; --line:#d7e0eb; --muted:#64748b; --teal:#0f9f99; --teal-soft:#e1f7f4; --amber:#f2a33c; --amber-soft:#fff2d9; --red:#df5b62; --blue:#3f78d8; --shadow:0 10px 30px rgba(12,27,51,.09); }
     * { box-sizing:border-box; }
@@ -319,7 +319,7 @@
 <body>
   <main class="app">
     <header class="topbar">
-      <div class="brand"><span class="brand-mark">董</span><span class="brand-name">董解析</span><button class="version-button" id="versionButton" title="查看版本、更新记录和能力边界">v0.21.1 · 更新记录</button></div>
+      <div class="brand"><span class="brand-mark">董</span><span class="brand-name">董解析</span><button class="version-button" id="versionButton" title="查看版本、更新记录和能力边界">v0.22.0 · 更新记录</button></div>
       <div class="top-actions"><span class="top-note">内置符号解题 · 动态几何 · 可选智能增强 · 我的题本</span><button id="pwaInstall" class="install-button" hidden>安装到设备</button></div>
     </header>
     <section id="pwaBanner" class="pwa-banner" hidden role="status"><span id="pwaMessage"></span><button id="pwaUpdate" hidden>立即更新</button><button id="pwaDismiss">稍后</button></section>
@@ -486,15 +486,17 @@
   </dialog>
 
   <script src="runtime-config.js"></script>
-  <script src="runtime.js?v=0.21.1"></script>
+  <script src="runtime.js?v=0.22.0"></script>
   <script src="vendor/katex/katex.min.js"></script>
   <script src="vendor/katex/contrib/auto-render.min.js"></script>
-  <script src="learning-ui.js?v=0.21.1"></script>
-  <script src="classroom.js?v=0.21.1"></script>
-  <script src="construction-board.js?v=0.21.1"></script>
-  <script src="drag-board.js?v=0.21.1"></script>
-  <script src="equation-builder.js?v=0.21.1"></script>
-  <script src="math-keyboard.js?v=0.21.1"></script>
+  <script src="math-input.js?v=0.22.0"></script>
+  <script src="tangent-solver.js?v=0.22.0"></script>
+  <script src="learning-ui.js?v=0.22.0"></script>
+  <script src="classroom.js?v=0.22.0"></script>
+  <script src="construction-board.js?v=0.22.0"></script>
+  <script src="drag-board.js?v=0.22.0"></script>
+  <script src="equation-builder.js?v=0.22.0"></script>
+  <script src="math-keyboard.js?v=0.22.0"></script>
   <script src="geogebra-bridge.js?v=0.7.0"></script>
   <script>
   (() => {
@@ -534,7 +536,7 @@
 
     function setStatus(text, error=false) { status.textContent=text; status.classList.toggle('error',error); }
     function num(n, digits=3) { if (!Number.isFinite(n)) return '—'; const s=Number(n).toFixed(digits); return s.replace(/\.0+$|(?<=\.[0-9]*?)0+$/,''); }
-    function normalize(s) { return s.toLowerCase().replace(/[²]/g,'^2').replace(/[³]/g,'^3').replace(/[₁]/g,'1').replace(/[₂]/g,'2').replace(/[₃]/g,'3').replace(/[（]/g,'(').replace(/[）]/g,')').replace(/[−–—]/g,'-').replace(/[，、]/g,',').replace(/[；]/g,';').replace(/[：]/g,':').replace(/\s+/g,'').replace(/\\(?:d?frac)\{([^{}]+)\}\{([^{}]+)\}/g,'$1/$2').replace(/\*/g,''); }
+    function normalize(s) { return (window.DongMathInput?.toPlain(s)??s).toLowerCase().replace(/[²]/g,'^2').replace(/[³]/g,'^3').replace(/[₁]/g,'1').replace(/[₂]/g,'2').replace(/[₃]/g,'3').replace(/[（]/g,'(').replace(/[）]/g,')').replace(/[−–—]/g,'-').replace(/[，、]/g,',').replace(/[；]/g,';').replace(/[：]/g,':').replace(/\s+/g,'').replace(/\\(?:d?frac)\{([^{}]+)\}\{([^{}]+)\}/g,'$1/$2').replace(/\*/g,''); }
     function parseNumber(x) { const v=Number(x); return Number.isFinite(v) && v>0 ? v : null; }
 
     function scalarValue(raw){const token=String(raw);if(token.includes('/')){const [left,right]=token.split('/').map(Number);return right?left/right:NaN;}return Number(token);}
@@ -981,10 +983,11 @@ function motionStep(timestamp){if(!state.model){stopMotion(false);return;}const 
         const parts=splitBrowserParts(raw).map(part=>({...part,status:'needs_information',answer:error.message,steps:['核对题目中的分数、根号、正负号与条件。','补充能够唯一确定曲线的独立条件。']}));
         return{mode:'symbolic-fallback',title:'内置解题需要补充条件',restatement:raw,answer:error.message,parts,completion:{answered:0,total:parts.length},scene:null,verification:{status:'generated',message:'尚未建立可核验图形。',counts:{verified:0,contradicted:0,unresolved:parts.length},checks:[]}};
       }
-      const equation=previewEquation(scene),feature=browserFeatureAnswer(scene),baseSteps=scene.model.derivation?.length?scene.model.derivation:['从题干提取曲线类型和参数。','由同一组参数生成方程、特殊点与画板图形。'],rawParts=splitBrowserParts(raw),focusChordContext=browserInstallFocusChord(scene,raw,rawParts);
+      const equation=previewEquation(scene),feature=browserFeatureAnswer(scene),baseSteps=scene.model.derivation?.length?scene.model.derivation:['从题干提取曲线类型和参数。','由同一组参数生成方程、特殊点与画板图形。'],plain=window.DongMathInput?.toPlain(raw)??raw,rawParts=splitBrowserParts(plain),focusChordContext=browserInstallFocusChord(scene,plain,rawParts),external=window.DongTangentSolver?.install(scene,plain,browserConicQuadratic(scene));
       const belongs=(item,part)=>item.part==null||Number(item.part)===Number(part.index);
       const parts=rawParts.map(part=>{
         const body=part.body||part.question;
+        const externalAnswer=window.DongTangentSolver?.solvePart(scene,part,external);if(externalAnswer)return{...part,...externalAnswer};
         const focusChordAnswer=browserFocusChordPart(scene,part,focusChordContext);if(focusChordAnswer)return{...part,status:'answered',...focusChordAnswer};
         if(/切线/.test(body)){
           const requested=browserGradientTargets(body,'tangent'),created=browserEnsureAnswerGradients(scene,raw,body,part,'tangent'),byName=new Map(scene.model.lines.filter(line=>line.role==='tangent'&&belongs(line,part)).map(line=>[line.point,line])),tangents=(requested.map(name=>byName.get(name)).filter(Boolean).length?requested.map(name=>byName.get(name)).filter(Boolean):created);
@@ -1003,10 +1006,10 @@ function motionStep(timestamp){if(!state.model){stopMotion(false);return;}const 
         if(/轨迹/.test(body)){const locus=browserMidpointLocus(scene,body,part);if(locus)return{...part,status:'answered',...locus};return{...part,status:'partial',answer:'尚未得到可严格消元的轨迹关系，因此没有用采样点猜测轨迹方程。',steps:[...baseSteps,'当前已支持“圆锥曲线上动点与固定点的中点轨迹”；其它轨迹会继续扩充。']};}
         if(/交点|弦长|中点|坐标/.test(body)){const metric=browserFixedLineResult(scene,body,part);if(metric)return{...part,status:'answered',...metric};}
         if(/(?:求|写出|确定|计算)[^。；]{0,45}(?:焦点|顶点|准线|渐近线|离心率|圆心|半径|轴长)/.test(body))return{...part,status:'answered',answer:feature,steps:[...baseSteps,'由标准式计算特殊点与几何量。']};
-        if(/标准方程/.test(body)||/(?:求|写出|确定|建立)[^。；]{0,35}(?<!准线)(?<!渐近线)(?<!切线)(?<!法线)方程/.test(body)||(rawParts.length===1&&raw.includes('=')&&!/证明|定值|定点|最值|范围|轨迹|切线|法线|垂足/.test(body)))return{...part,status:'answered',answer:`曲线方程为 ${equation}。`,steps:baseSteps};
+        if(/标准方程/.test(body)||/(?:求|写出|确定|建立)[^。；]{0,35}(?<!准线)(?<!渐近线)(?<!切线)(?<!法线)方程/.test(body)||(rawParts.length===1&&raw.includes('=')&&!/求|计算|证明|定值|定点|最值|范围|轨迹|切线|法线|垂足|面积|距离|周长|长度|是否/.test(body)))return{...part,status:'answered',answer:`曲线方程为 ${equation}。`,steps:baseSteps};
         return{...part,status:'partial',answer:'内置浏览器引擎已建立曲线，但这一问还需要继续完成符号推理。',steps:[...baseSteps,'当前不会用未经验证的猜测补齐证明、定值或最值结论。']};
-      }),answered=parts.filter(part=>part.status==='answered').length,data={schemaVersion:2,...scene.model,...scene.values},summary=parts.length===1&&parts[0].status==='answered'?parts[0].answer:`已建立 ${equation}。`,derivedChecks=browserDerivedConstructionChecks(scene,rawParts),checks=[{id:'browser-scene',status:'verified',label:'图形参数一致性',detail:'解析与画板使用同一场景参数。',category:'curve'},...derivedChecks],contradicted=checks.filter(item=>item.status==='contradicted').length,unresolvedChecks=checks.filter(item=>item.status==='unresolved').length,verifiedChecks=checks.filter(item=>item.status==='verified').length;
-      return{mode:'symbolic-fallback',title:'董解析浏览器内置解答',restatement:raw,answer:summary,strategy:'先确定曲线模型，再让解析、特殊点与画板共用同一组参数。',parts,completion:{answered,total:parts.length},scene:data,verification:{status:contradicted?'contradicted':'locally-verified',message:contradicted?'答案派生图形存在确定性冲突。':'方程、答案派生对象和画板来自同一确定性模型。',counts:{verified:verifiedChecks,contradicted,unresolved:unresolvedChecks+parts.length-answered},checks}};
+      }),answered=parts.filter(part=>part.status==='answered').length,data={schemaVersion:2,...scene.model,...scene.values},summary=parts.length===1&&parts[0].status==='answered'?parts[0].answer:`已建立 ${equation}。`,derivedChecks=browserDerivedConstructionChecks(scene,rawParts),checks=[{id:'browser-scene',status:'verified',label:'图形参数一致性',detail:'解析与画板使用同一场景参数。',category:'curve'},...derivedChecks,...(external?.checks||[])],contradicted=checks.filter(item=>item.status==='contradicted').length,unresolvedChecks=checks.filter(item=>item.status==='unresolved').length,verifiedChecks=checks.filter(item=>item.status==='verified').length;
+      return{engineExtensions:[...(external?['external-tangent']:[]),...(plain!==raw?['latex-input']:[])],mode:'symbolic-fallback',title:'董解析浏览器内置解答',restatement:raw,answer:summary,strategy:'先确定曲线模型，再让解析、特殊点与画板共用同一组参数。',parts,completion:{answered,total:parts.length},scene:data,verification:{status:contradicted?'contradicted':'locally-verified',message:contradicted?'答案派生图形存在确定性冲突。':'方程、答案派生对象和画板来自同一确定性模型。',counts:{verified:verifiedChecks,contradicted,unresolved:unresolvedChecks+parts.length-answered},checks}};
     }
     async function parseAndInstall(){const btn=$('#parseButton');btn.disabled=true;btn.textContent='正在反推…';try{const d=await window.DongRuntime.request('/api/solve',{text:question.value,rules_only:true});showSolution(d);if(!d.scene)throw new Error(d.answer||'条件不足，无法唯一确定图形。');stageScenePreview(modelFromJson(JSON.stringify(d.scene)),'题干条件');}catch(e){try{stageScenePreview(parseQuestion(question.value),'标准式');}catch(localError){setStatus(localError.message||e.message||'无法建立图形。',true);}}finally{btn.disabled=false;btn.textContent='仅快速建图';}}
     function applyJson(){try{installScene(modelFromJson(sceneJson.value),'场景配置');}catch(e){setStatus(e.message,true);}}
@@ -1090,6 +1093,6 @@ function motionStep(timestamp){if(!state.model){stopMotion(false);return;}const 
     document.getElementById('closeReleases').addEventListener('click',()=>dialog.close());
   })();
   </script>
-  <script src="pwa.js?v=0.21.1"></script>
+  <script src="pwa.js?v=0.22.0"></script>
 </body>
 </html>

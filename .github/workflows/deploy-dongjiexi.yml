@@ -46,6 +46,7 @@ jobs:
           python -m unittest discover -s tests -p '*_tests.py'
           node tests/native_geometry_tests.cjs
           node tests/browser_contract_tests.cjs
+          node tests/math_input_tangent_tests.cjs
           node tests/pwa_contract_tests.cjs
       - name: Test actual browser workflows
         working-directory: ${{ steps.app.outputs.root }}

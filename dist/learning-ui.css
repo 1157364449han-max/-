@@ -57,6 +57,11 @@
 .draft-recovery span { flex:1;min-width:12rem; }
 .draft-recovery button { padding:.28rem .5rem;border:1px solid #a7c7d5;border-radius:6px;color:#285263;background:#fff;font-size:.76rem;font-weight:700; }
 @media (max-width:560px) { .trust-summary { align-items:flex-start;flex-direction:column; } .trust-summary span { white-space:normal; } }
+.question-formula-preview { margin:12px 0;padding:10px;border:1px solid #d6e2ef;border-radius:8px; }
+.question-formula-preview .math-content { padding-top:8px;white-space:pre-wrap;overflow-wrap:anywhere; }
+.parameter-math-preview { display:block;min-height:1.2em;font-size:.9rem;padding:4px 0;overflow-x:auto;color:#15476b; }
+.katex-display { max-width:100%;overflow-x:auto;overflow-y:hidden;padding:3px 0; }
+.equation .katex,.equation-preview .katex { font-size:1.1em; }
 @media print {
   body>.app,body>dialog,body>script { display:none!important; }
   #printLesson { display:block!important;color:#111;font-size:12pt;padding:12mm; }

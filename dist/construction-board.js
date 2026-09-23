@@ -111,6 +111,7 @@
             if(['parallel','perpendicular'].includes(obj.op)&&a?.type==='point'&&validLine(b))result={type:'line',o:a,d:obj.op==='parallel'?b.d:{x:-b.d.y,y:b.d.x}};
             if(obj.op==='foot'&&a?.type==='point'&&validLine(b))result=pointValue(add(b.o,mul(b.d,dot(sub(a,b.o),b.d)/dot(b.d,b.d))));
             if(['tangent','normal'].includes(obj.op)&&a?.type==='point')result=curveLine(a,b,obj.op==='normal');
+            if(obj.op==='ellipse_tangent_point'&&a?.type==='point')result=pointValue(window.DongTangentSolver?.contactsFromQuadratic(curveCoefficients(b),a)?.points[obj.branch||0]);
             if(obj.op==='intersection')result=pointValue(intersect(a,b)[obj.branch||0]);
             if(obj.op==='distance'&&a?.type==='point'&&b?.type==='point')result={type:'measure',...mul(add(a,b),.5),value:distance(a,b)};
             if(obj.op==='point_on'&&a){
@@ -142,6 +143,7 @@
       const object=getObject(id);if(!object)return '引用的对象不存在';
       if((object.refs||[]).some(ref=>!resolve(ref)))return '源对象未定义、缺失或构造关系循环';
       if(['tangent','normal'].includes(object.op)||linkedCurveLine(object))return '所选点不在曲线上，或曲线在此处退化';
+      if(object.op==='ellipse_tangent_point')return '点在曲线内部时无实切线；点在曲线上时两条切线合并为一条';
       if(object.op==='intersection')return '当前无此分支的实交点（可能相离、相切合并或重合）';
       return '构造退化或参数无效';
     }

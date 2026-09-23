@@ -8,7 +8,7 @@
   };
 
   function tokenize(raw) {
-    let source = String(raw ?? '').trim()
+    let source = String(window.DongMathInput?.toPlain(raw) ?? raw ?? '').trim()
       .replace(/[，]/g, '.').replace(/[−–—]/g, '-').replace(/[×·]/g, '*')
       .replace(/[÷]/g, '/').replace(/[（]/g, '(').replace(/[）]/g, ')')
       .replace(/[πΠ]/g, 'pi').replace(/[²]/g, '^2').replace(/[³]/g, '^3')

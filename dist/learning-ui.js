@@ -1,7 +1,7 @@
 (function () {
   'use strict';
   const escapeText = value => String(value ?? '').replace(/[&<>"']/g, character => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[character]));
-  const textBlock = value => `<div class="math-content">${escapeText(value).replace(/\*\*([^*\n]+)\*\*/g,'<strong>$1</strong>')}</div>`;
+  const textBlock = value => `<div class="math-content">${escapeText(window.DongMathInput?.prepare(value)??value).replace(/\*\*([^*\n]+)\*\*/g,'<strong>$1</strong>')}</div>`;
   const statusNames = {answered:'已生成完整作答',partial:'尚未完整解答',needs_information:'需要补充条件'};
   const verificationNames = {generated:'仅生成 · 待核验','locally-verified':'局部代数核验通过',conflict:'发现确定性冲突','fully-verified':'完整验证通过'};
   const checkNames = {verified:'通过',contradicted:'冲突',unresolved:'未决'};
@@ -247,8 +247,10 @@
       let deterministic;
       busy(true);find('#jobPhase').textContent='正在进行内置识题、符号推导与图形校验…';
       try{
-        if(runtime.config.apiEnabled){try{deterministic=await request('/api/solve',{text:original,rules_only:true});}catch(error){if(!api.solveDeterministic)throw error;}}
-        if(!deterministic&&api.solveDeterministic)deterministic=api.solveDeterministic(original);
+        const browser=api.solveDeterministic?.(original);
+        if(browser?.engineExtensions?.length)deterministic=browser;
+        if(!deterministic&&runtime.config.apiEnabled){try{deterministic=await request('/api/solve',{text:original,rules_only:true});}catch(error){if(!api.solveDeterministic)throw error;}}
+        if(!deterministic)deterministic=browser;
         if(!deterministic)throw new Error('当前环境未能启动内置解题模块。');
         acceptResult(deterministic);
       }catch(error){report(error);return;}
@@ -313,7 +315,15 @@
     find('#sendFollowup').addEventListener('click',followup);
     document.querySelectorAll('[data-followup]').forEach(button=>button.addEventListener('click',()=>{find('#followupInput').value=button.dataset.followup;find('#followupInput').focus();}));
     find('#followupInput').addEventListener('keydown',event=>{if(event.ctrlKey&&event.key==='Enter')followup();});
+    const formulaPreview=document.createElement('details');formulaPreview.className='question-formula-preview';
+    const previewTitle=document.createElement('summary');previewTitle.textContent='题目公式预览 · 支持 LaTeX';
+    const previewBody=document.createElement('div');previewBody.className='math-content';
+    formulaPreview.append(previewTitle,previewBody);api.question.after(formulaPreview);
+    const refreshFormula=()=>window.DongMathInput?.preview(api.question,previewBody);
+    formulaPreview.addEventListener('toggle',()=>{if(formulaPreview.open)refreshFormula();});
+    refreshFormula();
     api.question.addEventListener('input',()=>{
+      if(formulaPreview.open)refreshFormula();
       api.remember();
       clearTimeout(draftTimer);
       draftTimer=setTimeout(saveDraft,300);
