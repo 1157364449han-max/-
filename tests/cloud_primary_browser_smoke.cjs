@@ -13,6 +13,6 @@ module.exports=async({page,context,assert})=>{
   await page.waitForFunction(()=>document.querySelector('#solution').textContent.includes('云端完整题意测试'));
   assert.equal(jobs,1);assert.equal(rules,0,'即使规则可解，也应按云端优先处理整题');
   assert(await page.locator('#pullModel').isHidden(),'云服务器不得提供浏览器下载模型操作');
-  assert(await page.locator('#recognizeButton').isDisabled(),'纯文本云模型不得假装能识图');
+  assert.equal(await page.locator('#recognizeButton').isDisabled(),false,'浏览器本地 OCR 不应被纯文本云模型禁用');
   assert.match(await page.locator('#localModelChoice').textContent(),/本机版/);
 };

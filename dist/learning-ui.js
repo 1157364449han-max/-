@@ -27,6 +27,19 @@
     let engineReady = false;
     let cloudPrimary = false;
     let visionAvailable = true;
+    let selectedImage = null;
+    let ocrScriptPromise = null;
+    function loadBrowserOcr() {
+      if (window.Tesseract) return Promise.resolve(window.Tesseract);
+      if (!ocrScriptPromise) ocrScriptPromise = new Promise((resolve,reject)=>{
+        const script=document.createElement('script');
+        script.src='https://cdn.jsdelivr.net/npm/tesseract.js@7.0.0/dist/tesseract.min.js';
+        script.onload=()=>window.Tesseract?resolve(window.Tesseract):reject(new Error('OCR 组件加载失败。'));
+        script.onerror=()=>reject(new Error('无法加载浏览器 OCR 组件，请检查网络，或直接输入题目。'));
+        document.head.append(script);
+      }).catch(error=>{ocrScriptPromise=null;throw error;});
+      return ocrScriptPromise;
+    }
     const inspector=find('.inspect');
     const studyPane=document.createElement('div');studyPane.id='studyPane';
     studyPane.append(find('#solution'),find('#followupPanel'));
@@ -94,8 +107,7 @@
     function busy(value) {
       processing=value;
       ['solveButton','recognizeButton','sendFollowup','pullModel','parseButton','clearButton','saveLesson','openNotebook','confirmRecognition','engineRefresh','reviewAttempt'].forEach(identifier=>{const button=find('#'+identifier);if(button)button.disabled=value;});
-      if(!value&&!runtime.config.apiEnabled){for(const id of ['recognizeButton','engineRefresh'])find('#'+id).disabled=true;}
-      if(!value&&!visionAvailable)find('#recognizeButton').disabled=true;
+      if(!value&&!runtime.config.apiEnabled)find('#engineRefresh').disabled=true;
       find('#jobPanel').hidden=!value;
       find('#solveButton').textContent=value?'正在处理…':'一站式解题';
     }
@@ -110,7 +122,7 @@
         find('#engineStatus').textContent='内置解题与离线画板已就绪 · 开放题智能增强未配置';
         find('#pullModel').hidden=true;
         find('#solveButton').disabled=processing;
-        for(const id of ['recognizeButton','engineRefresh'])find('#'+id).disabled=true;
+        find('#engineRefresh').disabled=true;
         return;
       }
       const needsLogin=remote&&runtime.config.requiresAuth&&!runtime.hasSession();
@@ -121,7 +133,7 @@
         find('#engineStatus').textContent='在线解题需要授权 · 请输入访问口令';
         find('#pullModel').hidden=true;
         find('#solveButton').disabled=processing;
-        for(const id of ['recognizeButton','engineRefresh'])find('#'+id).disabled=true;
+        find('#engineRefresh').disabled=true;
         return;
       }
       try{
@@ -137,7 +149,6 @@
         select.value=choices.includes(chosen)?chosen:(names[0]||choices[0]);
         const selectedReady=data.engine.available&&names.includes(select.value);
         engineReady=selectedReady;
-        if(!visionAvailable)find('#recognizeButton').disabled=true;
         find('#engineStatus').classList.toggle('ready',selectedReady);
         find('#engineStatus').textContent=selectedReady?(remote?'内置解题 + 在线智能增强已就绪':'内置解题 + 可选本机智能增强已就绪'):data.engine.available?(remote?'内置解题可用 · 在线增强模型未选择':'内置解题可用 · 可选择已安装模型增强'):data.engine.installed?'内置解题可用 · 智能增强组件可选':remote?'内置解题可用 · 在线增强暂不可用':'内置解题已就绪 · 无需安装额外模型';
         find('#pullModel').hidden=remote||cloudPrimary||selectedReady;
@@ -276,11 +287,26 @@
       }
     }
     async function recognize() {
-      const file=find('#imageFile').files[0];
+      const file=selectedImage;
       if(!file){report(new Error('请先添加题图。'));return;}
       if(file.size>8*1024*1024){report(new Error('题图请压缩至 8 MB 以内。'));return;}
-      const image=await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(reader.result);reader.onerror=reject;reader.readAsDataURL(file);});
-      await runJob({kind:'recognize',image,model:find('#modelName').value},result=>{find('#recognizedText').value=result.text;find('#recognitionDialog').showModal();});
+      busy(true);
+      find('#jobPhase').textContent='正在加载浏览器 OCR…';
+      let worker;
+      try {
+        const tesseract=await loadBrowserOcr();
+        worker=await tesseract.createWorker(['chi_sim','eng'],1,{logger:progress=>{
+          if(progress.status==='recognizing text')find('#jobPhase').textContent=`正在识别题图 ${Math.round((progress.progress||0)*100)}%`;
+        }});
+        const result=await worker.recognize(file);
+        const recognized=String(result.data?.text||'').trim();
+        find('#recognizedText').value=recognized;
+        find('#recognitionDialog').showModal();
+        api.setStatus(recognized?'题图已在浏览器内识别。请认真核对公式后确认。':'图片未识别出文字；可在核对框中手动输入，或换更清晰的照片。',!recognized);
+      } finally {
+        if(worker)await worker.terminate();
+        busy(false);
+      }
     }
     async function followup() {
       const solution=api.state.solution;
@@ -317,8 +343,15 @@
     localChoice.append(localTitle,localHelp);find('#engineSetup').after(localChoice);
     find('#cancelJob').addEventListener('click',async()=>{if(activeJob){try{await request('/api/jobs/'+activeJob+'/cancel',{});find('#jobPhase').textContent='正在停止，请稍候…';}catch(error){report(error);}}});
     find('#recognizeButton').addEventListener('click',()=>recognize().catch(report));
-    find('#imageFile').addEventListener('change',()=>{if(imageURL)URL.revokeObjectURL(imageURL);const file=find('#imageFile').files[0];find('#imagePreview').hidden=!file;if(file){imageURL=URL.createObjectURL(file);find('#questionImage').src=imageURL;api.setStatus('已添加题图。点击“识别题图”，核对后再解答。');}});
-    find('#removeImage').addEventListener('click',()=>{if(imageURL)URL.revokeObjectURL(imageURL);imageURL=null;find('#imageFile').value='';find('#questionImage').removeAttribute('src');find('#imagePreview').hidden=true;});
+    function selectImage(file){
+      if(imageURL)URL.revokeObjectURL(imageURL);
+      selectedImage=file||null;imageURL=file?URL.createObjectURL(file):null;
+      find('#imagePreview').hidden=!file;
+      if(file){find('#questionImage').src=imageURL;api.setStatus('已添加题图。点击“识别题图”，核对文字后再解答。');}
+      else find('#questionImage').removeAttribute('src');
+    }
+    for(const id of ['imageFile','cameraFile'])find('#'+id).addEventListener('change',event=>selectImage(event.target.files[0]));
+    find('#removeImage').addEventListener('click',()=>{find('#imageFile').value='';find('#cameraFile').value='';selectImage(null);});
     find('#confirmRecognition').addEventListener('click',()=>{const recognized=find('#recognizedText').value;if(hasUncertainty(recognized)){report(new Error('识别结果仍含“[看不清]”或其它未确认字段。请在此窗口补正后再确认。'));return;}api.question.value=recognized;find('#recognitionDialog').close();api.remember();api.setStatus('题面已确认，可以开始解题。');});
     document.querySelectorAll('[data-close-dialog]').forEach(button=>button.addEventListener('click',()=>button.closest('dialog').close()));
     find('#openNotebook').addEventListener('click',()=>{try{renderNotebook();find('#notebookDialog').showModal();}catch(error){report(error);}});

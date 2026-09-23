@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '0.23.1';
+const VERSION = '0.24.0';
 const CACHE = `dongjiexi-app-${VERSION}`;
 const CORE = [
   './math-input.js', './tangent-solver.js',

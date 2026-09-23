@@ -31,7 +31,7 @@ module.exports=async({page,context,assert})=>{
   await page.locator('#question').fill('圆x²+y²=9，求半径。');
   await page.locator('#solveButton').click();
   await page.waitForFunction(()=>document.querySelector('#solution').textContent.includes('董解析浏览器内置解答'));
-  assert.equal(await page.locator('#recognizeButton').isDisabled(),true,'Unconfigured recognition remains disabled after solving');
+  assert.equal(await page.locator('#recognizeButton').isDisabled(),false,'Browser OCR remains available without cloud API after solving');
   assert.equal(await page.locator('#engineRefresh').isDisabled(),true);
   assert.equal(await page.locator('#solveButton').isEnabled(),true);
   console.log('PASS: stale solve discarded, current question and board preserved, duplicate solve suppressed and offline capabilities retained.');
