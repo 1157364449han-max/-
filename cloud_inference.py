@@ -18,6 +18,7 @@ class CloudInference:
         self.base = os.environ.get('DONGJIEXI_MODEL_API_BASE', '').strip().rstrip('/')
         self.key = os.environ.get('DONGJIEXI_MODEL_API_KEY', '').strip()
         self.model = os.environ.get('DONGJIEXI_MODEL_ID', '').strip()
+        self.json_mode = os.environ.get('DONGJIEXI_MODEL_JSON_MODE', 'json_object').strip()
         self.opener = urllib.request.build_opener(NoRedirect())
         self.cached = None
         self.checked_at = 0
@@ -59,7 +60,7 @@ class CloudInference:
             raise ValueError('当前云端适配器只支持文字解题，图片请先转录并核对。')
         body = {'model': self.model, 'messages': messages, 'stream': True,
                 'max_tokens': min(10000, payload.get('options', {}).get('num_predict', 10000))}
-        if payload.get('format'):
+        if payload.get('format') and self.json_mode != 'prompt-only':
             body['response_format'] = {'type': 'json_object'}
         output, size, complete = [], 0, False
         deadline = time.monotonic() + 600

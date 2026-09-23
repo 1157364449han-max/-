@@ -1,6 +1,17 @@
 {
-  "current": "0.23.0",
+  "current": "0.23.1",
   "releases": [
+    {
+      "version": "0.23.1",
+      "date": "2026-09-23（北京时间）",
+      "title": "Render 与 Gemini 云端部署配置",
+      "changes": [
+        "增加 Render 免费 Web Service Blueprint，部署本仓库 Docker 后端；模型密钥由 Render 在创建服务时单独索取，不进入公开源码。",
+        "支持 Gemini OpenAI 兼容接口的提示词 JSON 模式，保留原有结构化答案组装与验证。",
+        "提供 Gemini 免费额度试用配置；真正可用性取决于账号、区域与配额，并需要真实模型请求验收。"
+      ],
+      "tested": "新增兼容接口 JSON 模式测试；静态浏览器和数学回归。未获取任何个人账号或真实 API 凭据。"
+    },
     {
       "version": "0.23.0",
       "date": "2026-09-23（北京时间）",

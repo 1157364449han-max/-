@@ -1,0 +1,29 @@
+services:
+  - type: web
+    name: dongjiexi-api
+    runtime: docker
+    plan: free
+    region: singapore
+    branch: main
+    healthCheckPath: /api/health
+    envVars:
+      - key: DONGJIEXI_CLOUD
+        value: "1"
+      - key: DONGJIEXI_INFERENCE_PROVIDER
+        value: chat-completions
+      - key: DONGJIEXI_MODEL_API_BASE
+        value: https://generativelanguage.googleapis.com/v1beta/openai
+      - key: DONGJIEXI_MODEL_ID
+        value: gemini-2.5-flash
+      - key: DONGJIEXI_MODEL_JSON_MODE
+        value: prompt-only
+      - key: DONGJIEXI_MODEL_API_KEY
+        sync: false
+      - key: DONGJIEXI_ACCESS_KEY
+        generateValue: true
+      - key: DONGJIEXI_ALLOWED_ORIGINS
+        value: https://1157364449han-max.github.io
+      - key: DONGJIEXI_MAX_CONCURRENT
+        value: "2"
+      - key: DONGJIEXI_JOBS_PER_10_MINUTES
+        value: "4"

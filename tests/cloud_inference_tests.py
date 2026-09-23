@@ -37,6 +37,13 @@ class CloudTests(unittest.TestCase):
         self.assertNotIn('test-secret-not-real',req.data.decode())
         self.assertNotIn('keep_alive',body)
 
+    def test_prompt_only_json_for_compatible_api_without_json_object_mode(self):
+        self.cloud.json_mode='prompt-only'
+        self.payload['format']={'type':'object'}
+        with patch.object(self.cloud.opener,'open',return_value=self.events('{"parts":[]}')) as call:
+            self.assertEqual(self.cloud.stream(self.job,self.payload,Cancelled),'{"parts":[]}')
+        self.assertNotIn('response_format',json.loads(call.call_args.args[0].data))
+
     def test_incomplete_response_rejected(self):
         for reason in ['length',None,'content_filter']:
             with self.subTest(reason=reason), patch.object(self.cloud.opener,'open',return_value=self.events(reason=reason)):

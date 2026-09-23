@@ -1,6 +1,6 @@
 {
   "name": "董解析",
-  "version": "0.23.0",
+  "version": "0.23.1",
   "default_model": "qwen3.5:4b",
   "update_channel": "https://1157364449han-max.github.io/-/update-manifest.json"
 }

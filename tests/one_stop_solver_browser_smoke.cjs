@@ -33,7 +33,7 @@ module.exports = async ({page, context, assert}) => {
   });
   await context.route('**/runtime-config.js', route => route.fulfill({
     contentType:'application/javascript',
-    body:`window.DONGJIEXI_CONFIG=Object.freeze({version:'0.23.0',deployment:'web',apiBase:'',apiEnabled:false,requiresAuth:false,updateChannel:'stable'});`
+    body:`window.DONGJIEXI_CONFIG=Object.freeze({version:'0.23.1',deployment:'web',apiBase:'',apiEnabled:false,requiresAuth:false,updateChannel:'stable'});`
   }));
   await page.reload({waitUntil:'domcontentloaded'});
   await page.locator('#question').fill('已知抛物线的顶点为 V(1,2)，焦点为 F(3,2)，求抛物线的标准方程。');
