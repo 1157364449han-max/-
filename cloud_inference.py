@@ -126,6 +126,8 @@ class CloudInference:
         except urllib.error.HTTPError as error:
             if error.code == 429:
                 raise ValueError('云端额度或并发已满，请稍后重试，也可自愿使用本机模型。') from None
+            if error.code == 403:
+                raise ValueError('云端模型拒绝请求：可能是免费额度用尽、模型权限不足或密钥地域不匹配；请管理员检查百炼控制台。') from None
             raise ValueError('云端模型请求失败，请由管理员检查服务配置。') from None
         except OSError:
             raise ValueError('云端模型连接失败或超时，请稍后重试。') from None

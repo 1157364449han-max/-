@@ -12,9 +12,9 @@ services:
       - key: DONGJIEXI_INFERENCE_PROVIDER
         value: chat-completions
       - key: DONGJIEXI_MODEL_API_BASE
-        value: https://generativelanguage.googleapis.com/v1beta/openai
+        value: https://dashscope.aliyuncs.com/compatible-mode/v1
       - key: DONGJIEXI_MODEL_ID
-        value: gemini-3.8-flash
+        value: qwen3.5-plus
       - key: DONGJIEXI_MODEL_JSON_MODE
         value: prompt-only
       - key: DONGJIEXI_MODEL_API_KEY

@@ -83,6 +83,13 @@ class CloudTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError,'额度或并发已满') as caught:self.cloud.stream(self.job,self.payload,Cancelled)
         self.assertNotIn('test-secret',str(caught.exception))
 
+    def test_free_quota_exhaustion_has_actionable_message(self):
+        error=urllib.error.HTTPError('https://model.example.test',403,'private upstream details',{},None)
+        with patch.object(self.cloud.opener,'open',side_effect=error):
+            with self.assertRaisesRegex(ValueError,'免费额度用尽') as caught:
+                self.cloud.stream(self.job,self.payload,Cancelled)
+        self.assertNotIn('private upstream details',str(caught.exception))
+
     def test_health_probes_once_and_contains_no_key(self):
         with patch.object(self.cloud.opener,'open',return_value=io.BytesIO(b'{"data":[{"id":"test-model"}]}')) as call:
             self.assertTrue(self.cloud.health()['available'])
