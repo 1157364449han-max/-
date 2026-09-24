@@ -14,7 +14,7 @@ services:
       - key: DONGJIEXI_MODEL_API_BASE
         value: https://generativelanguage.googleapis.com/v1beta/openai
       - key: DONGJIEXI_MODEL_ID
-        value: gemini-2.5-flash
+        value: gemini-3.8-flash
       - key: DONGJIEXI_MODEL_JSON_MODE
         value: prompt-only
       - key: DONGJIEXI_MODEL_API_KEY

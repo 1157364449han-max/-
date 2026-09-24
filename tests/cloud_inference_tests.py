@@ -1,4 +1,5 @@
 import io
+import base64
 import json
 import os
 import threading
@@ -43,6 +44,23 @@ class CloudTests(unittest.TestCase):
         with patch.object(self.cloud.opener,'open',return_value=self.events('{"parts":[]}')) as call:
             self.assertEqual(self.cloud.stream(self.job,self.payload,Cancelled),'{"parts":[]}')
         self.assertNotIn('response_format',json.loads(call.call_args.args[0].data))
+
+    def test_vision_image_becomes_data_url_only_on_server(self):
+        encoded=base64.b64encode(b'\x89PNG\r\n\x1a\n' + b'fake-test-image').decode()
+        payload={**self.payload,'messages':[{'role':'user','content':'Transcribe only','images':[encoded]}]}
+        with patch.object(self.cloud.opener,'open',return_value=self.events('y^2=4x')) as call:
+            self.assertEqual(self.cloud.stream(self.job,payload,Cancelled),'y^2=4x')
+        body=json.loads(call.call_args.args[0].data)
+        self.assertEqual(body['messages'][0]['content'][1]['type'],'image_url')
+        self.assertEqual(body['messages'][0]['content'][1]['image_url']['url'],f'data:image/png;base64,{encoded}')
+        self.assertNotIn('test-secret-not-real',call.call_args.args[0].data.decode())
+
+    def test_vision_rejects_non_image_before_network(self):
+        payload={**self.payload,'messages':[{'role':'user','content':'Transcribe','images':[base64.b64encode(b'<svg/>').decode()]}]}
+        with patch.object(self.cloud.opener,'open') as call:
+            with self.assertRaisesRegex(ValueError,'PNG、JPEG 或 WebP'):
+                self.cloud.stream(self.job,payload,Cancelled)
+            call.assert_not_called()
 
     def test_incomplete_response_rejected(self):
         for reason in ['length',None,'content_filter']:

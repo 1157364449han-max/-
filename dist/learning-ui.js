@@ -40,6 +40,24 @@
       }).catch(error=>{ocrScriptPromise=null;throw error;});
       return ocrScriptPromise;
     }
+    async function preprocessOcrImage(file) {
+      const bitmap=await createImageBitmap(file);
+      try {
+        const longest=Math.max(bitmap.width,bitmap.height),scale=Math.min(3,Math.min(2400,Math.max(1800,longest))/longest);
+        const canvas=document.createElement('canvas');
+        canvas.width=Math.round(bitmap.width*scale);canvas.height=Math.round(bitmap.height*scale);
+        const ctx=canvas.getContext('2d',{willReadFrequently:true});
+        ctx.drawImage(bitmap,0,0,canvas.width,canvas.height);
+        const pixels=ctx.getImageData(0,0,canvas.width,canvas.height);
+        for(let i=0;i<pixels.data.length;i+=4){
+          const grey=.299*pixels.data[i]+.587*pixels.data[i+1]+.114*pixels.data[i+2];
+          const enhanced=Math.max(0,Math.min(255,(grey-128)*1.45+128));
+          pixels.data[i]=pixels.data[i+1]=pixels.data[i+2]=enhanced;
+        }
+        ctx.putImageData(pixels,0,0);
+        return canvas;
+      } finally {bitmap.close();}
+    }
     const inspector=find('.inspect');
     const studyPane=document.createElement('div');studyPane.id='studyPane';
     studyPane.append(find('#solution'),find('#followupPanel'));
@@ -118,6 +136,7 @@
       notice.textContent=remote?'内置确定性解题与画板无需另装模型；配置在线服务后可继续增强开放题推理。':'内置确定性解题无需下载模型；本机模型仅用于尚未覆盖的开放题增强。';
       if(!runtime.config.apiEnabled){
         engineReady=false;
+        find('#cloudVisionChoice').hidden=true;
         find('#engineStatus').classList.remove('ready');
         find('#engineStatus').textContent='内置解题与离线画板已就绪 · 开放题智能增强未配置';
         find('#pullModel').hidden=true;
@@ -129,6 +148,7 @@
       find('#cloudAuth').hidden=!remote||!runtime.config.requiresAuth;
       if(needsLogin){
         engineReady=false;
+        find('#cloudVisionChoice').hidden=true;
         find('#engineStatus').classList.remove('ready');
         find('#engineStatus').textContent='在线解题需要授权 · 请输入访问口令';
         find('#pullModel').hidden=true;
@@ -141,6 +161,7 @@
         const data=await request('/api/health');
         cloudPrimary=data.engine.remote===true;
         visionAvailable=data.engine.vision!==false;
+        find('#cloudVisionChoice').hidden=!(remote&&visionAvailable&&data.engine.available);
         const names=data.engine.models||[];
         const choices=remote?[...names]:[...new Set([...names,data.default_model||'qwen3.5:4b','qwen3.5:9b'])];
         const select=find('#modelName');
@@ -153,7 +174,7 @@
         find('#engineStatus').textContent=selectedReady?(remote?'内置解题 + 在线智能增强已就绪':'内置解题 + 可选本机智能增强已就绪'):data.engine.available?(remote?'内置解题可用 · 在线增强模型未选择':'内置解题可用 · 可选择已安装模型增强'):data.engine.installed?'内置解题可用 · 智能增强组件可选':remote?'内置解题可用 · 在线增强暂不可用':'内置解题已就绪 · 无需安装额外模型';
         find('#pullModel').hidden=remote||cloudPrimary||selectedReady;
         find('#engineSetup').hidden=false;
-      }catch(error){engineReady=false;find('#engineStatus').classList.remove('ready');find('#engineStatus').textContent=remote?'内置浏览器解题可用；在线增强暂不可用。':'无法连接本机服务；浏览器内置解题仍可使用。';find('#solveButton').disabled=processing;if(start)report(error);}
+      }catch(error){engineReady=false;find('#cloudVisionChoice').hidden=true;find('#engineStatus').classList.remove('ready');find('#engineStatus').textContent=remote?'内置浏览器解题可用；在线增强暂不可用。':'无法连接本机服务；浏览器内置解题仍可使用。';find('#solveButton').disabled=processing;if(start)report(error);}
     }
     async function runJob(body,done) {
       if(activeJob)return;
@@ -290,6 +311,11 @@
       const file=selectedImage;
       if(!file){report(new Error('请先添加题图。'));return;}
       if(file.size>8*1024*1024){report(new Error('题图请压缩至 8 MB 以内。'));return;}
+      if(find('#preferCloudVision').checked&&!find('#cloudVisionChoice').hidden){
+        const image=await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(reader.result);reader.onerror=reject;reader.readAsDataURL(file);});
+        await runJob({kind:'recognize',image,model:find('#modelName').value},result=>{find('#recognizedText').value=result.text;find('#recognitionDialog').showModal();api.setStatus('云端视觉识题已完成，请逐字核对公式与小问编号。');});
+        return;
+      }
       busy(true);
       find('#jobPhase').textContent='正在加载浏览器 OCR…';
       let worker;
@@ -298,11 +324,14 @@
         worker=await tesseract.createWorker(['chi_sim','eng'],1,{logger:progress=>{
           if(progress.status==='recognizing text')find('#jobPhase').textContent=`正在识别题图 ${Math.round((progress.progress||0)*100)}%`;
         }});
-        const result=await worker.recognize(file);
+        let result=await worker.recognize(file,{rotateAuto:true});
+        if((result.data?.confidence||0)<72||String(result.data?.text||'').trim().length<40){
+          try{const processed=await preprocessOcrImage(file);find('#jobPhase').textContent='正在复核增强后的题图…';const second=await worker.recognize(processed,{rotateAuto:true});if((second.data?.confidence||0)>(result.data?.confidence||0)+3)result=second;}catch(error){/* Unsupported image decoding leaves the first OCR result available. */}
+        }
         const recognized=String(result.data?.text||'').trim();
         find('#recognizedText').value=recognized;
         find('#recognitionDialog').showModal();
-        api.setStatus(recognized?'题图已在浏览器内识别。请认真核对公式后确认。':'图片未识别出文字；可在核对框中手动输入，或换更清晰的照片。',!recognized);
+        api.setStatus(recognized?`题图已在浏览器内识别（文字置信度约 ${Math.round(result.data?.confidence||0)}%）。请认真核对数学公式后确认。`:'图片未识别出文字；可在核对框中手动输入，或换更清晰的照片。',!recognized);
       } finally {
         if(worker)await worker.terminate();
         busy(false);

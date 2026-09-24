@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import atexit
 import base64
+import binascii
 import json
 import math
 import os
@@ -331,7 +332,7 @@ class LearningEngine:
             try:
                 encoded = image.split(",", 1)[-1]
                 base64.b64decode(encoded, validate=True)
-            except ValueError as error:
+            except (ValueError, binascii.Error) as error:
                 raise EngineError("图片数据无效。") from error
         if kind == "recognize" and not image:
             raise EngineError("请先添加题图。")
@@ -448,7 +449,7 @@ class LearningEngine:
                 self._stream(job, "/api/pull", {"model": model, "stream": True})
                 result = {"message": "模型已下载，可以开始 AI 解题。"}
             else:
-                information = {"capabilities": []} if self.cloud.enabled else request_json("/api/show", {"model": model}, timeout=15)
+                information = {"capabilities": ["vision"] if self.cloud.enabled and self.cloud.health().get("vision") else []} if self.cloud.enabled else request_json("/api/show", {"model": model}, timeout=15)
                 if not REMOTE_OLLAMA and (information.get("remote_host") or information.get("remote_model")):
                     raise EngineError("所选模型是云端模型；当前本机模式不发送题目到云端。")
                 capabilities = information.get("capabilities", [])

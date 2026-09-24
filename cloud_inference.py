@@ -2,6 +2,8 @@
 import json
 import os
 import time
+import base64
+import binascii
 import urllib.error
 import urllib.request
 from urllib.parse import urlparse
@@ -43,21 +45,41 @@ class CloudInference:
             try:
                 with self.opener.open(self.request('/models'), timeout=8) as response:
                     data = json.loads(response.read(1024 * 1024))
-                available = any(item.get('id') == self.model for item in data.get('data', []) if isinstance(item, dict))
+                available = any(item.get('id') in {self.model, 'models/' + self.model} for item in data.get('data', []) if isinstance(item, dict))
             except (OSError, ValueError):
                 pass
         self.cached = {'available': available, 'models': [self.model] if available else [],
                        'installed': self.configured(), 'remote': True, 'provider': 'chat-completions',
-                       'vision': False, 'configured': self.configured()}
+                       'vision': available, 'configured': self.configured()}
         self.checked_at = time.monotonic()
         return dict(self.cached)
 
     def stream(self, job, payload, cancelled):
         if payload.get('model') != self.model:
             raise ValueError('所选模型不在云端允许列表中。')
-        messages = payload['messages']
-        if any(message.get('images') for message in messages):
-            raise ValueError('当前云端适配器只支持文字解题，图片请先转录并核对。')
+        messages = []
+        for message in payload['messages']:
+            images = message.get('images') or []
+            if not images:
+                messages.append(message)
+                continue
+            content = [{'type': 'text', 'text': str(message.get('content', ''))}]
+            for encoded in images:
+                if not isinstance(encoded, str) or len(encoded) > 12 * 1024 * 1024:
+                    raise ValueError('题图过大或格式无效。')
+                try:
+                    raw = base64.b64decode(encoded, validate=True)
+                except (ValueError, binascii.Error):
+                    raise ValueError('题图编码无效。') from None
+                if len(raw) > 8 * 1024 * 1024:
+                    raise ValueError('题图请压缩至 8 MB 以内。')
+                mime = ('image/png' if raw.startswith(b'\x89PNG\r\n\x1a\n') else
+                        'image/jpeg' if raw.startswith(b'\xff\xd8\xff') else
+                        'image/webp' if raw.startswith(b'RIFF') and raw[8:12] == b'WEBP' else None)
+                if not mime:
+                    raise ValueError('仅支持 PNG、JPEG 或 WebP 题图。')
+                content.append({'type': 'image_url', 'image_url': {'url': f'data:{mime};base64,{encoded}'}})
+            messages.append({'role': message.get('role'), 'content': content})
         body = {'model': self.model, 'messages': messages, 'stream': True,
                 'max_tokens': min(10000, payload.get('options', {}).get('num_predict', 10000))}
         if payload.get('format') and self.json_mode != 'prompt-only':

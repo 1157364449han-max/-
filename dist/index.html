@@ -12,8 +12,8 @@
   <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
   <link rel="apple-touch-icon" href="icons/icon.svg">
   <link rel="stylesheet" href="vendor/katex/katex.min.css">
-  <link rel="stylesheet" href="learning-ui.css?v=0.25.0">
-  <link rel="stylesheet" href="classroom.css?v=0.25.0">
+  <link rel="stylesheet" href="learning-ui.css?v=0.26.0">
+  <link rel="stylesheet" href="classroom.css?v=0.26.0">
   <style>
     :root { --ink:#0c1b33; --ink-2:#1a3152; --paper:#f6f8fb; --panel:#ffffff; --line:#d7e0eb; --muted:#64748b; --teal:#0f9f99; --teal-soft:#e1f7f4; --amber:#f2a33c; --amber-soft:#fff2d9; --red:#df5b62; --blue:#3f78d8; --shadow:0 10px 30px rgba(12,27,51,.09); }
     * { box-sizing:border-box; }
@@ -321,7 +321,7 @@
 <body>
   <main class="app">
     <header class="topbar">
-      <div class="brand"><span class="brand-mark">董</span><span class="brand-name">董解析</span><button class="version-button" id="versionButton" title="查看版本、更新记录和能力边界">v0.25.0 · 更新记录</button></div>
+      <div class="brand"><span class="brand-mark">董</span><span class="brand-name">董解析</span><button class="version-button" id="versionButton" title="查看版本、更新记录和能力边界">v0.26.0 · 更新记录</button></div>
       <div class="top-actions"><span class="top-note">内置符号解题 · 动态几何 · 可选智能增强 · 我的题本</span><button id="pwaInstall" class="install-button" hidden>安装到设备</button></div>
     </header>
     <section id="pwaBanner" class="pwa-banner" hidden role="status"><span id="pwaMessage"></span><button id="pwaUpdate" hidden>立即更新</button><button id="pwaDismiss">稍后</button></section>
@@ -345,6 +345,7 @@
           <label class="file-button" for="imageFile">上传题图<input id="imageFile" type="file" accept="image/*"></label>
           <label class="file-button" for="cameraFile">拍照识题<input id="cameraFile" type="file" accept="image/*" capture="environment"></label>
           <button class="button secondary" id="recognizeButton">识别题图</button>
+          <label id="cloudVisionChoice" class="help" hidden><input id="preferCloudVision" type="checkbox"> 使用云端高精度识图（题图将发送至独立云服务）</label>
           <button class="button secondary math-keyboard-trigger" type="button" data-open-math-keyboard title="Ctrl+Shift+K">⌨ 数学键盘</button>
           <button class="button secondary" id="clearButton">清空</button>
         </div>
@@ -493,17 +494,17 @@
   </dialog>
 
   <script src="runtime-config.js"></script>
-  <script src="runtime.js?v=0.25.0"></script>
+  <script src="runtime.js?v=0.26.0"></script>
   <script src="vendor/katex/katex.min.js"></script>
   <script src="vendor/katex/contrib/auto-render.min.js"></script>
-  <script src="math-input.js?v=0.25.0"></script>
-  <script src="tangent-solver.js?v=0.25.0"></script>
-  <script src="learning-ui.js?v=0.25.0"></script>
-  <script src="classroom.js?v=0.25.0"></script>
-  <script src="construction-board.js?v=0.25.0"></script>
-  <script src="drag-board.js?v=0.25.0"></script>
-  <script src="equation-builder.js?v=0.25.0"></script>
-  <script src="math-keyboard.js?v=0.25.0"></script>
+  <script src="math-input.js?v=0.26.0"></script>
+  <script src="tangent-solver.js?v=0.26.0"></script>
+  <script src="learning-ui.js?v=0.26.0"></script>
+  <script src="classroom.js?v=0.26.0"></script>
+  <script src="construction-board.js?v=0.26.0"></script>
+  <script src="drag-board.js?v=0.26.0"></script>
+  <script src="equation-builder.js?v=0.26.0"></script>
+  <script src="math-keyboard.js?v=0.26.0"></script>
   <script src="geogebra-bridge.js?v=0.7.0"></script>
   <script>
   (() => {
@@ -1136,6 +1137,6 @@ function motionStep(timestamp){if(!state.model){stopMotion(false);return;}const 
     document.getElementById('closeReleases').addEventListener('click',()=>dialog.close());
   })();
   </script>
-  <script src="pwa.js?v=0.25.0"></script>
+  <script src="pwa.js?v=0.26.0"></script>
 </body>
 </html>

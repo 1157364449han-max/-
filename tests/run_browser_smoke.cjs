@@ -10,7 +10,7 @@ const root=path.resolve(__dirname,'..');
 const output=process.env.DONG_TEST_OUTPUT||fs.mkdtempSync(path.join(os.tmpdir(),'dongjiexi-browser-'));
 fs.mkdirSync(output,{recursive:true});
 const suites=process.argv.slice(2);
-if(!suites.length)suites.push('cloud_primary','latex_tangent','curve_edit_tangent','additive_conic_snap','focus_chord','derived_construction','one_stop_solver','desktop_layout','dependent_motion','structured_input','conic_quick_tools','pwa','mobile_touch','solve_switch','photo_ocr','extreme_highlight');
+if(!suites.length)suites.push('cloud_primary','cloud_vision','latex_tangent','curve_edit_tangent','additive_conic_snap','focus_chord','derived_construction','one_stop_solver','desktop_layout','dependent_motion','structured_input','conic_quick_tools','pwa','mobile_touch','solve_switch','photo_ocr','extreme_highlight');
 const delay=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 async function port(){const probe=net.createServer();await new Promise((resolve,reject)=>probe.once('error',reject).listen(0,'127.0.0.1',resolve));const value=probe.address().port;await new Promise(resolve=>probe.close(resolve));return value;}
 async function run(){
