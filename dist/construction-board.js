@@ -88,6 +88,7 @@
       try{
         if(id==='$conic')result={type:'conic',q:api.coeffs(),pointAt:api.conicPoint,project:api.conicProject};
         else if(id==='$dynamic'){const t=api.angle()*Math.PI/180;result={type:'line',o:api.origin(),d:{x:Math.cos(t),y:Math.sin(t)}};}
+        else if(id==='$dynamic2'&&api.angle2){const t=api.angle2()*Math.PI/180;result={type:'line',o:api.origin(),d:{x:Math.cos(t),y:Math.sin(t)}};}
         else if(String(id).startsWith('feature:'))result=pointValue(api.features().find(p=>p.name===id.slice(8)));
         else{
           const obj=getObject(id);if(!obj)return null;
@@ -108,6 +109,7 @@
             if(obj.op==='line_angle'&&a?.type==='point'&&Number.isFinite(obj.angle)){const angle=obj.angle*Math.PI/180;result={type:'line',o:a,d:{x:Math.cos(angle),y:Math.sin(angle)}};}
             if(obj.op==='circle'&&a?.type==='point'&&b?.type==='point')result={type:'circle',x:a.x,y:a.y,r:distance(a,b)};
             if(obj.op==='midpoint'&&a?.type==='point'&&b?.type==='point')result=pointValue(mul(add(a,b),.5));
+            if(obj.op==='reflect_axis'&&a?.type==='point'){const value=Number(obj.axisValue)||0;result=pointValue(obj.axis==='y'?{x:2*value-a.x,y:a.y}:{x:a.x,y:2*value-a.y});}
             if(['parallel','perpendicular'].includes(obj.op)&&a?.type==='point'&&validLine(b))result={type:'line',o:a,d:obj.op==='parallel'?b.d:{x:-b.d.y,y:b.d.x}};
             if(obj.op==='foot'&&a?.type==='point'&&validLine(b))result=pointValue(add(b.o,mul(b.d,dot(sub(a,b.o),b.d)/dot(b.d,b.d))));
             if(['tangent','normal'].includes(obj.op)&&a?.type==='point')result=curveLine(a,b,obj.op==='normal');
@@ -152,9 +154,9 @@
 
   function attach(api){
     const {state,canvas,ctx,xy}=api,$=id=>document.getElementById(id);
-    const engine=createEngine({model:()=>state.model,features:api.features,coeffs:api.coeffs,origin:api.origin,angle:()=>state.p.theta,conicPoint:api.conicPoint,conicProject:api.conicProject});
+    const engine=createEngine({model:()=>state.model,features:api.features,coeffs:api.coeffs,origin:api.origin,angle:()=>state.p.theta,angle2:api.angle2,conicPoint:api.conicPoint,conicProject:api.conicProject});
     let tool=null,pending=[],staged=[],selected=null,hover=null,pointer=null,snapPreview=null;
-    const titles={point:'点',line:'直线',line_angle:'过点直线',segment:'线段',ray:'射线',circle:'圆',midpoint:'中点',parallel:'平行线',perpendicular:'垂线',intersection:'交点',foot:'垂足',distance:'测距',tangent:'切线',normal:'法线'};
+    const titles={point:'点',line:'直线',line_angle:'过点直线',segment:'线段',ray:'射线',circle:'圆',midpoint:'中点',reflect_x:'x 轴对称点',reflect_y:'y 轴对称点',parallel:'平行线',perpendicular:'垂线',intersection:'交点',foot:'垂足',distance:'测距',tangent:'切线',normal:'法线'};
     const hint=text=>$('dragHint').textContent=text;
     const uid=()=>globalThis.crypto?.randomUUID?.()||'obj-'+Date.now()+'-'+Math.random().toString(36).slice(2);
     const fmt=n=>Number(n.toFixed(4)).toString();
@@ -245,6 +247,7 @@
       if(['tangent','normal'].includes(tool))return pending.length?`已选 ${title(pending[0])}。再点曲线上的位置或已有点，创建${titles[tool]}；拖动该点可联动。`:`先点击要作${titles[tool]}的圆或圆锥曲线，再选曲线上的点。`;
       if(tool==='line_angle')return pending.length?'定点已锁定。点击确定方向；靠近水平、竖直或 45° 时自动吸附。':'先点击要经过的定点；靠近已有点会吸附，空白处可以新建定点。';
       if(tool==='point')return '靠近点、交点或曲线时显示吸附提示；在曲线上建点后，点会跟随该曲线。';
+      if(tool==='reflect_x'||tool==='reflect_y')return `点击一个点，生成关于 ${tool==='reflect_x'?'x':'y'} 轴的联动对称点。`;
       if(tool==='intersection')return pending.length?'再选择另一条直线、圆或圆锥曲线。':'依次点击两个图形求交点。支持线线、线圆、圆圆、直线与任意已添加圆锥曲线。';
       if(['parallel','perpendicular','foot'].includes(tool))return pending.length?'再点击一条作为参照的直线。':'先选一个点（也可点击空白处新建），再选参照直线。';
       return pending.length?(tool==='circle'?'再选择圆周上的点，或点击空白处。':'再选择第二个点，或点击空白处。'):(tool==='circle'?'先选择圆心，或点击空白处创建圆心。':'依次选择两个点；空白处会自动创建点。');
@@ -280,6 +283,10 @@
         const id=pickPoint(screen),obj=staged.find(item=>item.id===id);
         if(!obj){select(id);hint(`已选中点 ${title(id)}，没有重复建立重合点。`);api.render();return;}
         staged=staged.filter(item=>item.id!==id);commit([obj]);return;
+      }
+      if(tool==='reflect_x'||tool==='reflect_y'){
+        const ref=pickPoint(screen),source=pendingPoint(ref);if(!source){hint('请先选择一个可确定坐标的点。');return;}
+        commit([{id:uid(),kind:'construction',op:'reflect_axis',refs:[ref],axis:tool==='reflect_x'?'x':'y',axisValue:0,label:label('R'),visible:true}]);return;
       }
       if(tool==='line_angle'&&pending.length){
         const origin=pendingPoint(pending[0]);
