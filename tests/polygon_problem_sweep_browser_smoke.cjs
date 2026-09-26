@@ -9,7 +9,7 @@ module.exports=async({page,assert,screenshot})=>{
   assert.deepEqual(scene.polygons[0]?.labels,['A','B','D']);
   assert.match(await page.locator('#solution').innerText(),/面积为 6/);
   assert.match(await page.locator('#metrics').innerText(),/△ABD · 面积\s*6/);
-  assert.match(await page.locator('#metrics').innerText(),/∠B（△ABD）\s*112\.62°/);
+  assert.match(await page.locator('#metrics').innerText(),/∠B（△ABD）\s*≈112\.619/);
   assert.match(await page.locator('#layers').innerText(),/△ABD · 高亮/);
   await page.locator('[data-inspector-view="geometry"]').click();
   await page.locator('#layers .layer-row').filter({hasText:'△ABD · 高亮'}).locator('input').uncheck();
@@ -18,8 +18,8 @@ module.exports=async({page,assert,screenshot})=>{
   scene=await solve('已知圆 C：x²+y²=25，A(3,4)，B(-3,4)，C(-3,-4)，D(3,-4)。求四边形 ABCD 的面积和周长。');
   assert.deepEqual(scene.polygons[0]?.labels,['A','B','C','D']);
   assert.match(await page.locator('#solution').innerText(),/面积为 48/);
-  assert.match(await page.locator('#solution').innerText(),/周长约为 28/);
-  assert.match(await page.locator('#solution').innerText(),/\|AB\|≈6/);
+  assert.match(await page.locator('#solution').innerText(),/周长为 28/);
+  assert.match(await page.locator('#solution').innerText(),/\|AB\|=6/);
   assert.match(await page.locator('#metrics').innerText(),/四边形ABCD · 面积\s*48/);
 
   scene=await solve('已知双曲线 C：x²/9−y²/4=1，A(3,0)，B(0,2)，P(-3,0)。求三角形 ABP 的面积。');
@@ -38,6 +38,8 @@ module.exports=async({page,assert,screenshot})=>{
   assert.deepEqual(scene.polygons[0]?.labels,['O','A','B']);
   const area=()=>page.locator('#metrics .metric').filter({hasText:'△OAB · 面积'}).locator('.metric-value').innerText();
   const before=await area();
+  await page.locator('[data-inspector-view="geometry"]').click();
+  await page.locator('#parameterTarget').selectOption('$dynamic');
   await page.locator('#params input[data-key="theta"][data-param-expression="true"]').evaluate(el=>{el.value='75';el.dispatchEvent(new Event('input',{bubbles:true}));});
   const after=await area();
   assert.notEqual(before,after,'动态三角形面积应随割线移动重算');

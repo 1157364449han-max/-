@@ -13,6 +13,8 @@ module.exports=async({page,assert,screenshot})=>{
   await page.waitForFunction(()=>Array.from(document.querySelectorAll('#solution annotation')).some(n=>n.textContent.includes('\\frac{2\\sqrt{21}}{3}')));
   assert.equal(scene.objects.filter(o=>o.label==='P').length,1,'解答场景合并后不能重复创建动点');
   assert.equal(scene.distanceExtrema.length,1);
+  assert.match(await page.locator('#metrics').innerText(),/2√21\/3/,'极值读数应保留根式');
+  assert.match(await page.locator('#metrics').innerText(),/-2\/3/,'极值点坐标应保留分数');
   assert.equal(await page.locator('[data-distance-jump]').count(),2,'必须列出两个最大值位置');
   await page.locator('[data-inspector-view="geometry"]').click();
   await page.locator('[data-distance-jump="0:max:0"]').click();
@@ -23,12 +25,14 @@ module.exports=async({page,assert,screenshot})=>{
   moved=JSON.parse(await page.locator('#sceneJson').inputValue()).objects.find(o=>o.label==='P');
   assert(Math.abs(2*Math.cos(moved.t)+2*Math.sqrt(5)/3)<1e-8);
   await screenshot('ellipse-distance.png','.board-shell');
+  await page.locator('#parameterTarget').selectOption('$conic');
   await page.locator('#params input[data-key="b"][data-param-expression="true"]').evaluate(el=>{el.value='0.5';el.dispatchEvent(new Event('input',{bubbles:true}));});
   const changed=JSON.parse(await page.locator('#sceneJson').inputValue());
   assert.equal(changed.b,0.5);
   const expected=await page.evaluate(s=>window.DongEllipseDistance.compute(s,s,s.points.A).max.distance,changed);
   const metric=await page.locator('#metrics .metric').filter({hasText:'|PA| 最大值'}).locator('.metric-value').innerText();
-  assert(Math.abs(Number(metric)-expected)<1e-5,'参数变化后最大值标记必须重算');
+  const displayed=await page.evaluate(s=>window.DongEquationBuilder.scalar(s.replace(/^≈/,'')),metric);
+  assert(Math.abs(displayed-expected)<1e-5,'参数变化后最大值标记必须重算');
   // A browser-only deployment must also solve a renamed, rotated problem.
   await page.route('**/api/**',route=>route.abort());
   await page.evaluate(()=>{window.DongRuntime.config.apiEnabled=false;});

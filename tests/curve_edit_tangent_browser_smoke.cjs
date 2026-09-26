@@ -51,11 +51,11 @@ module.exports=async({page,context,assert,screenshot})=>{
   await page.locator('#confirmAddConic').click();await page.locator('#addConicDialog').waitFor({state:'hidden'});
   let edited=await scene();assert.equal(edited.objects.length,objectCount);
   const circle=edited.objects.find(o=>o.id==='c');assert.equal(circle.r,2);assert.equal(circle.h,.5);assert.equal(circle.label,'辅助圆');
-  assert.equal(circle.equation,'(x−0.5)²+y²=4');
+  assert.equal(circle.equation,'(x−(1/2))²+y²=4');
   assert.deepEqual(edited.objects.find(o=>o.id===circleTangent.id).refs,[circlePoint.id,'c']);
   [t,n]=await evaluate();assert(Math.abs(Math.hypot(t.o.x-.5,t.o.y)-2)<1e-8);assert(Math.abs(t.d.x*n.d.x+t.d.y*n.d.y)<1e-8);
   await page.locator('#nativeInspector [data-live-equation] .katex').waitFor();
-  assert.match(await page.locator('#nativeInspector [data-live-equation]').getAttribute('data-math-source'),/0.5.*=4/);
+  assert.match(await page.locator('#nativeInspector [data-live-equation]').getAttribute('data-math-source'),/1\/2.*=4/);
   assert.equal(await page.locator('#question').inputValue(),originalQuestion);
   assert.equal(await page.locator('#solution').textContent(),originalSolution);
   await page.locator('#undoDrag').click();assert.equal((await scene()).objects.find(o=>o.id==='c').r,1);await page.locator('#redoDrag').click();
@@ -91,7 +91,7 @@ module.exports=async({page,context,assert,screenshot})=>{
   const bad={...model,points:{P:[0,0]}};await install(bad);await page.locator('[data-construct="tangent"]').click();await click(-3,0);await click(0,0);
   assert.equal((await constructed('tangent')).length,0);assert.match(await page.locator('#dragHint').innerText(),/不在所选曲线上/);
   await install(edited);await page.reload();await page.waitForFunction(()=>JSON.parse(document.querySelector('#sceneJson').value).objects?.some(o=>o.id==='c'));
-  assert.equal((await scene()).objects.find(o=>o.id==='c').equation,'(x−0.5)²+y²=4');
+  assert.equal((await scene()).objects.find(o=>o.id==='c').equation,'(x−(1/2))²+y²=4');
   assert.equal((await constructed('normal')).length,1);
   console.log('PASS: pure-web tangent/normal preview and linked motion, in-place curve edits with stable IDs, live equations, undo, invalid-point warnings and persistence.');
 };

@@ -18,6 +18,7 @@ module.exports=async({page,assert})=>{
   await page.locator('#scanButton').click();
   await page.locator('#jumpMinimum').click();
   assert.match(await page.locator('#extremeHitStatus').innerText(),/cos θ≈-1/);
+  await page.locator('#parameterTarget').selectOption('$conic');
   await page.locator('#r-a').fill('5');
   await page.locator('#r-a').dispatchEvent('input');
   assert.match(await page.locator('#scanResult').innerText(),/请重新扫描/);

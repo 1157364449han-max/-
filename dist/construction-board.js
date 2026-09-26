@@ -159,7 +159,7 @@
     const titles={point:'点',line:'直线',line_angle:'过点直线',segment:'线段',ray:'射线',circle:'圆',midpoint:'中点',reflect_x:'x 轴对称点',reflect_y:'y 轴对称点',parallel:'平行线',perpendicular:'垂线',intersection:'交点',foot:'垂足',distance:'测距',tangent:'切线',normal:'法线'};
     const hint=text=>$('dragHint').textContent=text;
     const uid=()=>globalThis.crypto?.randomUUID?.()||'obj-'+Date.now()+'-'+Math.random().toString(36).slice(2);
-    const fmt=n=>Number(n.toFixed(4)).toString();
+    const fmt=n=>window.DongNumber?.text(n)??Number(n.toFixed(4)).toString();
     function label(prefix){const used=new Set([...api.features().map(p=>p.name),...engine.objects().map(o=>o.label),...staged.map(o=>o.label)]);let i=1;while(used.has(prefix+i))i++;return prefix+i;}
     function visible(id){if(id==='$conic')return state.model?.showConic!==false;if(id==='$dynamic')return state.model?.showDynamic!==false&&api.visible({part:state.model.dynamicLinePart});if(id.startsWith('feature:'))return state.model?.showFeatures!==false;const o=engine.getObject(id);return o&&api.visible(o);}
     function points(){return [...api.features().filter(p=>api.featureVisible?api.featureVisible(p):state.model?.showFeatures!==false).map(p=>({id:'feature:'+p.name,...p})),...engine.objects().filter(o=>api.visible(o)).map(o=>({id:o.id,...engine.resolve(o.id)})).filter(o=>o.type==='point')];}
@@ -219,7 +219,7 @@
         if(api.editableConic?.(object)){const edit=document.createElement('button');edit.className='button secondary';edit.textContent='编辑曲线参数';edit.onclick=()=>api.editConic(object.id);box.append(edit);}
         if(object.op==='line_angle'){
           const field=document.createElement('label');field.textContent='倾斜角（度，可填分数或 π）';
-          const angle=document.createElement('input');angle.id='nativeLineAngle';angle.type='text';angle.inputMode='decimal';angle.value=fmt(object.angle);angle.setAttribute('aria-label','过点直线倾斜角');
+          const angle=document.createElement('input');angle.id='nativeLineAngle';angle.type='text';angle.inputMode='decimal';angle.value=window.DongNumber?.input(object.angle)??String(object.angle);angle.setAttribute('aria-label','过点直线倾斜角');
           const apply=document.createElement('button');apply.textContent='应用角度';apply.className='button secondary';
           apply.onclick=()=>{try{const value=window.DongEquationBuilder.scalar(angle.value);api.transaction(()=>object.angle=((value%180)+180)%180);hint(`直线始终经过 ${title(object.refs[0])}；拖动直线可旋转。`);}catch(error){hint(error.message);}};
           const keyboard=document.createElement('button');keyboard.textContent='数学键盘';keyboard.dataset.openMathKeyboard='';keyboard.dataset.mathTarget='#nativeLineAngle';keyboard.dataset.mathScope='#nativeInspector';

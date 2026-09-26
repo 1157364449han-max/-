@@ -92,7 +92,9 @@
     if (values.includes('null')) throw new Error('参数计算结果无效。');
     return object;
   };
+  let expressionHints=null;
   const fmt = value => {
+    if(window.DongNumber){const s=window.DongNumber.exact(value)?.text??expressionHints?.get(value)??String(value);return /[\/+*]|\d[-+]/.test(s)?`(${s})`:s;}
     if (!Number.isFinite(value)) return '—';
     const rounded = Math.abs(value) < 1e-12 ? 0 : Number(value.toFixed(6));
     return String(rounded).replace('-', '−');
@@ -159,7 +161,25 @@
   }
   function curveEquation(object) {
     const spec=curveSpec(object);if(!spec)return null;
-    try{return templates[spec.type][0].build(spec.values).equation;}catch{return null;}
+    for(const key of Object.keys(spec.values))if(Number.isFinite(Number(spec.values[key])))spec.values[key]=window.DongNumber?.input(Number(spec.values[key]),object.inputExpressions?.[key])??spec.values[key];
+    try{return buildTemplate(templates[spec.type][0],spec.values).equation;}catch{return null;}
+  }
+  function buildTemplate(template,values){
+    const previous=expressionHints;expressionHints=new Map();
+    for(const raw of Object.values(values)){try{const value=scalar(raw),expression=String(raw).replace(/sqrt/g,'√');expressionHints.set(value,expression);expressionHints.set(value*value,`(${expression})²`);}catch{}}
+    try{const result=template.build(values);result.object.inputExpressions={...values};return result;}finally{expressionHints=previous;}
+  }
+  function editSpec(object){
+    if(object?.refs?.length||object?.construction)return null;
+    let spec=curveSpec(object);
+    if(spec)spec.template=templates[spec.type][0];
+    else if(object?.kind==='function')spec={type:'function',values:{...object.params},template:templates.function.find(t=>t.id===object.family)};
+    else if(['line','slope'].includes(object?.kind)&&object.m!=null)spec={type:'line',values:{k:object.m,b:object.b||0},template:templates.line.find(t=>t.id==='slope')};
+    else if(['line','vertical'].includes(object?.kind)&&object.x!=null)spec={type:'line',values:{c:object.x},template:templates.line.find(t=>t.id==='vertical')};
+    else if(object?.kind==='point')spec={type:'point',values:{x:object.x,y:object.y},template:templates.point[0]};
+    if(!spec?.template)return null;
+    for(const field of spec.template.fields){const value=spec.values[field.key];if(!field.options)spec.values[field.key]=window.DongNumber?.input(Number(value),object.inputExpressions?.[field.key])??String(value);}
+    return spec;
   }
 
   function functionValue(object, x) {
@@ -185,7 +205,7 @@
     const values = () => Object.fromEntries([...fields.querySelectorAll('[data-equation-param]')].map(input => [input.dataset.equationParam,input.value]));
     function read() {
       if (!active) throw new Error('请先选择方程模板。');
-      return active.build(values());
+      return buildTemplate(active,values());
     }
     function updatePreview() {
       try {
@@ -231,7 +251,7 @@
     function loadObject(object){
       const spec=curveSpec(object);if(!spec)throw new Error('暂不支持用曲线模板编辑此对象。');
       setType(spec.type);
-      for(const control of fields.querySelectorAll('[data-equation-param]'))if(spec.values[control.dataset.equationParam]!=null)control.value=spec.values[control.dataset.equationParam];
+      for(const control of fields.querySelectorAll('[data-equation-param]')){const key=control.dataset.equationParam;if(spec.values[key]!=null)control.value=control.tagName==='SELECT'?spec.values[key]:window.DongNumber?.input(Number(spec.values[key]),object.inputExpressions?.[key])??spec.values[key];}
       updatePreview();
     }
     typeSelect.addEventListener('change', () => setType());
@@ -242,5 +262,5 @@
     return {read,setType,loadObject,updatePreview,typeNames};
   }
 
-  window.DongEquationBuilder = {attach, scalar, functionValue, curveSpec, curveEquation, typeNames, templates};
+  window.DongEquationBuilder = {attach, scalar, functionValue, curveSpec, curveEquation, editSpec, buildTemplate, typeNames, templates};
 })();

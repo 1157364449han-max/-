@@ -1,9 +1,9 @@
 'use strict';
 
-const VERSION = '0.34.0';
+const VERSION = '0.35.0';
 const CACHE = `dongjiexi-app-${VERSION}`;
 const CORE = [
-  './math-input.js', './tangent-solver.js', './ellipse-distance.js',
+  './math-input.js', './number-display.js', './tangent-solver.js', './ellipse-distance.js',
   './', './index.html', './offline.html', './manifest.webmanifest', './app-version.json',
   './runtime-config.js', './runtime.js', './pwa.js', './learning-ui.css', './learning-ui.js', './classroom.css',
   './classroom.js', './construction-board.js', './drag-board.js', './equation-builder.js', './math-keyboard.js', './geogebra-bridge.js',

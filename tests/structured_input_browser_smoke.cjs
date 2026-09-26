@@ -97,6 +97,7 @@ module.exports = async ({page, assert, screenshot}) => {
   assert.equal(await page.locator('#mathKeyboard').isVisible(), false);
 
   await page.locator('.controls [data-quick-conic="ellipse"]').click();
+  await page.locator('#parameterTarget').selectOption('$conic');
   await page.locator('#params input[data-key="a"][data-param-expression]').fill('√25');
   scene = JSON.parse(await page.locator('#sceneJson').inputValue());
   assert.equal(scene.a, 5, '主曲线参数应直接计算根式');

@@ -17,6 +17,8 @@ module.exports = async ({page,assert}) => {
   assert.match(solution,/T\(4,0\)/);
   assert.match(solution,/竖直线/);
   assert.match(solution,/两条所得直线可能重合/);
+  await page.locator('[data-inspector-view="geometry"]').click();
+  await page.locator('#parameterTarget').selectOption('$dynamic');
   assert.match(await page.locator('#params').innerText(),/第二条直线角度/);
   const geometry=await page.evaluate(model=>{
     const q={A:1/4,B:0,C:1,D:0,E:0,F:-1},conic={type:'conic',q},origin={x:1,y:0},samples=[];
@@ -31,6 +33,7 @@ module.exports = async ({page,assert}) => {
     return samples;
   },scene);
   for(const sample of geometry){if(sample.first===90){assert.equal(sample.m,null,'竖直线处 A′=B，m 不应被虚构');continue;}assert.ok(sample.m<1e-8&&sample.mPrime<1e-8,JSON.stringify(sample));}
+  await page.locator('#parameterTarget').selectOption('$conic');
   const major=page.locator('#params input[data-key="a"][data-param-expression="true"]');
   await major.evaluate(el=>{el.value='3';el.dispatchEvent(new Event('input',{bubbles:true}));});
   assert.equal(JSON.parse(await page.locator('#sceneJson').inputValue()).fixedPoint.x,9,'半轴变化时定点必须同步重算');
