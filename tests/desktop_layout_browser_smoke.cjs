@@ -51,8 +51,8 @@ module.exports = async ({page, assert, screenshot}) => {
   assert.equal(scene.lines[0].label, 't');
 
   await page.locator('#toolboxToggle').click();
-  assert.equal(await page.locator('.board-shell').evaluate(element => element.classList.contains('toolbox-collapsed')), true);
-  assert.equal(await page.locator('#toolboxToggle').getAttribute('aria-expanded'), 'false');
+  assert.equal(await page.locator('.board-shell').evaluate(element => element.classList.contains('toolbox-collapsed')), false);
+  assert.equal(await page.locator('#toolboxToggle').getAttribute('aria-expanded'), 'true');
   await page.locator('#toolboxToggle').click();
   await screenshot('desktop-workbench.png', null);
 

@@ -3,6 +3,7 @@ module.exports=async({page,baseURL,assert,errors})=>{
   const phone=await context.newPage();phone.on('pageerror',error=>errors.push(error.message));
   try{
     await phone.goto(baseURL,{waitUntil:'domcontentloaded'});
+    await phone.locator('#toolboxToggle').tap();
     await phone.locator('#question').fill('椭圆x²/9+y²/4=1。');
     await phone.locator('#parseButton').tap();await phone.locator('#scenePreviewDialog').waitFor({state:'visible'});await phone.locator('#confirmScenePreview').tap();
     assert.equal(await phone.locator('#inputPanelToggle').isVisible(),false,'手机端不应显示无效的隐藏题目按钮');

@@ -12,8 +12,8 @@
   <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
   <link rel="apple-touch-icon" href="icons/icon.svg">
   <link rel="stylesheet" href="vendor/katex/katex.min.css">
-  <link rel="stylesheet" href="learning-ui.css?v=0.29.0">
-  <link rel="stylesheet" href="classroom.css?v=0.29.0">
+  <link rel="stylesheet" href="learning-ui.css?v=0.30.0">
+  <link rel="stylesheet" href="classroom.css?v=0.30.0">
   <style>
     :root { --ink:#0c1b33; --ink-2:#1a3152; --paper:#f6f8fb; --panel:#ffffff; --line:#d7e0eb; --muted:#64748b; --teal:#0f9f99; --teal-soft:#e1f7f4; --amber:#f2a33c; --amber-soft:#fff2d9; --red:#df5b62; --blue:#3f78d8; --shadow:0 10px 30px rgba(12,27,51,.09); }
     * { box-sizing:border-box; }
@@ -249,6 +249,11 @@
     .native-toolbar .tool-group { display:flex;align-items:center;flex-wrap:wrap;gap:.3rem;padding-right:.35rem;border-right:1px solid #e1e8ef; }
     .native-toolbar .tool-group:last-child { padding-right:0;border-right:0; }
     .board-shell.toolbox-collapsed .native-toolbar { display:none; }
+    .quick-function-details,.compact-section { margin-top:.55rem;border:1px solid #d9e5ed;border-radius:9px;background:#fbfdff; }
+    .quick-function-details summary,.compact-section summary { padding:.55rem .7rem;color:#28506a;font-size:.82rem;font-weight:700;cursor:pointer; }
+    .quick-function-details[open] summary,.compact-section[open] summary { border-bottom:1px solid #e2ebf1; }
+    .quick-function-details > .quick-conic-grid,.quick-function-details > .help,.compact-section > div { margin:.65rem; }
+    .compact-section > .scan { margin:.65rem;border:0;padding:0; }
     .snap-status { min-height:22px;padding:2px .8rem;color:#087f80;background:#f1fbf8;font-size:.75rem; }
     #addConicDialog { width:min(560px,calc(100vw - 24px)); }
     .layer-edit { margin-left:auto; flex:none; font-size:.75rem; padding:.2rem .35rem; color:#087f80; border:1px solid #c9e4df; background:#f1fbf8; border-radius:5px; cursor:pointer; }
@@ -321,7 +326,7 @@
 <body>
   <main class="app">
     <header class="topbar">
-      <div class="brand"><span class="brand-mark">董</span><span class="brand-name">董解析</span><button class="version-button" id="versionButton" title="查看版本、更新记录和能力边界">v0.29.0 · 更新记录</button></div>
+      <div class="brand"><span class="brand-mark">董</span><span class="brand-name">董解析</span><button class="version-button" id="versionButton" title="查看版本、更新记录和能力边界">v0.30.0 · 更新记录</button></div>
       <div class="top-actions"><span class="top-note">内置符号解题 · 动态几何 · 可选智能增强 · 我的题本</span><button id="pwaInstall" class="install-button" hidden>安装到设备</button></div>
     </header>
     <section id="pwaBanner" class="pwa-banner" hidden role="status"><span id="pwaMessage"></span><button id="pwaUpdate" hidden>立即更新</button><button id="pwaDismiss">稍后</button></section>
@@ -350,7 +355,7 @@
           <button class="button secondary" id="clearButton">清空</button>
         </div>
         <div id="status" class="status" role="status">等待题目。可输入完整题目解答，也可快速建图或在右侧按模板添加对象。</div>
-        <section class="quick-conics" aria-labelledby="quickConicsTitle"><div class="quick-conics-head"><strong id="quickConicsTitle">不输入题目，直接新建</strong><span>无需 AI</span></div><div class="quick-conic-grid"><button class="quick-conic" data-quick-conic="ellipse">椭圆</button><button class="quick-conic" data-quick-conic="hyperbola">双曲线</button><button class="quick-conic" data-quick-conic="parabola">抛物线</button><button class="quick-conic" data-quick-conic="circle">圆</button></div></section>
+        <section class="quick-conics" aria-labelledby="quickConicsTitle"><div class="quick-conics-head"><strong id="quickConicsTitle">快捷建图</strong><span>无需 AI</span></div><div class="quick-conic-grid"><button class="quick-conic" data-quick-conic="ellipse">椭圆</button><button class="quick-conic" data-quick-conic="hyperbola">双曲线</button><button class="quick-conic" data-quick-conic="parabola">抛物线</button><button class="quick-conic" data-quick-conic="circle">圆</button></div><details class="quick-function-details"><summary>三角函数与更多函数</summary><div class="quick-conic-grid"><button class="quick-conic" data-quick-function="sine">正弦 sin</button><button class="quick-conic" data-quick-function="cosine">余弦 cos</button><button class="quick-conic" data-quick-function="tangent">正切 tan</button><button class="quick-conic" data-quick-function="quadratic">二次函数</button><button class="quick-conic" data-quick-function="absolute">绝对值</button><button class="quick-conic" data-quick-function="reciprocal">反比例</button><button class="quick-conic" data-quick-function="exponential">指数函数</button><button class="quick-conic" data-quick-function="logarithm">对数函数</button><button class="quick-conic" data-quick-function="squareRoot">根式函数</button></div><p class="help">点击即画默认函数；展开右侧“函数与图层”可按模板修改参数。</p></details></section>
         <details class="starter-details"><summary>输入帮助与题型示例</summary><div>
           <p class="help">不必先给标准方程。董解析会先用内置符号引擎从离心率、轴长、焦点、过点、圆心、直径、顶点与准线等条件反推并核验；无需另装模型即可完成已覆盖题型。</p>
           <div class="examples" aria-label="题干模板">
@@ -389,10 +394,10 @@
         </details>
       </aside>
 
-      <section class="panel board-shell" aria-label="动态图形画板">
+      <section class="panel board-shell toolbox-collapsed" aria-label="动态图形画板">
         <div class="board-toolbar">
           <div class="board-title-wrap"><span class="board-kicker">第 3 步 · 动态画板</span><div class="board-title" id="boardTitle">未载入图形</div></div>
-          <div class="tool-actions"><button class="toolbox-toggle" id="inputPanelToggle" type="button" aria-expanded="true">隐藏题目栏</button><button class="toolbox-toggle" id="toolboxToggle" type="button" aria-expanded="true">收起作图工具</button><button class="tool-button" id="zoomOut" title="缩小视图">−</button><button class="tool-button" id="homeButton" title="适应图形">⌂</button><button class="tool-button" id="zoomIn" title="放大视图">＋</button><label class="toggle"><input type="checkbox" id="guideToggle" checked>辅助线</label><label class="toggle"><input type="checkbox" id="gridToggle" checked>网格</label></div>
+          <div class="tool-actions"><button class="toolbox-toggle" id="inputPanelToggle" type="button" aria-expanded="true">隐藏题目栏</button><button class="toolbox-toggle" id="toolboxToggle" type="button" aria-expanded="false">展开作图工具</button><button class="tool-button" id="zoomOut" title="缩小视图">−</button><button class="tool-button" id="homeButton" title="适应图形">⌂</button><button class="tool-button" id="zoomIn" title="放大视图">＋</button><label class="toggle"><input type="checkbox" id="guideToggle" checked>辅助线</label><label class="toggle"><input type="checkbox" id="gridToggle" checked>网格</label></div>
         </div>
         <div class="drag-toolbar" aria-label="画板操作">
           <span class="toolbar-caption">操作</span>
@@ -434,7 +439,8 @@
             <div id="equation" class="equation">—</div>
             <section id="nativeInspector" class="native-inspector" aria-label="选中对象与构造关系"></section>
             <section class="construction" aria-label="自由作图与图层">
-              <h2 class="panel-title" style="margin-bottom:.2rem">自由作图与图层</h2>
+              <h2 class="panel-title" style="margin-bottom:.2rem">函数与图层</h2>
+              <details id="objectBuilderDetails" class="compact-section"><summary>展开方程模板与添加对象</summary><div>
               <p class="help" style="margin-top:0">先选对象和模板，只填数值即可作图；支持分数、π 和根号。完整方程仍可在高级输入中使用。</p>
               <select id="objectType" aria-label="添加对象类型"><option value="point">坐标点</option><option value="line">直线</option><option value="circle">圆</option><option value="ellipse">椭圆</option><option value="hyperbola">双曲线</option><option value="parabola">抛物线</option><option value="function">函数曲线</option></select>
               <div class="equation-builder" id="equationBuilder">
@@ -447,6 +453,7 @@
               </div>
               <input id="objectName" aria-label="对象名称" placeholder="名称（可选）">
               <div class="actions"><button class="button secondary" id="addObject">添加到画板</button><button class="button secondary" id="clearObjects">清除自加对象</button></div>
+              </div></details>
               <div id="layers" class="layer-list" aria-label="图层列表"></div>
             </section>
           </section>
@@ -456,7 +463,7 @@
             <div id="exploreNotice" class="explore-notice" hidden>当前是拖动后的探索图，题设条件已变化。下面的答案对应原题；可撤销或点击“还原当前图”。</div>
             <section id="solution" class="solution" hidden aria-live="polite"></section>
             <section id="followupPanel" class="learning-chat" hidden><h3>继续追问本题</h3><div id="chatMessages"></div><div class="followup-chips"><button data-followup="请解释当前小问中最关键的一步，并写出中间计算。">解释关键步骤</button><button data-followup="请检查本题解答是否遗漏斜率不存在、退化情况、定义域和端点。">检查遗漏情况</button><button data-followup="请尝试用另一种高中数学方法解答当前小问。">换一种方法</button></div><textarea id="followupInput" aria-label="追问内容" placeholder="例如：第二问为什么可以这样用韦达定理？"></textarea><button id="sendFollowup" class="button primary">发送追问</button></section>
-            <div class="scan">
+            <details class="compact-section"><summary>最值探索与定位</summary><div class="scan">
               <label for="extremeMetric">观察量</label>
               <select id="extremeMetric" aria-label="选择最值观察量"><option value="chord">弦长 |AB|</option><option value="angle">动直线方向角 θ</option><option value="sin">sin θ</option><option value="cos">cos θ</option></select>
               <button class="button warn" id="scanButton">寻找最大 / 最小</button>
@@ -464,7 +471,7 @@
               <div id="scanResult" class="scan-result">—</div>
               <div id="extremeHitStatus" class="scan-result" role="status" aria-live="polite"></div>
               <div class="actions"><button class="button secondary" id="jumpMinimum" hidden>跳到最小位置</button><button class="button secondary" id="jumpMaximum" hidden>跳到最大位置</button></div>
-            </div>
+            </div></details>
             <div class="actions" style="margin-top:1rem"><button class="button secondary" id="pngButton">导出 PNG</button><button class="button secondary" id="copyButton">复制题目</button></div>
             <div class="tip">上方作图工具全部在本机运行。按 Esc 返回拖动，拖动源点会更新关联对象。图稿可导出 JSON，再打开继续编辑。</div>
             <details class="native-compat"><summary>旧版 .ggb 草稿（可选）</summary><div><p class="help">仅用于访问此前的独立 GeoGebra 草稿。主画板的新构造无需此功能。</p><button class="button secondary" id="openGeoGebra">打开 GeoGebra 编辑器</button></div></details>
@@ -494,17 +501,17 @@
   </dialog>
 
   <script src="runtime-config.js"></script>
-  <script src="runtime.js?v=0.29.0"></script>
+  <script src="runtime.js?v=0.30.0"></script>
   <script src="vendor/katex/katex.min.js"></script>
   <script src="vendor/katex/contrib/auto-render.min.js"></script>
-  <script src="math-input.js?v=0.29.0"></script>
-  <script src="tangent-solver.js?v=0.29.0"></script>
-  <script src="learning-ui.js?v=0.29.0"></script>
-  <script src="classroom.js?v=0.29.0"></script>
-  <script src="construction-board.js?v=0.29.0"></script>
-  <script src="drag-board.js?v=0.29.0"></script>
-  <script src="equation-builder.js?v=0.29.0"></script>
-  <script src="math-keyboard.js?v=0.29.0"></script>
+  <script src="math-input.js?v=0.30.0"></script>
+  <script src="tangent-solver.js?v=0.30.0"></script>
+  <script src="learning-ui.js?v=0.30.0"></script>
+  <script src="classroom.js?v=0.30.0"></script>
+  <script src="construction-board.js?v=0.30.0"></script>
+  <script src="drag-board.js?v=0.30.0"></script>
+  <script src="equation-builder.js?v=0.30.0"></script>
+  <script src="math-keyboard.js?v=0.30.0"></script>
   <script src="geogebra-bridge.js?v=0.7.0"></script>
   <script>
   (() => {
@@ -910,7 +917,14 @@
     }
     function drawAxes(){const o=xy(0,0);ctx.strokeStyle='#7d91a9';ctx.lineWidth=1.25;ctx.beginPath();ctx.moveTo(0,o.y);ctx.lineTo(state.cssW,o.y);ctx.moveTo(o.x,0);ctx.lineTo(o.x,state.cssH);ctx.stroke();ctx.fillStyle='#5d7188';ctx.font='12px Microsoft YaHei UI';ctx.fillText('x',state.cssW-14,Math.max(12,o.y-5));ctx.fillText('y',o.x+5,13);}
     function strokePath(points,color='#0f9f99',width=2.5){if(points.length<2)return;ctx.beginPath();points.forEach((p,i)=>{const q=xy(p.x,p.y);i?ctx.lineTo(q.x,q.y):ctx.moveTo(q.x,q.y);});ctx.strokeStyle=color;ctx.lineWidth=width;ctx.lineJoin='round';ctx.lineCap='round';ctx.stroke();}
-    function conicPaths(){const t=state.model.type,h=P('h'),k=P('k'),paths=[];if(t==='circle'||t==='ellipse'){let ax=t==='circle'?P('r'):(state.model.orientation==='horizontal'?P('a'):P('b')),by=t==='circle'?P('r'):(state.model.orientation==='horizontal'?P('b'):P('a'));paths.push(Array.from({length:361},(_,i)=>{const u=i*Math.PI/180;return{x:h+ax*Math.cos(u),y:k+by*Math.sin(u)}}));} else if(t==='hyperbola'){const lim=2.6;[-1,1].forEach(s=>paths.push(Array.from({length:170},(_,i)=>{const u=-lim+i*2*lim/169;return state.model.orientation==='vertical'?{x:h+P('b')*Math.sinh(u),y:k+s*P('a')*Math.cosh(u)}:{x:h+s*P('a')*Math.cosh(u),y:k+P('b')*Math.sinh(u)}})));}else {const dir=P('direction')||1,lim=Math.max(10,P('p')*8);paths.push(Array.from({length:260},(_,i)=>{const u=-lim+i*2*lim/259;return state.model.orientation==='vertical'?{x:h+u,y:k+dir*u*u/(4*P('p'))}:{x:h+dir*u*u/(4*P('p')),y:k+u};}));}return paths;}
+    function viewportConicPaths(spec){
+      const {type,h,k,orientation,direction=1}=spec,v=state.view,vertical=orientation==='vertical',paths=[];
+      if(type==='circle'||type==='ellipse'){const ax=type==='circle'?spec.r:(vertical?spec.b:spec.a),by=type==='circle'?spec.r:(vertical?spec.a:spec.b);paths.push(Array.from({length:361},(_,i)=>{const u=i*Math.PI/180;return{x:h+ax*Math.cos(u),y:k+by*Math.sin(u)}}));}
+      else if(type==='hyperbola'){const reachX=Math.max(Math.abs(v.xmin-h),Math.abs(v.xmax-h)),reachY=Math.max(Math.abs(v.ymin-k),Math.abs(v.ymax-k)),minor=Math.max(1e-8,spec.b),limit=Math.min(40,Math.asinh(Math.max(2,reachX/minor,reachY/minor))+0.35);for(const branch of [-1,1])paths.push(Array.from({length:401},(_,i)=>{const u=-limit+i*2*limit/400;return vertical?{x:h+spec.b*Math.sinh(u),y:k+branch*spec.a*Math.cosh(u)}:{x:h+branch*spec.a*Math.cosh(u),y:k+spec.b*Math.sinh(u)}}));}
+      else if(type==='parabola'){const low=(vertical?v.xmin:v.ymin)-(vertical?v.xmax-v.xmin:v.ymax-v.ymin)*.08-(vertical?h:k),high=(vertical?v.xmax:v.ymax)+(vertical?v.xmax-v.xmin:v.ymax-v.ymin)*.08-(vertical?h:k);paths.push(Array.from({length:401},(_,i)=>{const u=low+(high-low)*i/400,major=direction*u*u/(4*spec.p);return vertical?{x:h+u,y:k+major}:{x:h+major,y:k+u};}));}
+      return paths;
+    }
+    function conicPaths(){return viewportConicPaths({type:state.model.type,h:P('h'),k:P('k'),a:P('a'),b:P('b'),r:P('r'),p:P('p'),orientation:state.model.orientation,direction:P('direction')||1});}
     function annotation(text,world,color='#526b88'){const q=xy(world.x,world.y);ctx.fillStyle=color;ctx.font='600 12px Microsoft YaHei UI';ctx.fillText(text,Math.max(6,Math.min(state.cssW-ctx.measureText(text).width-6,q.x+5)),Math.max(16,Math.min(state.cssH-8,q.y-5)));}
     function drawLine(o){const rad=P('theta')*Math.PI/180,span=Math.max(state.view.xmax-state.view.xmin,state.view.ymax-state.view.ymin)*1.3,dx=Math.cos(rad),dy=Math.sin(rad);const end={x:o.x+span*dx,y:o.y+span*dy};strokePath([{x:o.x-span*dx,y:o.y-span*dy},end],'#f2a33c',2);annotation(state.model.dynamicLineLabel||'动直线',end,'#9a6507');}
     function namedObject(name){const derived=(state.model.objects||[]).find(o=>o.kind==='construction'&&o.label===name);if(derived){const shape=nativeController?.engine.resolve(derived.id);if(shape?.type==='point')return shape;}const known=features().find(item=>item.name===name)||(state.model.objects||[]).find(o=>o.kind==='point'&&o.label===name);if(known)return known;if(name===state.model.fixedPoint?.name&&Number.isFinite(state.model.fixedPoint.x))return state.model.fixedPoint;const index=(state.model.dynamicIntersectionLabels||['A','B']).indexOf(name);if(index>=0)return intersections()[index]||null;const second=state.model.pairedChord?.labels.indexOf(name)??-1;return second>=0?secondIntersections()[second]||null:null;}
@@ -927,9 +941,9 @@
     }
     function clippedLine(o,d){const v=state.view;let lo=-Infinity,hi=Infinity;for(const [coord,min,max] of [['x',v.xmin,v.xmax],['y',v.ymin,v.ymax]]){if(Math.abs(d[coord])<1e-14){if(o[coord]<min||o[coord]>max)return null;}else{const a=(min-o[coord])/d[coord],b=(max-o[coord])/d[coord];lo=Math.max(lo,Math.min(a,b));hi=Math.min(hi,Math.max(a,b));}}return lo<=hi?{a:{x:o.x+lo*d.x,y:o.y+lo*d.y},b:{x:o.x+hi*d.x,y:o.y+hi*d.y}}:null;}
     function drawKnownLines(){for(const line of state.model.lines||[]){if(!visibleForPart(line))continue;const ends=endpointsForLine(line);if(!ends)continue;ctx.save();if(!line.infinite&&line.kind==='through_points')ctx.setLineDash([3,0]);strokePath([ends.a,ends.b],'#7c5ac9',2);ctx.restore();annotation(line.label||'已知线',ends.b,'#6046a8');}}
-    function userConicPaths(obj){const paths=[],vertical=obj.orientation==='vertical',h=Number(obj.h)||0,k=Number(obj.k)||0;if(obj.conicType==='ellipse'){const ax=vertical?obj.b:obj.a,by=vertical?obj.a:obj.b;paths.push(Array.from({length:361},(_,i)=>{const t=i*Math.PI/180;return{x:h+ax*Math.cos(t),y:k+by*Math.sin(t)}}));}else if(obj.conicType==='hyperbola'){for(const branch of [-1,1])paths.push(Array.from({length:170},(_,i)=>{const t=-2.6+i*5.2/169;return vertical?{x:h+obj.b*Math.sinh(t),y:k+branch*obj.a*Math.cosh(t)}:{x:h+branch*obj.a*Math.cosh(t),y:k+obj.b*Math.sinh(t)}}));}else {const direction=obj.direction||1,limit=Math.max(10,obj.p*8);paths.push(Array.from({length:260},(_,i)=>{const t=-limit+i*2*limit/259,major=direction*t*t/(4*obj.p);return vertical?{x:h+t,y:k+major}:{x:h+major,y:k+t};}));}return paths;}
+    function userConicPaths(obj){return viewportConicPaths({type:obj.conicType,h:Number(obj.h)||0,k:Number(obj.k)||0,a:Number(obj.a),b:Number(obj.b),p:Number(obj.p),orientation:obj.orientation,direction:obj.direction||1});}
     function userFunctionPaths(obj){const paths=[];let path=[];const samples=Math.max(320,Math.min(900,Math.round(state.cssW||500))),spanY=state.view.ymax-state.view.ymin,limit=Math.max(Math.abs(state.view.ymin),Math.abs(state.view.ymax))+spanY*4;for(let i=0;i<=samples;i++){const x=state.view.xmin+(state.view.xmax-state.view.xmin)*i/samples,y=window.DongEquationBuilder.functionValue(obj,x),previous=path[path.length-1];if(!Number.isFinite(y)||Math.abs(y)>limit||(previous&&Math.abs(y-previous.y)>spanY*.7)){if(path.length>1)paths.push(path);path=[];if(!Number.isFinite(y)||Math.abs(y)>limit)continue;}path.push({x,y});}if(path.length>1)paths.push(path);return paths;}
-    function drawUserObjects(){for(const obj of state.model.objects||[]){if(!visibleForPart(obj))continue;if(obj.kind==='circle'){const path=Array.from({length:361},(_,i)=>{const t=i*Math.PI/180;return{x:obj.h+obj.r*Math.cos(t),y:obj.k+obj.r*Math.sin(t)}});strokePath(path,'#c15b87',2.2);annotation(obj.label||'圆',{x:obj.h+obj.r,y:obj.k},'#9d3f6c');}else if(obj.kind==='conic'){userConicPaths(obj).forEach(path=>strokePath(path,'#c15b87',2.2));const anchor=obj.orientation==='vertical'?{x:obj.h,y:obj.k+(obj.a||obj.p)}:{x:obj.h+(obj.a||obj.p),y:obj.k};annotation(obj.label||'自定义圆锥曲线',anchor,'#9d3f6c');}else if(obj.kind==='function'){const paths=userFunctionPaths(obj);paths.forEach(path=>strokePath(path,'#c15b87',2.2));const anchor=paths.find(path=>path.length)?.find(p=>p.y>=state.view.ymin&&p.y<=state.view.ymax);if(anchor)annotation(obj.label||obj.equation||'函数曲线',anchor,'#9d3f6c');}else if(obj.kind==='point'){point(obj,'#c15b87',obj.label||'P');}else if(obj.kind==='line'){const ends=endpointsForLine(obj);if(ends){strokePath([ends.a,ends.b],'#c15b87',2.2);annotation(obj.label||'自定义直线',ends.b,'#9d3f6c');}}}}
+    function drawUserObjects(){for(const obj of state.model.objects||[]){if(!visibleForPart(obj))continue;if(obj.kind==='circle'){const path=Array.from({length:361},(_,i)=>{const t=i*Math.PI/180;return{x:obj.h+obj.r*Math.cos(t),y:obj.k+obj.r*Math.sin(t)}});strokePath(path,'#c15b87',2.2);annotation(obj.label||'圆',{x:obj.h+obj.r,y:obj.k},'#9d3f6c');}else if(obj.kind==='conic'){userConicPaths(obj).forEach(path=>strokePath(path,'#c15b87',2.2));const anchor=obj.orientation==='vertical'?{x:obj.h,y:obj.k+(obj.a||obj.p)}:{x:obj.h+(obj.a||obj.p),y:obj.k};annotation(obj.label||'自定义圆锥曲线',anchor,'#9d3f6c');}else if(obj.kind==='function'){const paths=userFunctionPaths(obj),color={sine:'#bf5082',cosine:'#4d79d8',tangent:'#c47a28'}[obj.family]||'#9d3f6c',fraction={sine:.2,cosine:.48,tangent:.75}[obj.family]??.2,target=state.view.xmin+(state.view.xmax-state.view.xmin)*fraction;paths.forEach(path=>strokePath(path,color,2.2));const anchor=paths.flat().filter(p=>p.y>=state.view.ymin+.1&&p.y<=state.view.ymax-.1).sort((a,b)=>Math.abs(a.x-target)-Math.abs(b.x-target))[0];if(anchor)annotation(obj.label||obj.equation||'函数曲线',anchor,color);}else if(obj.kind==='point'){point(obj,'#c15b87',obj.label||'P');}else if(obj.kind==='line'){const ends=endpointsForLine(obj);if(ends){strokePath([ends.a,ends.b],'#c15b87',2.2);annotation(obj.label||'自定义直线',ends.b,'#9d3f6c');}}}}
     function guideLine(a,b,label){ctx.save();ctx.setLineDash([6,5]);strokePath([a,b],'#9aa9bb',1);ctx.setLineDash([]);ctx.fillStyle='#617388';ctx.font='12px Microsoft YaHei UI';const p=xy(b.x,b.y);ctx.fillText(label,p.x+5,p.y-5);ctx.restore();}
     function drawGuides(){if(!state.guides||!state.model)return;const h=P('h'),k=P('k'),t=state.model.type,v=state.view,span=Math.max(v.xmax-v.xmin,v.ymax-v.ymin);if(t==='ellipse'){const c=Math.sqrt(Math.max(0,P('a')**2-P('b')**2));if(c>.0001){const e=c/P('a'),d=P('a')/e;if(state.model.orientation==='horizontal'){guideLine({x:h-d,y:v.ymin},{x:h-d,y:v.ymax},'准线');guideLine({x:h+d,y:v.ymin},{x:h+d,y:v.ymax},'准线');}else{guideLine({x:v.xmin,y:k-d},{x:v.xmax,y:k-d},'准线');guideLine({x:v.xmin,y:k+d},{x:v.xmax,y:k+d},'准线');}}}else if(t==='hyperbola'){const slope=state.model.orientation==='vertical'?P('a')/P('b'):P('b')/P('a');guideLine({x:h-span,y:k-span*slope},{x:h+span,y:k+span*slope},'渐近线');guideLine({x:h-span,y:k+span*slope},{x:h+span,y:k-span*slope},'渐近线');}else if(t==='parabola'){const d=P('direction')||1;if(state.model.orientation==='vertical')guideLine({x:v.xmin,y:k-d*P('p')},{x:v.xmax,y:k-d*P('p')},'准线');else guideLine({x:h-d*P('p'),y:v.ymin},{x:h-d*P('p'),y:v.ymax},'准线');}}
     function point(p,color,label){const q=xy(p.x,p.y);ctx.beginPath();ctx.arc(q.x,q.y,4.5,0,Math.PI*2);ctx.fillStyle=color;ctx.fill();ctx.strokeStyle='#fff';ctx.lineWidth=1.5;ctx.stroke();ctx.fillStyle='#203b5b';ctx.font='600 13px Microsoft YaHei UI';ctx.fillText(label,q.x+7,q.y-7);}
@@ -975,6 +989,7 @@ function motionStep(timestamp){if(!state.model){stopMotion(false);return;}const 
     }
     function jumpExtreme(edge){if(!extremeScan||extremeScan.signature!==extremeSignature()){setStatus('图形已变化，请重新扫描。',true);return;}state.p.theta=extremeScan[edge].theta;document.querySelectorAll('#params input[data-key="theta"]').forEach(input=>input.value=input.type==='range'?state.p.theta:num(state.p.theta,2));state.exploring=true;updateSceneJson();render();}
     function quickConic(type){const presets={ellipse:{type:'ellipse',a:4,b:2.5,title:'快捷椭圆'},hyperbola:{type:'hyperbola',a:3,b:2,title:'快捷双曲线'},parabola:{type:'parabola',p:1.5,title:'快捷抛物线'},circle:{type:'circle',r:3,title:'快捷圆'}},preset=presets[type];if(!preset)return;state.solution=null;state.activePart=null;question.value='';renderSolution();installScene(modelFromJson(JSON.stringify({...preset,h:0,k:0,orientation:'horizontal',direction:1,lineThrough:'center',showConic:true,showDynamic:false,showFeatures:true,points:{},lines:[],objects:[]})),'快捷新建');setStatus(`已直接新建${typeName()}，无需题目或 AI。可拖动中心、顶点和蓝色参数手柄，也可继续添加直线与点。`);}
+    function quickFunction(family){const names={sine:'正弦',cosine:'余弦',tangent:'正切',quadratic:'二次',absolute:'绝对值',reciprocal:'反比例',exponential:'指数',logarithm:'对数',squareRoot:'根式'};if(!names[family])return;$('#advancedEquation').open=false;$('#objectName').value='';equationBuilder.setType('function');$('#equationTemplate').value=family;$('#equationTemplate').dispatchEvent(new Event('change',{bubbles:true}));addFreeObject();setStatus(`已快捷绘制${names[family]}函数。可展开“方程模板与添加对象”修改参数后继续添加。`);}
     let editingConicId=null;
     function editableConic(object){return ['circle','conic'].includes(object?.kind)&&(!object.source||object.source==='user');}
     function openAddConic(type,object=null){
@@ -1122,6 +1137,7 @@ function motionStep(timestamp){if(!state.model){stopMotion(false);return;}const 
     $('#toolboxToggle').addEventListener('click',()=>{const shell=$('.board-shell'),collapsed=shell.classList.toggle('toolbox-collapsed'),button=$('#toolboxToggle');button.textContent=collapsed?'展开作图工具':'收起作图工具';button.setAttribute('aria-expanded',String(!collapsed));requestAnimationFrame(render);});
     $('#inputPanelToggle').addEventListener('click',()=>setInputPanelCollapsed(!document.querySelector('.workspace').classList.contains('input-collapsed'),{persist:true}));
     document.querySelectorAll('[data-quick-conic]').forEach(button=>button.addEventListener('click',()=>quickConic(button.dataset.quickConic)));
+    document.querySelectorAll('[data-quick-function]').forEach(button=>button.addEventListener('click',()=>quickFunction(button.dataset.quickFunction)));
     document.querySelectorAll('[data-add-conic]').forEach(button=>button.addEventListener('click',()=>openAddConic(button.dataset.addConic)));
     $('#confirmAddConic').addEventListener('click',appendConic);$('#cancelAddConic').addEventListener('click',()=>$('#addConicDialog').close());
     $('#addConicDialog').addEventListener('close',()=>{if($('#addConicDialog .math-keyboard'))mathKeyboard.close();});
@@ -1184,6 +1200,6 @@ function motionStep(timestamp){if(!state.model){stopMotion(false);return;}const 
     document.getElementById('closeReleases').addEventListener('click',()=>dialog.close());
   })();
   </script>
-  <script src="pwa.js?v=0.29.0"></script>
+  <script src="pwa.js?v=0.30.0"></script>
 </body>
 </html>

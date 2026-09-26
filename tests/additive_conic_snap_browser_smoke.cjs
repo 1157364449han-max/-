@@ -2,6 +2,7 @@ module.exports = async ({page, context, assert, screenshot, errors}) => {
   await page.evaluate(async()=>{for(const sw of await navigator.serviceWorker.getRegistrations())await sw.unregister();for(const key of await caches.keys())await caches.delete(key);});
   await context.route('**/runtime-config.js',route=>route.fulfill({contentType:'application/javascript',body:`window.DONGJIEXI_CONFIG=Object.freeze({version:'0.23.1',deployment:'web',apiBase:'',apiEnabled:false,requiresAuth:false});`}));
   await page.reload({waitUntil:'domcontentloaded'});
+  await page.locator('#toolboxToggle').click();
   assert.equal(await page.evaluate(()=>window.DongRuntime.config.apiEnabled),false,'整套作图在无解题服务的纯 Web 模式验证');
   const scene = async () => JSON.parse(await page.locator('#sceneJson').inputValue());
   const field = key => page.locator(`#addConicFields [data-equation-param="${key}"]`);

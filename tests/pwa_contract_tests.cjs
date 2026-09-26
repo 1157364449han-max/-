@@ -15,7 +15,7 @@ const runtimeSource = read('dist/runtime.js');
 const learningSource = read('dist/learning-ui.js');
 const workflow = read('.github/workflows/deploy-dongjiexi.yml');
 
-assert.equal(app.version, '0.29.0');
+assert.equal(app.version, '0.30.0');
 assert.equal(web.version, app.version);
 assert.equal(releases.current, app.version);
 assert.match(app.update_channel, /^https:\/\//);
@@ -24,7 +24,7 @@ assert.equal(manifest.start_url, './');
 assert.equal(manifest.scope, './');
 assert.equal(manifest.display, 'standalone');
 assert.ok(manifest.icons.some(icon => icon.purpose === 'maskable'));
-for (const required of ['manifest.webmanifest', 'runtime-config.js', 'runtime.js?v=0.29.0', 'pwa.js?v=0.29.0', 'equation-builder.js?v=0.29.0', 'math-keyboard.js?v=0.29.0', 'pwaBanner']) {
+for (const required of ['manifest.webmanifest', 'runtime-config.js', 'runtime.js?v=0.30.0', 'pwa.js?v=0.30.0', 'equation-builder.js?v=0.30.0', 'math-keyboard.js?v=0.30.0', 'pwaBanner']) {
   assert.ok(html.includes(required), `index missing ${required}`);
 }
 assert.match(html, /id="draftRecovery"/, 'index must expose draft recovery UI');

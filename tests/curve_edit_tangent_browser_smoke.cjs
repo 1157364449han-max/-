@@ -2,6 +2,7 @@ module.exports=async({page,context,assert,screenshot})=>{
   await page.evaluate(async()=>{for(const sw of await navigator.serviceWorker.getRegistrations())await sw.unregister();for(const key of await caches.keys())await caches.delete(key);});
   await context.route('**/runtime-config.js',route=>route.fulfill({contentType:'application/javascript',body:`window.DONGJIEXI_CONFIG=Object.freeze({version:'0.23.1',deployment:'web',apiBase:'',apiEnabled:false,requiresAuth:false});`}));
   await page.reload({waitUntil:'domcontentloaded'});
+  await page.locator('#toolboxToggle').click();
   const scene=async()=>JSON.parse(await page.locator('#sceneJson').inputValue());
   await page.locator('#question').fill('已知椭圆x²/9+y²/4=1，求焦点坐标和离心率。');
   await page.locator('#solveButton').click();

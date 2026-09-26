@@ -1,4 +1,5 @@
 module.exports=async({page,assert})=>{
+  await page.locator('.compact-section').filter({hasText:'最值探索与定位'}).locator('summary').click();
   await page.locator('[data-quick-conic="ellipse"]').click();
   await page.locator('#layers .layer-row').filter({hasText:'动直线'}).locator('input').check();
   await page.locator('#extremeMetric').selectOption('chord');

@@ -1,4 +1,5 @@
 module.exports = async ({page, assert, screenshot}) => {
+  await page.locator('#objectBuilderDetails > summary').click();
   assert.equal(await page.locator('.controls [data-quick-conic]').count(), 4);
   assert.equal(await page.locator('.native-toolbar [data-add-conic]').count(), 4);
 

@@ -1,4 +1,5 @@
 module.exports = async ({page, assert, screenshot}) => {
+  await page.locator('#objectBuilderDetails > summary').click();
   assert.equal(await page.locator('#objectType').inputValue(), 'point');
   assert.equal(await page.locator('#equationTemplate').inputValue(), 'coordinates');
   assert.equal(await page.locator('#objectParam-x').count(), 1);
