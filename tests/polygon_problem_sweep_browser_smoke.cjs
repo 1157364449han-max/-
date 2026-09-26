@@ -9,6 +9,7 @@ module.exports=async({page,assert,screenshot})=>{
   assert.deepEqual(scene.polygons[0]?.labels,['A','B','D']);
   assert.match(await page.locator('#solution').innerText(),/面积为 6/);
   assert.match(await page.locator('#metrics').innerText(),/△ABD · 面积\s*6/);
+  assert.match(await page.locator('#metrics').innerText(),/∠B（△ABD）\s*112\.62°/);
   assert.match(await page.locator('#layers').innerText(),/△ABD · 高亮/);
   await page.locator('[data-inspector-view="geometry"]').click();
   await page.locator('#layers .layer-row').filter({hasText:'△ABD · 高亮'}).locator('input').uncheck();
@@ -39,5 +40,7 @@ module.exports=async({page,assert,screenshot})=>{
   await page.locator('#params input[data-key="theta"][data-param-expression="true"]').evaluate(el=>{el.value='75';el.dispatchEvent(new Event('input',{bubbles:true}));});
   const after=await area();
   assert.notEqual(before,after,'动态三角形面积应随割线移动重算');
+  scene=await solve('已知椭圆 C：x²/9+y²/4=1，A(3,0)，B(0,2)，D(-3,0)。当 A、B、D 运动时，求△ABD 面积的最大值以及何时取到。');
+  assert.doesNotMatch(await page.locator('#solution').innerText(),/△ABD 的面积为 6/,'最值题不能把当前面积误报为完整答案');
   await screenshot('polygon-question-sweep.png','.board-shell');
 };

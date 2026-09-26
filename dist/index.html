@@ -12,8 +12,8 @@
   <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
   <link rel="apple-touch-icon" href="icons/icon.svg">
   <link rel="stylesheet" href="vendor/katex/katex.min.css">
-  <link rel="stylesheet" href="learning-ui.css?v=0.31.0">
-  <link rel="stylesheet" href="classroom.css?v=0.31.0">
+  <link rel="stylesheet" href="learning-ui.css?v=0.32.0">
+  <link rel="stylesheet" href="classroom.css?v=0.32.0">
   <style>
     :root { --ink:#0c1b33; --ink-2:#1a3152; --paper:#f6f8fb; --panel:#ffffff; --line:#d7e0eb; --muted:#64748b; --teal:#0f9f99; --teal-soft:#e1f7f4; --amber:#f2a33c; --amber-soft:#fff2d9; --red:#df5b62; --blue:#3f78d8; --shadow:0 10px 30px rgba(12,27,51,.09); }
     * { box-sizing:border-box; }
@@ -326,7 +326,7 @@
 <body>
   <main class="app">
     <header class="topbar">
-      <div class="brand"><span class="brand-mark">董</span><span class="brand-name">董解析</span><button class="version-button" id="versionButton" title="查看版本、更新记录和能力边界">v0.31.0 · 更新记录</button></div>
+      <div class="brand"><span class="brand-mark">董</span><span class="brand-name">董解析</span><button class="version-button" id="versionButton" title="查看版本、更新记录和能力边界">v0.32.0 · 更新记录</button></div>
       <div class="top-actions"><span class="top-note">内置符号解题 · 动态几何 · 可选智能增强 · 我的题本</span><button id="pwaInstall" class="install-button" hidden>安装到设备</button></div>
     </header>
     <section id="pwaBanner" class="pwa-banner" hidden role="status"><span id="pwaMessage"></span><button id="pwaUpdate" hidden>立即更新</button><button id="pwaDismiss">稍后</button></section>
@@ -501,17 +501,17 @@
   </dialog>
 
   <script src="runtime-config.js"></script>
-  <script src="runtime.js?v=0.31.0"></script>
+  <script src="runtime.js?v=0.32.0"></script>
   <script src="vendor/katex/katex.min.js"></script>
   <script src="vendor/katex/contrib/auto-render.min.js"></script>
-  <script src="math-input.js?v=0.31.0"></script>
-  <script src="tangent-solver.js?v=0.31.0"></script>
-  <script src="learning-ui.js?v=0.31.0"></script>
-  <script src="classroom.js?v=0.31.0"></script>
-  <script src="construction-board.js?v=0.31.0"></script>
-  <script src="drag-board.js?v=0.31.0"></script>
-  <script src="equation-builder.js?v=0.31.0"></script>
-  <script src="math-keyboard.js?v=0.31.0"></script>
+  <script src="math-input.js?v=0.32.0"></script>
+  <script src="tangent-solver.js?v=0.32.0"></script>
+  <script src="learning-ui.js?v=0.32.0"></script>
+  <script src="classroom.js?v=0.32.0"></script>
+  <script src="construction-board.js?v=0.32.0"></script>
+  <script src="drag-board.js?v=0.32.0"></script>
+  <script src="equation-builder.js?v=0.32.0"></script>
+  <script src="math-keyboard.js?v=0.32.0"></script>
   <script src="geogebra-bridge.js?v=0.7.0"></script>
   <script>
   (() => {
@@ -969,7 +969,7 @@
       return{points,area:Math.abs(twiceArea)/2,perimeter};
     }
     function drawHighlightedPolygons(){for(const item of state.model.polygons||[]){const data=polygonData(item);if(!data)continue;const points=data.points;ctx.save();ctx.beginPath();points.forEach((p,i)=>{const q=xy(p.x,p.y);i?ctx.lineTo(q.x,q.y):ctx.moveTo(q.x,q.y);});ctx.closePath();ctx.fillStyle='rgba(255,174,59,.17)';ctx.fill();ctx.strokeStyle='#e58c21';ctx.lineWidth=3;ctx.stroke();ctx.restore();const center={x:points.reduce((sum,p)=>sum+p.x,0)/points.length,y:points.reduce((sum,p)=>sum+p.y,0)/points.length};annotation(item.label,center,'#a65c08');}}
-    function drawPolygonMetrics(){if(!state.model?.polygons?.length)return;let html='';for(const item of state.model.polygons){if(!visibleForPart(item))continue;const data=polygonData(item),missing=(item.labels||[]).filter(label=>!namedObject(label));html+=metric(`${escapeHtml(item.label)} · 面积`,data?num(data.area,5):`暂未定位${missing.length?'：'+escapeHtml(missing.join('、')):''}`);if(data)html+=metric(`${escapeHtml(item.label)} · 周长`,num(data.perimeter,5));}metricsEl.innerHTML+=html;}
+    function drawPolygonMetrics(){if(!state.model?.polygons?.length)return;let html='';for(const item of state.model.polygons){if(!visibleForPart(item))continue;const data=polygonData(item),missing=(item.labels||[]).filter(label=>!namedObject(label));html+=metric(`${escapeHtml(item.label)} · 面积`,data?num(data.area,5):`暂未定位${missing.length?'：'+escapeHtml(missing.join('、')):''}`);if(data){html+=metric(`${escapeHtml(item.label)} · 周长`,num(data.perimeter,5));if(data.points.length===3){for(let i=0;i<3;i++){const a=data.points[i],b=data.points[(i+1)%3],c=data.points[(i+2)%3],u={x:b.x-a.x,y:b.y-a.y},v={x:c.x-a.x,y:c.y-a.y},denominator=Math.hypot(u.x,u.y)*Math.hypot(v.x,v.y);const angle=denominator>1e-10?Math.acos(Math.max(-1,Math.min(1,(u.x*v.x+u.y*v.y)/denominator)))*180/Math.PI:NaN;html+=metric(`∠${escapeHtml(item.labels[i])}（${escapeHtml(item.label)}）`,Number.isFinite(angle)?`${num(angle,3)}°`:'退化，未定义');}}}}metricsEl.innerHTML+=html;}
     function drawUserObjects(){for(const obj of state.model.objects||[]){if(!visibleForPart(obj))continue;if(obj.kind==='circle'){const path=Array.from({length:361},(_,i)=>{const t=i*Math.PI/180;return{x:obj.h+obj.r*Math.cos(t),y:obj.k+obj.r*Math.sin(t)}});strokePath(path,'#c15b87',2.2);annotation(obj.label||'圆',{x:obj.h+obj.r,y:obj.k},'#9d3f6c');}else if(obj.kind==='conic'){userConicPaths(obj).forEach(path=>strokePath(path,'#c15b87',2.2));const anchor=obj.orientation==='vertical'?{x:obj.h,y:obj.k+(obj.a||obj.p)}:{x:obj.h+(obj.a||obj.p),y:obj.k};annotation(obj.label||'自定义圆锥曲线',anchor,'#9d3f6c');}else if(obj.kind==='function'){const paths=userFunctionPaths(obj),color={sine:'#bf5082',cosine:'#4d79d8',tangent:'#c47a28'}[obj.family]||'#9d3f6c',fraction={sine:.2,cosine:.48,tangent:.75}[obj.family]??.2,target=state.view.xmin+(state.view.xmax-state.view.xmin)*fraction;paths.forEach(path=>strokePath(path,color,2.2));const anchor=paths.flat().filter(p=>p.y>=state.view.ymin+.1&&p.y<=state.view.ymax-.1).sort((a,b)=>Math.abs(a.x-target)-Math.abs(b.x-target))[0];if(anchor)annotation(obj.label||obj.equation||'函数曲线',anchor,color);}else if(obj.kind==='point'){point(obj,'#c15b87',obj.label||'P');}else if(obj.kind==='line'){const ends=endpointsForLine(obj);if(ends){strokePath([ends.a,ends.b],'#c15b87',2.2);annotation(obj.label||'自定义直线',ends.b,'#9d3f6c');}}}}
     function guideLine(a,b,label){ctx.save();ctx.setLineDash([6,5]);strokePath([a,b],'#9aa9bb',1);ctx.setLineDash([]);ctx.fillStyle='#617388';ctx.font='12px Microsoft YaHei UI';const p=xy(b.x,b.y);ctx.fillText(label,p.x+5,p.y-5);ctx.restore();}
     function drawGuides(){if(!state.guides||!state.model)return;const h=P('h'),k=P('k'),t=state.model.type,v=state.view,span=Math.max(v.xmax-v.xmin,v.ymax-v.ymin);if(t==='ellipse'){const c=Math.sqrt(Math.max(0,P('a')**2-P('b')**2));if(c>.0001){const e=c/P('a'),d=P('a')/e;if(state.model.orientation==='horizontal'){guideLine({x:h-d,y:v.ymin},{x:h-d,y:v.ymax},'准线');guideLine({x:h+d,y:v.ymin},{x:h+d,y:v.ymax},'准线');}else{guideLine({x:v.xmin,y:k-d},{x:v.xmax,y:k-d},'准线');guideLine({x:v.xmin,y:k+d},{x:v.xmax,y:k+d},'准线');}}}else if(t==='hyperbola'){const slope=state.model.orientation==='vertical'?P('a')/P('b'):P('b')/P('a');guideLine({x:h-span,y:k-span*slope},{x:h+span,y:k+span*slope},'渐近线');guideLine({x:h-span,y:k+span*slope},{x:h+span,y:k-span*slope},'渐近线');}else if(t==='parabola'){const d=P('direction')||1;if(state.model.orientation==='vertical')guideLine({x:v.xmin,y:k-d*P('p')},{x:v.xmax,y:k-d*P('p')},'准线');else guideLine({x:h-d*P('p'),y:v.ymin},{x:h-d*P('p'),y:v.ymax},'准线');}}
@@ -1115,7 +1115,7 @@ function motionStep(timestamp){if(!state.model){stopMotion(false);return;}const 
     function browserFeatureAnswer(scene){const m=scene.model,p=scene.values,h=p.h||0,k=p.k||0,vertical=m.orientation==='vertical';if(m.type==='ellipse'||m.type==='hyperbola'){const c=Math.sqrt(m.type==='ellipse'?p.a*p.a-p.b*p.b:p.a*p.a+p.b*p.b),e=c/p.a,vertices=vertical?`(${num(h)}, ${num(k-p.a)})、(${num(h)}, ${num(k+p.a)})`:`(${num(h-p.a)}, ${num(k)})、(${num(h+p.a)}, ${num(k)})`,foci=vertical?`(${num(h)}, ${num(k-c)})、(${num(h)}, ${num(k+c)})`:`(${num(h-c)}, ${num(k)})、(${num(h+c)}, ${num(k)})`;let answer=`顶点：${vertices}；焦点：${foci}；离心率 e=${num(e,6)}。`;if(m.type==='ellipse'&&c>1e-12){const d=p.a*p.a/c;answer+=` 准线：${vertical?'y':'x'}=${num((vertical?k:h)-d,6)} 或 ${num((vertical?k:h)+d,6)}。`;}if(m.type==='hyperbola'){const slope=vertical?p.a/p.b:p.b/p.a;answer+=` 渐近线：y−${num(k)}=±${num(slope,6)}(x−${num(h)})。`;}return answer;}if(m.type==='circle')return `圆心 O(${num(h)}, ${num(k)})，半径 r=${num(p.r,6)}。`;const d=p.direction||1,focus=vertical?[h,k+d*p.p]:[h+d*p.p,k],directrix=vertical?`y=${num(k-d*p.p,6)}`:`x=${num(h-d*p.p,6)}`;return `顶点 V(${num(h)}, ${num(k)})，焦点 F(${num(focus[0])}, ${num(focus[1])})，准线 ${directrix}。`;}
     function browserFixedPolygonAnswer(scene,part){
       const body=normalize(part.body||part.question),polygons=(scene.model.polygons||[]).filter(item=>item.part==null||Number(item.part)===Number(part.index));
-      if(!/面积|周长/.test(body)||!polygons.length)return null;
+      if(!/面积|周长/.test(body)||!polygons.length||/最大|最小|最值|取值范围|范围|何时|什么时候|随.+变化|是否恒定|定值/.test(body))return null;
       const item=polygons.find(poly=>body.includes(poly.label.toLowerCase())||body.includes(poly.labels.join('').toLowerCase()))||(polygons.length===1?polygons[0]:null);
       if(!item)return null;
       const points=item.labels.map(label=>{const xy=scene.model.points?.[label];return xy?[Number(xy[0]),Number(xy[1])]:label==='O'?[Number(scene.values.h)||0,Number(scene.values.k)||0]:null;});
@@ -1249,6 +1249,6 @@ function motionStep(timestamp){if(!state.model){stopMotion(false);return;}const 
     document.getElementById('closeReleases').addEventListener('click',()=>dialog.close());
   })();
   </script>
-  <script src="pwa.js?v=0.31.0"></script>
+  <script src="pwa.js?v=0.32.0"></script>
 </body>
 </html>
