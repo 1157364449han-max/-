@@ -15,7 +15,7 @@ const runtimeSource = read('dist/runtime.js');
 const learningSource = read('dist/learning-ui.js');
 const workflow = read('.github/workflows/deploy-dongjiexi.yml');
 
-assert.equal(app.version, '0.33.0');
+assert.equal(app.version, '0.34.0');
 assert.equal(web.version, app.version);
 assert.equal(releases.current, app.version);
 assert.match(app.update_channel, /^https:\/\//);
@@ -24,7 +24,7 @@ assert.equal(manifest.start_url, './');
 assert.equal(manifest.scope, './');
 assert.equal(manifest.display, 'standalone');
 assert.ok(manifest.icons.some(icon => icon.purpose === 'maskable'));
-for (const required of ['manifest.webmanifest', 'runtime-config.js', 'runtime.js?v=0.33.0', 'pwa.js?v=0.33.0', 'equation-builder.js?v=0.33.0', 'math-keyboard.js?v=0.33.0', 'pwaBanner']) {
+for (const required of ['manifest.webmanifest', 'runtime-config.js', 'runtime.js?v=0.34.0', 'pwa.js?v=0.34.0', 'equation-builder.js?v=0.34.0', 'math-keyboard.js?v=0.34.0', 'pwaBanner']) {
   assert.ok(html.includes(required), `index missing ${required}`);
 }
 assert.match(html, /id="draftRecovery"/, 'index must expose draft recovery UI');
@@ -33,6 +33,7 @@ assert.match(worker, /pathname\.includes\('\/api\/'\)/, 'service worker must byp
 assert.match(worker, /'\.\/runtime-config\.js'/, 'runtime config must be part of the first offline app shell');
 assert.match(worker, /'\.\/equation-builder\.js'/, 'structured equation templates must work offline');
 assert.match(worker, /'\.\/math-keyboard\.js'/, 'math keyboard must work offline');
+assert.match(worker, /'\.\/ellipse-distance\.js'/, 'distance solver must be available offline');
 assert.match(worker, /SKIP_WAITING/);
 assert.match(workflow, /update-manifest\.json/);
 assert.match(workflow, /sha256/);

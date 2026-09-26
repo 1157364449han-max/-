@@ -45,6 +45,7 @@ jobs:
           python -m pip install -r requirements.txt
           python -m unittest discover -s tests -p '*_tests.py'
           node tests/native_geometry_tests.cjs
+          node tests/ellipse_distance_tests.cjs
           node tests/browser_contract_tests.cjs
           node tests/math_input_tangent_tests.cjs
           node tests/pwa_contract_tests.cjs

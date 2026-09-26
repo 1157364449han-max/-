@@ -2,7 +2,7 @@
 (() => {
   'use strict';
   function toPlain(value){
-    let s=String(value??'');
+    let s=String(value??'').replace(/[＋－＝＊／＾０-９Ａ-Ｚａ-ｚ]/g,c=>String.fromCharCode(c.charCodeAt(0)-0xfee0));
     if(s.length>18000)return s;
     s=s.replace(/```(?:latex|math|tex)?\s*\n?([\s\S]*?)```/gi,'$1')
       .replace(/\\(?:left|right|displaystyle|textstyle)\b/g,'')
