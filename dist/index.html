@@ -12,8 +12,8 @@
   <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
   <link rel="apple-touch-icon" href="icons/icon.svg">
   <link rel="stylesheet" href="vendor/katex/katex.min.css">
-  <link rel="stylesheet" href="learning-ui.css?v=0.38.0">
-  <link rel="stylesheet" href="classroom.css?v=0.38.0">
+  <link rel="stylesheet" href="learning-ui.css?v=0.38.1">
+  <link rel="stylesheet" href="classroom.css?v=0.38.1">
   <style>
     :root { --ink:#0c1b33; --ink-2:#1a3152; --paper:#f6f8fb; --panel:#ffffff; --line:#d7e0eb; --muted:#64748b; --teal:#0f9f99; --teal-soft:#e1f7f4; --amber:#f2a33c; --amber-soft:#fff2d9; --red:#df5b62; --blue:#3f78d8; --shadow:0 10px 30px rgba(12,27,51,.09); }
     * { box-sizing:border-box; }
@@ -45,6 +45,14 @@
     textarea { width:100%; min-height:176px; padding:.75rem; resize:vertical; border:1px solid #bdcadd; border-radius:10px; color:var(--ink); background:#fbfdff; outline:none; }
     textarea:focus,input:focus { border-color:var(--teal); box-shadow:0 0 0 3px rgba(15,159,153,.14); }
     .actions { display:grid; grid-template-columns:1fr 1fr; gap:.6rem; margin-top:.75rem; }
+    .solve-split { display:flex;min-width:0; }
+    .solve-split #solveButton { flex:1;min-width:0;border-radius:7px 0 0 7px; }
+    .solve-split #solveModeToggle { flex:0 0 2.3rem;border-left:1px solid rgba(255,255,255,.35);border-radius:0 7px 7px 0;padding:0; }
+    .solve-mode-panel { margin:.5rem 0;padding:.7rem;border:1px solid var(--line);border-radius:10px;background:var(--surface,#fff); }
+    .solve-mode-panel[hidden] { display:none; }
+    .solve-mode-option { display:flex;flex-direction:column;gap:.15rem;width:100%;padding:.65rem;margin-top:.45rem;text-align:left;border:1px solid var(--line);border-radius:8px;background:transparent;color:inherit;cursor:pointer; }
+    .solve-mode-option:hover,.solve-mode-option[aria-pressed="true"] { border-color:var(--accent,#2563eb);background:rgba(59,130,246,.08); }
+    .solve-mode-option span { font-size:.82rem;opacity:.8; }
     .button { min-height:40px; padding:.55rem .8rem; border:1px solid transparent; border-radius:9px; font-size:.9rem; font-weight:750; }
     .button.primary { color:#062b29; background:var(--teal); }
     .button.primary:hover { background:#16b9b1; }
@@ -355,7 +363,7 @@
 <body>
   <main class="app">
     <header class="topbar">
-      <div class="brand"><span class="brand-mark">董</span><span class="brand-name">董解析</span><button class="version-button" id="versionButton" title="查看版本、更新记录和能力边界">v0.38.0 · 更新记录</button></div>
+      <div class="brand"><span class="brand-mark">董</span><span class="brand-name">董解析</span><button class="version-button" id="versionButton" title="查看版本、更新记录和能力边界">v0.38.1 · 更新记录</button></div>
       <div class="top-actions"><span class="top-note">内置符号解题 · 动态几何 · 可选智能增强 · 我的题本</span><button id="pwaInstall" class="install-button" hidden>安装到设备</button></div>
     </header>
     <section id="pwaBanner" class="pwa-banner" hidden role="status"><span id="pwaMessage"></span><button id="pwaUpdate" hidden>立即更新</button><button id="pwaDismiss">稍后</button></section>
@@ -376,9 +384,10 @@
         <textarea id="question" placeholder="例如：椭圆 C：x²/4 + y²/3 = 1，过右焦点 F 的直线 l 与 C 交于 A、B。研究弦长随倾角变化。"></textarea>
         <div id="draftRecovery" class="draft-recovery" hidden role="status"></div>
         <div class="actions hero-actions">
-          <button class="button primary" id="solveButton">一站式解题</button>
+          <div class="solve-split"><button class="button primary" id="solveButton">解题</button><button class="button primary" id="solveModeToggle" type="button" aria-label="展开解题方式" aria-expanded="false" aria-controls="solveModePanel">▾</button></div>
           <button class="button secondary" id="parseButton">仅快速建图</button>
         </div>
+        <div id="solveModePanel" class="solve-mode-panel" hidden><p class="help">选择一次后会记住；点 ▾ 可随时切换。</p><button type="button" class="solve-mode-option" data-solve-mode="cloud"><strong>云端解题</strong><span>联网使用，无需下载；繁忙时可能等待。</span></button><button type="button" class="solve-mode-option" data-solve-mode="local"><strong>本机解题</strong><span>内置题型直接解；电脑本机版可下载模型增强。</span></button><details id="engineSetup"><summary>模型与连接设置</summary><div><p class="help">生成的推导与作图仍需核验。</p><div class="model-row" id="cloudAuth" hidden><input id="cloudAccessKey" type="password" autocomplete="current-password" placeholder="在线解题访问口令" aria-label="在线解题访问口令"><button class="button secondary" id="cloudLogin">连接在线解题</button></div><div class="model-row"><select id="modelName" aria-label="解题模型"><option>qwen3.5:4b</option></select><button class="button secondary" id="engineRefresh">检测连接</button></div><div class="learning-settings"><label for="solveDepth">推导模式</label><select id="solveDepth"><option value="normal">快速解题</option><option value="deep">深入推导（较慢）</option></select></div><button id="pullModel" class="button secondary">下载所选本机模型</button></div></details></div>
         <div class="input-utilities" aria-label="题目导入工具">
           <label class="file-button" for="textFile">导入文字<input id="textFile" type="file" accept=".txt,text/plain"></label>
           <label class="file-button" for="imageFile">上传题图<input id="imageFile" type="file" accept="image/*"></label>
@@ -390,6 +399,10 @@
         </div>
         <div id="status" class="status" role="status">等待题目。可输入完整题目解答，也可快速建图或在右侧按模板添加对象。</div>
         <div id="solveProgress" class="solve-progress" role="status" aria-live="polite" data-state="idle">等待解题</div>
+        <div class="engine ready" id="engineStatus">内置确定性解题与画板已就绪</div>
+        <p class="help" id="deploymentNotice" hidden></p>
+        <div id="imagePreview" hidden><img id="questionImage" alt="待识别题图"><button class="button secondary" id="removeImage">移除题图</button></div>
+        <div id="jobPanel" class="job-panel" hidden role="status"><span id="jobPhase"></span><button id="cancelJob" class="button secondary">停止</button></div>
         <section class="quick-conics" aria-labelledby="quickConicsTitle"><div class="quick-conics-head"><strong id="quickConicsTitle">快捷建图</strong><span>无需 AI</span></div><div class="quick-conic-grid"><button class="quick-conic" data-quick-conic="ellipse">椭圆</button><button class="quick-conic" data-quick-conic="hyperbola">双曲线</button><button class="quick-conic" data-quick-conic="parabola">抛物线</button><button class="quick-conic" data-quick-conic="circle">圆</button></div><details class="quick-function-details"><summary>三角函数与更多函数</summary><div class="quick-conic-grid"><button class="quick-conic" data-quick-function="sine">正弦 sin</button><button class="quick-conic" data-quick-function="cosine">余弦 cos</button><button class="quick-conic" data-quick-function="tangent">正切 tan</button><button class="quick-conic" data-quick-function="quadratic">二次函数</button><button class="quick-conic" data-quick-function="absolute">绝对值</button><button class="quick-conic" data-quick-function="reciprocal">反比例</button><button class="quick-conic" data-quick-function="exponential">指数函数</button><button class="quick-conic" data-quick-function="logarithm">对数函数</button><button class="quick-conic" data-quick-function="squareRoot">根式函数</button></div><p class="help">点击即画默认函数；展开右侧“函数与图层”可按模板修改参数。</p></details></section>
         <details class="starter-details"><summary>输入帮助与题型示例</summary><div>
           <p class="help">不必先给标准方程。董解析会先用内置符号引擎从离心率、轴长、焦点、过点、圆心、直径、顶点与准线等条件反推并核验；无需另装模型即可完成已覆盖题型。</p>
@@ -403,15 +416,6 @@
             <button class="chip" data-example="objects">已知点与线</button>
           </div>
         </div></details>
-        <section class="ai-card" aria-label="解题引擎">
-          <div class="ai-card-head"><span class="ai-card-title">解题引擎</span><span class="key-hint">内置优先</span></div>
-          <div class="engine ready" id="engineStatus">内置确定性解题与画板已就绪</div>
-          <p class="help" id="deploymentNotice" hidden></p>
-          <div id="imagePreview" hidden><img id="questionImage" alt="待识别题图"><button class="button secondary" id="removeImage">移除题图</button></div>
-          <div id="jobPanel" class="job-panel" hidden role="status"><span id="jobPhase"></span><button id="cancelJob" class="button secondary">停止</button></div>
-<details id="engineSetup"><summary>解题引擎与本机模型</summary><div><p class="help">独立云端接通后会优先处理完整题目，图形与推理结果仍需核验。本机版可自愿下载模型处理题目；公开网页不会自动连接你的电脑。</p><div class="model-row" id="cloudAuth" hidden><input id="cloudAccessKey" type="password" autocomplete="current-password" placeholder="在线解题访问口令" aria-label="在线解题访问口令"><button class="button secondary" id="cloudLogin">连接在线解题</button></div><div class="model-row"><select id="modelName" aria-label="解题模型"><option>qwen3.5:4b</option></select><button class="button secondary" id="engineRefresh">检测解题引擎</button></div><div class="learning-settings"><label for="solveDepth">增强模式</label><select id="solveDepth"><option value="deep">深入推导</option><option value="normal">快速草稿（需仔细核对）</option></select></div><button id="pullModel" class="button secondary">可选下载本机模型</button></div></details>
-          <p class="help">绿色“已完成”表示内置规则确实算出了该问；定值、最值或证明若未覆盖，会明确标为待推导，不会伪造结论。</p>
-        </section>
         <div class="actions"><button id="openNotebook" class="button secondary">我的题本</button><button id="saveLesson" class="button secondary">保存本题</button></div>
         <div class="divider"></div>
         <details>
@@ -539,20 +543,20 @@
   </dialog>
 
   <script src="runtime-config.js"></script>
-  <script src="runtime.js?v=0.38.0"></script>
+  <script src="runtime.js?v=0.38.1"></script>
   <script src="vendor/katex/katex.min.js"></script>
   <script src="vendor/katex/contrib/auto-render.min.js"></script>
-  <script src="math-input.js?v=0.38.0"></script>
-  <script src="number-display.js?v=0.38.0"></script>
-  <script src="tangent-solver.js?v=0.38.0"></script>
-  <script src="ellipse-distance.js?v=0.38.0"></script>
-  <script src="orthogonal-chord.js?v=0.38.0"></script>
-  <script src="learning-ui.js?v=0.38.0"></script>
-  <script src="classroom.js?v=0.38.0"></script>
-  <script src="construction-board.js?v=0.38.0"></script>
-  <script src="drag-board.js?v=0.38.0"></script>
-  <script src="equation-builder.js?v=0.38.0"></script>
-  <script src="math-keyboard.js?v=0.38.0"></script>
+  <script src="math-input.js?v=0.38.1"></script>
+  <script src="number-display.js?v=0.38.1"></script>
+  <script src="tangent-solver.js?v=0.38.1"></script>
+  <script src="ellipse-distance.js?v=0.38.1"></script>
+  <script src="orthogonal-chord.js?v=0.38.1"></script>
+  <script src="learning-ui.js?v=0.38.1"></script>
+  <script src="classroom.js?v=0.38.1"></script>
+  <script src="construction-board.js?v=0.38.1"></script>
+  <script src="drag-board.js?v=0.38.1"></script>
+  <script src="equation-builder.js?v=0.38.1"></script>
+  <script src="math-keyboard.js?v=0.38.1"></script>
   <script src="geogebra-bridge.js?v=0.7.0"></script>
   <script>
   (() => {
@@ -1407,6 +1411,6 @@ function motionStep(timestamp){if(!state.model){stopMotion(false);return;}const 
     document.getElementById('closeReleases').addEventListener('click',()=>dialog.close());
   })();
   </script>
-  <script src="pwa.js?v=0.38.0"></script>
+  <script src="pwa.js?v=0.38.1"></script>
 </body>
 </html>

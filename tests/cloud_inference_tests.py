@@ -8,7 +8,7 @@ from unittest.mock import patch
 import urllib.error
 
 from cloud_inference import CloudInference, NoRedirect
-from learning_engine import LearningEngine, Cancelled
+from learning_engine import LearningEngine, Cancelled, prediction_budget
 
 
 class CloudTests(unittest.TestCase):
@@ -97,10 +97,34 @@ class CloudTests(unittest.TestCase):
             self.assertEqual(call.call_count,1)
         self.assertNotIn('test-secret',json.dumps(self.cloud.health()))
 
+    def test_multiple_allowlisted_models_are_discovered_and_routed(self):
+        with patch.dict(os.environ, {'DONGJIEXI_ALLOWED_MODELS': 'test-model,deepseek-r1-8b'}):
+            cloud = CloudInference()
+        with patch.object(cloud.opener, 'open', return_value=io.BytesIO(b'{"data":[{"id":"deepseek-r1-8b"},{"id":"not-allowed"}]}')):
+            self.assertEqual(cloud.health()['models'], ['deepseek-r1-8b'])
+        with patch.object(cloud.opener, 'open', return_value=self.events()) as call:
+            cloud.stream(self.job, {**self.payload, 'model': 'deepseek-r1-8b'}, Cancelled)
+        self.assertEqual(json.loads(call.call_args.args[0].data)['model'], 'deepseek-r1-8b')
+
+    def test_text_only_model_does_not_advertise_image_recognition(self):
+        with patch.dict(os.environ, {'DONGJIEXI_MODEL_VISION': '0'}):
+            cloud = CloudInference()
+        with patch.object(cloud.opener, 'open', return_value=io.BytesIO(b'{"data":[{"id":"test-model"}]}')):
+            self.assertTrue(cloud.health()['available'])
+            self.assertFalse(cloud.health()['vision'])
+
     def test_insecure_endpoint_rejected(self):
         self.cloud.base='http://model.example.test'
         self.assertFalse(self.cloud.configured())
         with self.assertRaises(ValueError):self.cloud.request('/models')
+
+    def test_explicit_loopback_http_only_for_on_device_model(self):
+        self.cloud.base='http://127.0.0.1:8080/v1'
+        self.assertFalse(self.cloud.configured())
+        with patch.dict(os.environ, {'DONGJIEXI_ALLOW_LOOPBACK_MODEL_HTTP': '1'}):
+            self.assertTrue(self.cloud.configured())
+            self.cloud.base='http://192.168.1.2:8080/v1'
+            self.assertFalse(self.cloud.configured())
 
     def test_redirect_rejected(self):
         with self.assertRaises(ValueError):NoRedirect().redirect_request(None,None,302,'',{},'https://other.test')
@@ -128,6 +152,19 @@ class CloudTests(unittest.TestCase):
         self.assertEqual(job['status'],'completed')
         self.assertEqual(job['result']['mode'],'cloud-ai')
         verify.assert_called_once()
+
+    def test_fast_cloud_solve_uses_one_bounded_model_request(self):
+        engine=LearningEngine('.',lambda text: [{'index':1,'label':'第一问','body':text,'question':text}])
+        self.addCleanup(engine.close)
+        raw={'title':'Test','parts':[{'index':1,'status':'answered','answer':'$x=1$','steps':['由题意列式。','$x=1$']}], 'scene':None}
+        job={'cancel':threading.Event(),'status':'running'};engine.jobs['fast']=job
+        engine.busy.acquire(False)
+        with patch.object(engine.cloud,'stream',return_value=json.dumps(raw)) as stream:
+            engine._run('fast',{'kind':'solve','model':'test-model','text':'求 x。','depth':'normal'})
+        self.assertEqual(job['status'],'completed')
+        self.assertEqual(stream.call_count,1)
+        self.assertLess(stream.call_args.args[1]['options']['num_predict'],10000)
+        self.assertEqual(prediction_budget('solve','normal',12,True),6000)
 
 
 if __name__=='__main__':unittest.main()

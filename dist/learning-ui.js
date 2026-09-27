@@ -30,6 +30,14 @@
     const notebookKey = 'dongjiexi:notebook:v1';
     const draftKey = 'dongjiexi:draft:v1';
     const modelKey = 'dongjiexi:model';
+    const modeKey = 'dongjiexi:solve-mode:v1';
+    let solveMode = ['cloud','local'].includes(localStorage.getItem(modeKey)) ? localStorage.getItem(modeKey) : null;
+    const modePanel = find('#solveModePanel'), modeToggle = find('#solveModeToggle');
+    function showModes(show) { modePanel.hidden=!show;modeToggle.setAttribute('aria-expanded',String(show)); }
+    function selectMode(mode) { if(processing){api.setStatus('当前解题仍在运行；可先停止，再切换解题方式。');return;}solveMode=mode;localStorage.setItem(modeKey,mode);modePanel.querySelectorAll('[data-solve-mode]').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.solveMode===mode)));showModes(false);api.setStatus((mode==='cloud'?'云端':'本机')+'解题已选定。');if(api.question.value.trim())void solve(); }
+    modePanel.querySelectorAll('[data-solve-mode]').forEach(button=>button.addEventListener('click',()=>selectMode(button.dataset.solveMode)));
+    modeToggle.addEventListener('click',()=>showModes(modePanel.hidden));
+    modePanel.querySelectorAll('[data-solve-mode]').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.solveMode===solveMode)));
     let activeJob = null;
     let processing = false;
     let imageURL = null;
@@ -139,7 +147,7 @@
       if(!value&&!runtime.config.apiEnabled)find('#engineRefresh').disabled=true;
       find('#jobPanel').hidden=!value;
       find('#cancelJob').hidden=!activeJob;
-      find('#solveButton').textContent=value?'正在处理…':'一站式解题';
+      find('#solveButton').textContent=value?'正在处理…':'解题';
     }
     async function refreshEngine(start=false) {
       const remote=runtime.config.deployment==='web'||!!runtime.config.apiBase;
@@ -175,7 +183,7 @@
         visionAvailable=data.engine.vision!==false;
         find('#cloudVisionChoice').hidden=!(remote&&visionAvailable&&data.engine.available);
         const names=data.engine.models||[];
-        const choices=remote?[...names]:[...new Set([...names,data.default_model||'qwen3.5:4b','qwen3.5:9b'])];
+        const choices=remote?[...names]:[...new Set([...names,data.default_model||'qwen3.5:4b','qwen3.5:9b','deepseek-r1:8b','deepseek-r1:1.5b'])];
         const select=find('#modelName');
         const chosen=lastModel||select.value||data.default_model;
         select.replaceChildren(...choices.map(name=>{const option=document.createElement('option');option.value=name;option.textContent=name+(remote?' · 云端服务':names.includes(name)?' · 已下载':' · 未下载');return option;}));
@@ -280,12 +288,17 @@
     }
     async function solve() {
       if(processing)return;
+      if(!solveMode){showModes(true);api.setStatus('请先选择云端解题或本机解题。');return;}
       const original=api.question.value.trim();
       if(!original){report(new Error(find('#imageFile').files[0]?'请先点击“识别题图”，核对文字后解答。':'请先输入完整题目。'));return;}
       if(hasUncertainty(original)){report(new Error('题面仍含“[看不清]”或其它未确认字段。请先补正后再解题。'));return;}
       progress('solving','正在解题：识别条件、推导并核对结果…');
       const acceptResult=result=>{
-        if(api.question.value.trim()!==original){api.setStatus('题目已修改，本次旧题结果未应用。请点击“一站式解题”求解当前题目。');return;}
+        if(api.question.value.trim()!==original){api.setStatus('题目已修改，本次旧题结果未应用。请点击“解题”求解当前题目。');return;}
+        if(result.mode==='cloud-ai'&&!result.scene){
+          let localScene;try{localScene=api.solveDeterministic?.(original)?.scene;}catch{}
+          if(localScene){result.scene=localScene;result.scene_notice='图形由内置建模生成，请核对与云端解析是否一致。';}
+        }
         result=api.enrichSolvedScene?.(result,original)||result;
         api.showSolution(result);
         if(result.scene){try{api.installScene(api.modelFromJson(JSON.stringify(result.scene)),['local-ollama','cloud-ai'].includes(result.mode)?'智能生成图形（需核验）':'内置精确建模');}catch(error){result.scene_notice='图形未能载入，解析已保留：'+error.message;}}
@@ -297,7 +310,7 @@
         api.setStatus(`${result.mode==='cloud-ai'?'云端 AI 返回':'内置引擎已完成'} ${completion.answered}/${completion.total} 问；${verificationNames[result.verification?.status]||'请核对步骤'}。${result.scene_notice||''}`);
         return completion;
       };
-      if(engineReady&&cloudPrimary){
+      if(solveMode==='cloud'&&engineReady&&cloudPrimary){
         api.setStatus('正在由独立云端理解完整题目、生成解析并进行数学核验；不会占用你的电脑运行模型。');
         await runJob({kind:'solve',text:original,model:find('#modelName').value,depth:find('#solveDepth').value},acceptResult);
         return;
@@ -308,7 +321,7 @@
       try{
         const browser=api.solveDeterministic?.(original);
         if(browser?.engineExtensions?.length)deterministic=browser;
-        if(!deterministic&&runtime.config.apiEnabled){try{deterministic=await request('/api/solve',{text:original,rules_only:true});}catch(error){if(!api.solveDeterministic)throw error;}}
+        if(!deterministic&&runtime.config.apiEnabled&&(solveMode==='cloud'||(runtime.config.deployment!=='web'&&!runtime.config.apiBase))){try{deterministic=await request('/api/solve',{text:original,rules_only:true});}catch(error){if(!api.solveDeterministic)throw error;}}
         if(!deterministic)deterministic=browser;
         if(!deterministic)throw new Error('当前环境未能启动内置解题模块。');
         acceptResult(deterministic);
@@ -316,11 +329,11 @@
       finally{busy(false);}
       if(api.question.value.trim()!==original)return;
       const completion=deterministic.completion||{answered:0,total:(deterministic.parts||[]).length||1};
-      if(completion.answered<completion.total&&engineReady){
+      if(completion.answered<completion.total&&engineReady&&solveMode==='local'&&!cloudPrimary){
         api.setStatus(`内置引擎先完成 ${completion.answered}/${completion.total} 问；正在用可选智能引擎补充其余小问。`);
         await runJob({kind:'solve',text:original,model:find('#modelName').value,depth:find('#solveDepth').value},acceptResult);
       }else if(completion.answered<completion.total){
-        api.setStatus(`内置引擎已完成 ${completion.answered}/${completion.total} 问；其余小问已明确标为待推导，不要求下载额外模型。`);
+        api.setStatus(`内置引擎已完成 ${completion.answered}/${completion.total} 问；其余小问待推导。${solveMode==='cloud'?'云端服务当前未就绪，请检查连接。':'如需智能增强，请在电脑本机版下载模型。'}`);
       }
     }
     async function recognize() {
@@ -382,10 +395,6 @@
     find('#clearButton').addEventListener('click',renderSolution);
     find('#modelName').addEventListener('change',event=>{lastModel=event.target.value;localStorage.setItem(modelKey,lastModel);refreshEngine();});
     find('#pullModel').addEventListener('click',()=>runJob({kind:'pull',model:find('#modelName').value},result=>api.setStatus(result.message)));
-    const localChoice=document.createElement('details');localChoice.id='localModelChoice';
-    const localTitle=document.createElement('summary');localTitle.textContent='可选：使用本机模型，分担云端压力';
-    const localHelp=document.createElement('p');localHelp.className='help';localHelp.textContent='已有 Windows 本机版：运行程序目录中的“安装本地AI.bat”，再在本机版检测并下载模型。题目在本机处理，不自动转发云端。模型占用下载流量、磁盘和内存；手机仍建议使用云端。公开网页不会擅自连接你的 localhost；通用免环境桌面安装包尚待完善。';
-    localChoice.append(localTitle,localHelp);find('#engineSetup').after(localChoice);
     find('#cancelJob').addEventListener('click',async()=>{if(activeJob){try{await request('/api/jobs/'+activeJob+'/cancel',{});find('#jobPhase').textContent='正在停止，请稍候…';}catch(error){report(error);}}});
     find('#recognizeButton').addEventListener('click',()=>recognize().catch(report));
     function selectImage(file){

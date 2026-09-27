@@ -20,6 +20,8 @@ class CloudInference:
         self.base = os.environ.get('DONGJIEXI_MODEL_API_BASE', '').strip().rstrip('/')
         self.key = os.environ.get('DONGJIEXI_MODEL_API_KEY', '').strip()
         self.model = os.environ.get('DONGJIEXI_MODEL_ID', '').strip()
+        self.models = {item.strip() for item in os.environ.get('DONGJIEXI_ALLOWED_MODELS', self.model).split(',') if item.strip()}
+        self.vision = os.environ.get('DONGJIEXI_MODEL_VISION', '1').strip().lower() in {'1', 'true', 'yes'}
         self.json_mode = os.environ.get('DONGJIEXI_MODEL_JSON_MODE', 'json_object').strip()
         self.opener = urllib.request.build_opener(NoRedirect())
         self.cached = None
@@ -27,7 +29,9 @@ class CloudInference:
 
     def configured(self):
         url = urlparse(self.base)
-        return bool(self.enabled and self.key and self.model and url.scheme == 'https'
+        local_http = (os.environ.get('DONGJIEXI_ALLOW_LOOPBACK_MODEL_HTTP') == '1'
+                      and url.scheme == 'http' and url.hostname in {'127.0.0.1', 'localhost', '::1'})
+        return bool(self.enabled and self.key and self.model and (url.scheme == 'https' or local_http)
                     and url.hostname and not url.username and not url.password and not url.query and not url.fragment)
 
     def request(self, path, payload=None):
@@ -40,22 +44,23 @@ class CloudInference:
     def health(self):
         if self.cached is not None and time.monotonic() - self.checked_at < 20:
             return dict(self.cached)
-        available = False
+        available_models = []
         if self.configured():
             try:
                 with self.opener.open(self.request('/models'), timeout=8) as response:
                     data = json.loads(response.read(1024 * 1024))
-                available = any(item.get('id') in {self.model, 'models/' + self.model} for item in data.get('data', []) if isinstance(item, dict))
+                listed = {str(item.get('id')) for item in data.get('data', []) if isinstance(item, dict)}
+                available_models = sorted(model for model in self.models if model in listed or 'models/' + model in listed)
             except (OSError, ValueError):
                 pass
-        self.cached = {'available': available, 'models': [self.model] if available else [],
+        self.cached = {'available': bool(available_models), 'models': available_models,
                        'installed': self.configured(), 'remote': True, 'provider': 'chat-completions',
-                       'vision': available, 'configured': self.configured()}
+                       'vision': bool(available_models) and self.vision, 'configured': self.configured()}
         self.checked_at = time.monotonic()
         return dict(self.cached)
 
     def stream(self, job, payload, cancelled):
-        if payload.get('model') != self.model:
+        if payload.get('model') not in self.models:
             raise ValueError('所选模型不在云端允许列表中。')
         messages = []
         for message in payload['messages']:
@@ -80,7 +85,7 @@ class CloudInference:
                     raise ValueError('仅支持 PNG、JPEG 或 WebP 题图。')
                 content.append({'type': 'image_url', 'image_url': {'url': f'data:{mime};base64,{encoded}'}})
             messages.append({'role': message.get('role'), 'content': content})
-        body = {'model': self.model, 'messages': messages, 'stream': True,
+        body = {'model': payload['model'], 'messages': messages, 'stream': True,
                 'max_tokens': min(10000, payload.get('options', {}).get('num_predict', 10000))}
         if payload.get('format') and self.json_mode != 'prompt-only':
             body['response_format'] = {'type': 'json_object'}

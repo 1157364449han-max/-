@@ -10,12 +10,19 @@ module.exports=async({page,context,assert})=>{
     await route.fulfill({json:{mode:'rules',title:'旧题结果',restatement:question,parts:[{index:1,answer:'旧题答案',steps:[],status:'answered'}],completion:{answered:0,total:1},scene:{type:'circle',r:9,points:{},lines:[],objects:[]}}});
   });
   await page.reload({waitUntil:'domcontentloaded'});
+  await page.locator('#solveModeToggle').click();
+  assert.equal(await page.locator('#solveModePanel').isVisible(),true,'Solve mode menu opens');
+  assert.equal(await page.locator('#engineSetup').isVisible(),true,'Model settings stay inside the mode menu');
+  await page.locator('#solveModeToggle').click();
   await page.locator('[data-quick-conic="ellipse"]').click();
   const before=await page.locator('#sceneJson').inputValue();
   await page.locator('#question').fill('圆x²+y²=81，求半径。');
   await page.locator('#solveButton').click();
   for(let i=0;!started&&i<50;i++)await new Promise(resolve=>setTimeout(resolve,20));
   assert(started,'Slow solve request must start');
+  assert.equal(await page.locator('#solveModeToggle').isEnabled(),true,'Mode menu remains available while solving');
+  await page.locator('#solveModeToggle').click();
+  assert.equal(await page.locator('#solveModePanel').isVisible(),true,'Mode menu opens during a slow solve');
   await page.locator('#question').fill('椭圆x²/9+y²/4=1，求焦点。');
   // Even synthetic repeated clicks must not enqueue a second solve.
   await page.locator('#solveButton').dispatchEvent('click');
