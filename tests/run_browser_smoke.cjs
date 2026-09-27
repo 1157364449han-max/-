@@ -29,6 +29,7 @@ async function run(){
       const filename=suite.endsWith('.cjs')?suite:suite+'_browser_smoke.cjs';
       if(path.basename(filename)!==filename)throw new Error('Use a test filename within tests/');
       const context=await browser.newContext({viewport:{width:1600,height:1050},acceptDownloads:true});
+      await context.addInitScript(mode=>{try{if(!localStorage.getItem('dongjiexi:solve-mode:v1'))localStorage.setItem('dongjiexi:solve-mode:v1',mode);}catch{}},suite==='cloud_primary'?'cloud':'local');
       const page=await context.newPage(),errors=[];
       page.on('pageerror',error=>errors.push(error.message));
       const screenshot=async(name='board.png',selector='.board-shell')=>{
