@@ -1,0 +1,32 @@
+module.exports=async({page,assert,errors})=>{
+  await page.waitForLoadState('load');
+  const solve=async(text,expected)=>{
+    await page.locator('#question').fill(text);
+    const immediate=await page.evaluate(()=>{document.querySelector('#solveButton').click();return [document.querySelector('#solveProgress').dataset.state,document.querySelector('#solveProgress').textContent];});
+    assert.equal(immediate[0],'solving',JSON.stringify({immediate,status:await page.locator('#status').innerText(),button:await page.locator('#solveButton').innerText(),errors}));assert.match(immediate[1],/正在解题/);
+    await page.waitForFunction(()=>document.querySelector('#solveProgress').dataset.state!=='solving');
+    const state=await page.locator('#solveProgress').getAttribute('data-state');
+    assert.equal(state,expected.state,await page.locator('#solution').innerText());
+    assert.match(await page.locator('#solveProgress').innerText(),/解题完成/);
+    const scene=JSON.parse(await page.locator('#sceneJson').inputValue());
+    assert.equal(scene.type,expected.type);
+    if(expected.a2)assert(Math.abs(scene.a**2-expected.a2)<1e-9);
+    if(expected.b2)assert(Math.abs(scene.b**2-expected.b2)<1e-9);
+    if(expected.r2)assert(Math.abs(scene.r**2-expected.r2)<1e-9);
+    if(expected.h!=null)assert(Math.abs(scene.h-expected.h)<1e-9);
+    if(expected.k!=null)assert(Math.abs(scene.k-expected.k)<1e-9);
+    return scene;
+  };
+  await solve('已知椭圆 C：4x²+9y²=36，求焦点坐标。',{state:'complete',type:'ellipse',a2:9,b2:4});
+  await solve('已知双曲线 C：9x²-4y²=36，求渐近线方程。',{state:'complete',type:'hyperbola',a2:4,b2:9});
+  const vertical=await solve('已知双曲线 C：x²-y²=-1，求焦点坐标。',{state:'complete',type:'hyperbola',a2:1,b2:1});
+  assert.equal(vertical.orientation,'vertical');
+  await solve('已知圆 C：4x²+4y²=100，求圆的半径。',{state:'complete',type:'circle',r2:25});
+  await solve('椭圆 C：4(x-1)²+9(y+2)²=36，求焦点坐标。',{state:'complete',type:'ellipse',a2:9,b2:4,h:1,k:-2});
+  await solve('已知椭圆 C：4x²+9y²=36，证明任意直线都与一个定圆相切。',{state:'partial',type:'ellipse',a2:9,b2:4});
+  await page.locator('#question').fill('已知椭圆 C：4x²+9y²=36，求顶点。');
+  assert.equal(await page.locator('#solveProgress').getAttribute('data-state'),'idle','题目变化后旧结果不能继续显示为当前题已完成');
+  await page.locator('#question').fill('');
+  await page.locator('#solveButton').click();
+  assert.equal(await page.locator('#solveProgress').getAttribute('data-state'),'idle','输入校验不应伪装成功');
+};

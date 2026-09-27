@@ -17,6 +17,9 @@
     const find = selector => document.querySelector(selector);
     const runtime = window.DongRuntime;
     const mobileNav=find('.mobile-panel-nav'),workspace=find('.workspace');
+    const solveProgress=find('#solveProgress');
+    function progress(state,message){solveProgress.dataset.state=state;solveProgress.textContent=message;}
+    api.question.addEventListener('input',()=>{if(!processing)progress('idle','题目已修改，等待重新解题。');});
     mobileNav.querySelectorAll('[data-mobile-panel]').forEach(button=>button.addEventListener('click',()=>{
       workspace.dataset.mobileView=button.dataset.mobilePanel;
       mobileNav.querySelectorAll('button').forEach(item=>item.setAttribute('aria-pressed',String(item===button)));
@@ -135,6 +138,7 @@
       ['solveButton','recognizeButton','sendFollowup','pullModel','parseButton','clearButton','saveLesson','openNotebook','confirmRecognition','engineRefresh','reviewAttempt'].forEach(identifier=>{const button=find('#'+identifier);if(button)button.disabled=value;});
       if(!value&&!runtime.config.apiEnabled)find('#engineRefresh').disabled=true;
       find('#jobPanel').hidden=!value;
+      find('#cancelJob').hidden=!activeJob;
       find('#solveButton').textContent=value?'正在处理…':'一站式解题';
     }
     async function refreshEngine(start=false) {
@@ -199,9 +203,9 @@
           current=await request('/api/jobs/'+job.id);
         }
         if(current.status==='failed')throw new Error(current.error||'解题任务未完成。');
-        if(current.status==='cancelled'){api.setStatus('任务已停止，已有题目和解析仍保留。');return;}
+        if(current.status==='cancelled'){if(body.kind==='solve')progress('error','本次解题已停止。');api.setStatus('任务已停止，已有题目和解析仍保留。');return;}
         await done(current.result);
-      }catch(error){report(error);}
+      }catch(error){if(body.kind==='solve')progress('error','解题未完成：'+(error.message||String(error)));report(error);}
       finally{activeJob=null;busy(false);refreshEngine();}
     }
     function snapshot() {
@@ -279,6 +283,7 @@
       const original=api.question.value.trim();
       if(!original){report(new Error(find('#imageFile').files[0]?'请先点击“识别题图”，核对文字后解答。':'请先输入完整题目。'));return;}
       if(hasUncertainty(original)){report(new Error('题面仍含“[看不清]”或其它未确认字段。请先补正后再解题。'));return;}
+      progress('solving','正在解题：识别条件、推导并核对结果…');
       const acceptResult=result=>{
         if(api.question.value.trim()!==original){api.setStatus('题目已修改，本次旧题结果未应用。请点击“一站式解题”求解当前题目。');return;}
         result=api.enrichSolvedScene?.(result,original)||result;
@@ -288,6 +293,7 @@
         inspectorView='lesson';renderSolution();api.remember();
         if(api.question.value.trim()===original){try{saveLesson(true);}catch(error){report(error);return;}}
         const completion=result.completion||{answered:0,total:(result.parts||[]).length||1};
+        progress(completion.answered===completion.total?'complete':'partial',`解题完成：已解答 ${completion.answered}/${completion.total} 问${completion.answered<completion.total?'，其余待推导':''}。`);
         api.setStatus(`${result.mode==='cloud-ai'?'云端 AI 返回':'内置引擎已完成'} ${completion.answered}/${completion.total} 问；${verificationNames[result.verification?.status]||'请核对步骤'}。${result.scene_notice||''}`);
         return completion;
       };
@@ -298,6 +304,7 @@
       }
       let deterministic;
       busy(true);find('#jobPhase').textContent='正在进行内置识题、符号推导与图形校验…';
+      await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
       try{
         const browser=api.solveDeterministic?.(original);
         if(browser?.engineExtensions?.length)deterministic=browser;
@@ -305,7 +312,7 @@
         if(!deterministic)deterministic=browser;
         if(!deterministic)throw new Error('当前环境未能启动内置解题模块。');
         acceptResult(deterministic);
-      }catch(error){report(error);return;}
+      }catch(error){progress('error','解题未完成：'+(error.message||String(error)));report(error);return;}
       finally{busy(false);}
       if(api.question.value.trim()!==original)return;
       const completion=deterministic.completion||{answered:0,total:(deterministic.parts||[]).length||1};
