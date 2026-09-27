@@ -13,7 +13,7 @@ module.exports=async({page,context,assert})=>{
   await page.locator('#solveModeToggle').click();
   assert.equal(await page.locator('#solveModePanel').isVisible(),true,'Solve mode menu opens');
   assert.equal(await page.locator('#engineSetup').isVisible(),true,'Model settings stay inside the mode menu');
-  await page.locator('[data-solve-mode="local"]').click();
+  await page.locator('[data-solve-mode="cloud"]').click();
   await page.locator('[data-quick-conic="ellipse"]').click();
   const before=await page.locator('#sceneJson').inputValue();
   await page.locator('#question').fill('圆x²+y²=81，求半径。');
