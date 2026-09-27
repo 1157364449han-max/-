@@ -16,6 +16,14 @@
   function attach(api) {
     const find = selector => document.querySelector(selector);
     const runtime = window.DongRuntime;
+    const mobileNav=find('.mobile-panel-nav'),workspace=find('.workspace');
+    mobileNav.querySelectorAll('[data-mobile-panel]').forEach(button=>button.addEventListener('click',()=>{
+      workspace.dataset.mobileView=button.dataset.mobilePanel;
+      mobileNav.querySelectorAll('button').forEach(item=>item.setAttribute('aria-pressed',String(item===button)));
+      if(button.dataset.mobilePanel==='lesson')setInspectorView('lesson');
+      // Hidden canvas dimensions are zero; redraw only after the selected panel is laid out.
+      requestAnimationFrame(()=>{api.render();mobileNav.scrollIntoView({block:'start',behavior:'instant'});});
+    }));
     const notebookKey = 'dongjiexi:notebook:v1';
     const draftKey = 'dongjiexi:draft:v1';
     const modelKey = 'dongjiexi:model';

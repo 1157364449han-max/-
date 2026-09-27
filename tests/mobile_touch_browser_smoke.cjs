@@ -3,10 +3,11 @@ module.exports=async({page,baseURL,assert,errors})=>{
   const phone=await context.newPage();phone.on('pageerror',error=>errors.push(error.message));
   try{
     await phone.goto(baseURL,{waitUntil:'domcontentloaded'});
-    await phone.locator('#toolboxToggle').tap();
     await phone.locator('#question').fill('椭圆x²/9+y²/4=1。');
     await phone.locator('#parseButton').tap();await phone.locator('#scenePreviewDialog').waitFor({state:'visible'});await phone.locator('#confirmScenePreview').tap();
     assert.equal(await phone.locator('#inputPanelToggle').isVisible(),false,'手机端不应显示无效的隐藏题目按钮');
+    await phone.locator('[data-mobile-panel="board"]').tap();
+    await phone.locator('#toolboxToggle').tap();
     await phone.locator('[data-add-conic="circle"]').tap();
     const dialog=await phone.locator('#addConicDialog').boundingBox();assert(dialog.x>=0&&dialog.x+dialog.width<=391,'手机模板弹窗不能超出屏幕');
     await phone.locator('#addConicFields [data-equation-param="r"]').fill('');
@@ -18,6 +19,8 @@ module.exports=async({page,baseURL,assert,errors})=>{
     await phone.locator('#canvas').scrollIntoViewIfNeeded();
     assert.equal(await phone.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth+1),true,'手机页面不得横向溢出');
     await phone.setViewportSize({width:844,height:390});
+    assert.equal(await phone.locator('.mobile-panel-nav').isVisible(),true,'手机横屏仍使用栏目切换');
+    assert.equal(await phone.locator('.inspect').isVisible(),false,'横屏也不能同时叠放解析');
     await phone.locator('#canvas').scrollIntoViewIfNeeded();
     assert.equal(await phone.locator('[data-add-conic="ellipse"]').count(),1);
     console.log('PASS: mobile touch input, recognition confirmation, additive curve dialog, no horizontal overflow and orientation change.');

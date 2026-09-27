@@ -12,8 +12,8 @@
   <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
   <link rel="apple-touch-icon" href="icons/icon.svg">
   <link rel="stylesheet" href="vendor/katex/katex.min.css">
-  <link rel="stylesheet" href="learning-ui.css?v=0.36.0">
-  <link rel="stylesheet" href="classroom.css?v=0.36.0">
+  <link rel="stylesheet" href="learning-ui.css?v=0.37.0">
+  <link rel="stylesheet" href="classroom.css?v=0.37.0">
   <style>
     :root { --ink:#0c1b33; --ink-2:#1a3152; --paper:#f6f8fb; --panel:#ffffff; --line:#d7e0eb; --muted:#64748b; --teal:#0f9f99; --teal-soft:#e1f7f4; --amber:#f2a33c; --amber-soft:#fff2d9; --red:#df5b62; --blue:#3f78d8; --shadow:0 10px 30px rgba(12,27,51,.09); }
     * { box-sizing:border-box; }
@@ -323,13 +323,31 @@
       .math-keyboard button { min-height:44px; }
       .workspace.input-collapsed>.controls { display:block; }
     }
+    .mobile-panel-nav { display:none; }
+    @media (max-width:760px), (max-width:1024px) and (max-height:500px) and (pointer:coarse) {
+      .workflow-strip { display:none; }
+      .topbar { position:relative; }
+      .workspace { display:flex;flex-direction:column; }
+      .workspace>.panel { width:100%; }
+      .mobile-panel-nav { display:flex;position:sticky;top:0;z-index:40;gap:.4rem;padding:.5rem;background:#f5f9fc;border-bottom:1px solid #d5dfeb; }
+      .mobile-panel-nav button { flex:1;min-width:0;min-height:44px;border:1px solid #c6d4e3;border-radius:9px;background:white;color:#36516c;font:inherit; }
+      .mobile-panel-nav button[aria-pressed="true"] { background:#086d72;color:white;border-color:#086d72; }
+      .workspace[data-mobile-view]>.panel { display:none!important; }
+      .workspace[data-mobile-view="input"]>.controls,.workspace[data-mobile-view="lesson"]>.inspect { display:block!important; }
+      .workspace[data-mobile-view="board"]>.board-shell { display:flex!important; }
+      .workspace>.board-shell { position:relative;top:auto;flex:none;height:calc(100dvh - 80px);min-height:510px; }
+      .workspace>.controls,.workspace>.inspect { position:static;flex:none;height:auto;max-height:none;overflow:visible; }
+      .board-toolbar { align-items:flex-start; }
+      .board-title-wrap { flex:0 0 100%;width:100%; }
+      .board-toolbar .tool-actions { width:100%;justify-content:flex-start; }
+    }
     @media (max-width:460px) { .condition-grid,.condition-list { grid-template-columns:1fr; }.condition-grid .wide { grid-column:auto; } }
   </style>
 </head>
 <body>
   <main class="app">
     <header class="topbar">
-      <div class="brand"><span class="brand-mark">董</span><span class="brand-name">董解析</span><button class="version-button" id="versionButton" title="查看版本、更新记录和能力边界">v0.36.0 · 更新记录</button></div>
+      <div class="brand"><span class="brand-mark">董</span><span class="brand-name">董解析</span><button class="version-button" id="versionButton" title="查看版本、更新记录和能力边界">v0.37.0 · 更新记录</button></div>
       <div class="top-actions"><span class="top-note">内置符号解题 · 动态几何 · 可选智能增强 · 我的题本</span><button id="pwaInstall" class="install-button" hidden>安装到设备</button></div>
     </header>
     <section id="pwaBanner" class="pwa-banner" hidden role="status"><span id="pwaMessage"></span><button id="pwaUpdate" hidden>立即更新</button><button id="pwaDismiss">稍后</button></section>
@@ -338,7 +356,12 @@
       <div class="workflow-step"><span class="workflow-number">2</span><strong>查看解析</strong><small>分步推导、答案与核验</small></div>
       <div class="workflow-step"><span class="workflow-number">3</span><strong>操作图形</strong><small>拖动、构造与课堂演示</small></div>
     </nav>
-    <section class="workspace" aria-label="几何图形工作区">
+    <nav class="mobile-panel-nav" aria-label="手机栏目切换">
+      <button type="button" data-mobile-panel="input" aria-pressed="true">题目</button>
+      <button type="button" data-mobile-panel="lesson" aria-pressed="false">解析与检验</button>
+      <button type="button" data-mobile-panel="board" aria-pressed="false">图像</button>
+    </nav>
+    <section class="workspace" data-mobile-view="input" aria-label="几何图形工作区">
       <aside class="panel controls">
         <div class="panel-heading"><span class="step-badge">1</span><div><h1>输入与解题</h1><p>粘贴完整题目，或先上传题图</p></div></div>
         <label for="question" class="question-label"><span>题干或方程</span><span class="key-hint">Ctrl + Enter 解答</span></label>
@@ -507,20 +530,20 @@
   </dialog>
 
   <script src="runtime-config.js"></script>
-  <script src="runtime.js?v=0.36.0"></script>
+  <script src="runtime.js?v=0.37.0"></script>
   <script src="vendor/katex/katex.min.js"></script>
   <script src="vendor/katex/contrib/auto-render.min.js"></script>
-  <script src="math-input.js?v=0.36.0"></script>
-  <script src="number-display.js?v=0.36.0"></script>
-  <script src="tangent-solver.js?v=0.36.0"></script>
-  <script src="ellipse-distance.js?v=0.36.0"></script>
-  <script src="orthogonal-chord.js?v=0.36.0"></script>
-  <script src="learning-ui.js?v=0.36.0"></script>
-  <script src="classroom.js?v=0.36.0"></script>
-  <script src="construction-board.js?v=0.36.0"></script>
-  <script src="drag-board.js?v=0.36.0"></script>
-  <script src="equation-builder.js?v=0.36.0"></script>
-  <script src="math-keyboard.js?v=0.36.0"></script>
+  <script src="math-input.js?v=0.37.0"></script>
+  <script src="number-display.js?v=0.37.0"></script>
+  <script src="tangent-solver.js?v=0.37.0"></script>
+  <script src="ellipse-distance.js?v=0.37.0"></script>
+  <script src="orthogonal-chord.js?v=0.37.0"></script>
+  <script src="learning-ui.js?v=0.37.0"></script>
+  <script src="classroom.js?v=0.37.0"></script>
+  <script src="construction-board.js?v=0.37.0"></script>
+  <script src="drag-board.js?v=0.37.0"></script>
+  <script src="equation-builder.js?v=0.37.0"></script>
+  <script src="math-keyboard.js?v=0.37.0"></script>
   <script src="geogebra-bridge.js?v=0.7.0"></script>
   <script>
   (() => {
@@ -1372,6 +1395,6 @@ function motionStep(timestamp){if(!state.model){stopMotion(false);return;}const 
     document.getElementById('closeReleases').addEventListener('click',()=>dialog.close());
   })();
   </script>
-  <script src="pwa.js?v=0.36.0"></script>
+  <script src="pwa.js?v=0.37.0"></script>
 </body>
 </html>

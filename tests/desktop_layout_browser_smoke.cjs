@@ -67,8 +67,9 @@ module.exports = async ({page, assert, screenshot}) => {
       overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
     };
   });
-  assert(mobile.controls < mobile.board, '手机端应先显示题目输入');
-  assert(mobile.board < mobile.inspect, '手机端应在解析检验区之前显示画板');
+  assert.equal(await page.locator('.controls').isVisible(),true,'手机初始显示题目');
+  assert.equal(await page.locator('.board-shell').isVisible(),false,'未选择画板时应隐藏');
+  assert.equal(await page.locator('.inspect').isVisible(),false,'未选择解析时应隐藏');
   assert(mobile.overflow <= 1, '手机端不应横向溢出');
   await screenshot('mobile-workbench.png', null);
   console.log('PASS: desktop workbench hierarchy, recognition confirmation, toolbox and mobile flow.');
