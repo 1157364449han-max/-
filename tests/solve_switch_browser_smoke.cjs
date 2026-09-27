@@ -13,7 +13,7 @@ module.exports=async({page,context,assert})=>{
   await page.locator('#solveModeToggle').click();
   assert.equal(await page.locator('#solveModePanel').isVisible(),true,'Solve mode menu opens');
   assert.equal(await page.locator('#engineSetup').isVisible(),true,'Model settings stay inside the mode menu');
-  await page.locator('#solveModeToggle').click();
+  await page.locator('[data-solve-mode="local"]').click();
   await page.locator('[data-quick-conic="ellipse"]').click();
   const before=await page.locator('#sceneJson').inputValue();
   await page.locator('#question').fill('圆x²+y²=81，求半径。');
@@ -35,6 +35,8 @@ module.exports=async({page,context,assert})=>{
   await context.unroute('**/runtime-config.js');
   await context.route('**/runtime-config.js',route=>route.fulfill({contentType:'application/javascript',body:'window.DONGJIEXI_CONFIG={version:"0.23.1",deployment:"web",apiEnabled:false,apiBase:"",requiresAuth:false};'}));
   await page.reload({waitUntil:'domcontentloaded'});
+  await page.locator('#solveModeToggle').click();
+  await page.locator('[data-solve-mode="local"]').click();
   await page.locator('#question').fill('圆x²+y²=9，求半径。');
   await page.locator('#solveButton').click();
   await page.waitForFunction(()=>document.querySelector('#solution').textContent.includes('董解析浏览器内置解答'));
