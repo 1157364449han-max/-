@@ -6,6 +6,7 @@ module.exports=async({page,assert,screenshot})=>{
     for(const [key,selector] of Object.entries(panels))assert.equal(await page.locator(selector).isVisible(),key===name);
     assert.equal(await page.locator(`[data-mobile-panel="${name}"]`).getAttribute('aria-pressed'),'true');
     assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));
+    await page.waitForFunction(()=>document.querySelector('.workspace').getBoundingClientRect().top>=document.querySelector('.mobile-panel-nav').getBoundingClientRect().bottom-1);
   };
   await select('input');
   await page.locator('#question').fill('椭圆 C：x²/4+y²=1，求标准方程。');

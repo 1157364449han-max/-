@@ -22,7 +22,7 @@
       mobileNav.querySelectorAll('button').forEach(item=>item.setAttribute('aria-pressed',String(item===button)));
       if(button.dataset.mobilePanel==='lesson')setInspectorView('lesson');
       // Hidden canvas dimensions are zero; redraw only after the selected panel is laid out.
-      requestAnimationFrame(()=>{api.render();mobileNav.scrollIntoView({block:'start',behavior:'instant'});});
+      requestAnimationFrame(()=>{api.render();window.scrollTo({top:Math.max(0,workspace.getBoundingClientRect().top+window.scrollY-mobileNav.offsetHeight),behavior:'instant'});});
     }));
     const notebookKey = 'dongjiexi:notebook:v1';
     const draftKey = 'dongjiexi:draft:v1';
