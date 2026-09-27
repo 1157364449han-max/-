@@ -102,7 +102,7 @@
     function bindTabs(element) {
       element.querySelectorAll('[data-study-part]').forEach(button=>button.addEventListener('click',()=>{
         api.state.activePart=button.dataset.studyPart==='all'?null:Number(button.dataset.studyPart);
-        renderSolution();api.refreshLayers();api.render();api.remember();
+        renderSolution();api.refreshLayers();api.syncMotionButton?.();api.render();api.remember();
       }));
     }
     function renderSolution() {

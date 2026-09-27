@@ -1588,7 +1588,7 @@ def deterministic_parts(text: str, scene: dict, base_answer: str, base_steps: li
         # known condition (for example "离心率为 1/2") is not a goal by itself.
         elif re.search(r"(?:求|写出|确定|计算)[^。；]{0,45}(?:焦点|顶点|准线|渐近线|离心率|圆心|半径|轴长)",body):
             answer,steps=conic_features(scene);status="answered"
-        elif re.search(r"标准方程",body) or re.search(r"(?:求|写出|确定|建立)[^。；]{0,35}(?<!准线)(?<!渐近线)方程",body):
+        elif not re.search(r"定圆|相切|证明|面积|周长|最大|最小|轨迹",body) and (re.search(r"标准方程",body) or re.search(r"(?:求|写出|确定|建立)[^。；]{0,35}(?<!准线)(?<!渐近线)方程",body)):
             answer,steps=base_answer,list(base_steps);status="answered"
         elif len(split_problem_parts(text))==1 and "=" in text and not re.search(r"证明|定值|定点|最值|范围|轨迹",body):
             answer,steps=base_answer,list(base_steps);status="answered"

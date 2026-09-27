@@ -114,6 +114,7 @@
             if(obj.op==='foot'&&a?.type==='point'&&validLine(b))result=pointValue(add(b.o,mul(b.d,dot(sub(a,b.o),b.d)/dot(b.d,b.d))));
             if(['tangent','normal'].includes(obj.op)&&a?.type==='point')result=curveLine(a,b,obj.op==='normal');
             if(obj.op==='ellipse_tangent_point'&&a?.type==='point')result=pointValue(window.DongTangentSolver?.contactsFromQuadratic(curveCoefficients(b),a)?.points[obj.branch||0]);
+            if(obj.op==='orthogonal_chord_circle')result=window.DongOrthogonalChord?.circle(curveCoefficients(a))||null;
             if(obj.op==='intersection')result=pointValue(intersect(a,b)[obj.branch||0]);
             if(obj.op==='distance'&&a?.type==='point'&&b?.type==='point')result={type:'measure',...mul(add(a,b),.5),value:distance(a,b)};
             if(obj.op==='point_on'&&a){

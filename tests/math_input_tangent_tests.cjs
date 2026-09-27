@@ -12,6 +12,7 @@ const block='$$\n'+String.raw`\frac{x^2}{9}+\frac{y^2}{4}=1`+'\n$$';
 assert.equal(prepare(block),block,'Multiline display math must not acquire nested delimiters');
 const near=(a,b)=>assert(Math.abs(a-b)<1e-8,`${a} != ${b}`);
 near(sandbox.window.DongEquationBuilder.scalar(String.raw`\frac{3}{2}`),1.5);
+near(sandbox.window.DongEquationBuilder.scalar(toPlain(String.raw`\dfrac{\sqrt2}{2}`)),Math.sqrt(2)/2);
 near(sandbox.window.DongEquationBuilder.scalar(String.raw`\sqrt{\frac{9}{4}}`),1.5);
 near(sandbox.window.DongEquationBuilder.scalar(String.raw`\frac{\pi}{2}`),Math.PI/2);
 const circle={A:1,B:0,C:1,D:0,E:0,F:-9};
