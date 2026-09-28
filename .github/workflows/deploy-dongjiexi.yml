@@ -83,6 +83,9 @@ jobs:
             BASE="$BASE/$WEB_PATH"
             TARGET="_site/$WEB_PATH"
           fi
+          if [ -z "$API_BASE" ] && [ -f "$APP_ROOT/deploy/active-phone-api.txt" ]; then
+            API_BASE="$(tr -d '\r\n' < "$APP_ROOT/deploy/active-phone-api.txt")"
+          fi
           # Generates update-manifest.json, a sha256 digest and dongjiexi-v{version}.zip.
           python "$APP_ROOT/deploy/build_release.py" --source "$APP_ROOT" --output "_release" --site-base "$BASE" --api-base "$API_BASE" --commit "$BUILD_COMMIT"
           mkdir -p "$TARGET"
