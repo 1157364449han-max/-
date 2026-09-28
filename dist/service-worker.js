@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '0.38.2';
+const VERSION = '0.38.3';
 const CACHE = `dongjiexi-app-${VERSION}`;
 const CORE = [
   './math-input.js', './number-display.js', './tangent-solver.js', './ellipse-distance.js', './orthogonal-chord.js',

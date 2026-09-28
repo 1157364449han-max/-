@@ -8,10 +8,14 @@ module.exports=async({page,context,assert})=>{
   await page.reload({waitUntil:'domcontentloaded'});
   await page.waitForFunction(()=>document.querySelector('#engineStatus').classList.contains('ready'));
   assert.equal(await page.locator('#modelName').inputValue(),'test-cloud');
-  await page.locator('#question').fill('已知椭圆x²/9+y²/4=1，求标准方程。');
+  await page.locator('#question').fill('已知椭圆x²/9+y²/4=1，证明任意直线都与一个定圆相切。');
   await page.locator('#solveButton').click();
   await page.waitForFunction(()=>document.querySelector('#solution').textContent.includes('云端完整题意测试'));
   assert.equal(jobs,1);assert.equal(rules,0,'即使规则可解，也应按云端优先处理整题');
+  await page.locator('#question').fill('已知椭圆x²/9+y²/4=1，求标准方程。');
+  await page.locator('#solveButton').click();
+  await page.waitForFunction(()=>document.querySelector('#status').textContent.includes('无需等待云端模型'));
+  assert.equal(jobs,1,'完整且已核验的内置答案不应再等待手机模型');
   assert(await page.locator('#pullModel').isHidden(),'云服务器不得提供浏览器下载模型操作');
   assert.equal(await page.locator('#recognizeButton').isDisabled(),false,'浏览器本地 OCR 不应被纯文本云模型禁用');
   await page.locator('#solveModeToggle').click();

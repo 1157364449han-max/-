@@ -312,8 +312,17 @@
       };
       if(solveMode==='cloud'&&engineReady&&cloudPrimary){
         let previewShown=false;
+        let localResult=null;
         try{
-          const preview=api.solveDeterministic?.(original)?.scene;
+          localResult=api.solveDeterministic?.(original)||null;
+          const completion=localResult?.completion;
+          const trusted=['fully-verified','locally-verified'].includes(localResult?.verification?.status);
+          if(trusted&&completion?.total>0&&completion.answered===completion.total){
+            acceptResult(localResult);
+            api.setStatus('内置精确引擎已解完并核验本题，无需等待云端模型。');
+            return;
+          }
+          const preview=localResult?.scene;
           if(preview&&api.question.value.trim()===original){
             api.installScene(api.modelFromJson(JSON.stringify(preview)),'题干图形预览（云端解析中）');
             previewShown=true;

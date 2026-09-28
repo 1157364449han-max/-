@@ -87,7 +87,9 @@ class CloudInference:
             messages.append({'role': message.get('role'), 'content': content})
         body = {'model': payload['model'], 'messages': messages, 'stream': True,
                 'max_tokens': min(10000, payload.get('options', {}).get('num_predict', 10000))}
-        if payload.get('format') and self.json_mode != 'prompt-only':
+        if payload.get('format') and self.json_mode == 'llama-schema':
+            body['response_format'] = {'type': 'json_object', 'schema': payload['format']}
+        elif payload.get('format') and self.json_mode != 'prompt-only':
             body['response_format'] = {'type': 'json_object'}
         output, size, complete = [], 0, False
         deadline = time.monotonic() + 600

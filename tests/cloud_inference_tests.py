@@ -45,6 +45,16 @@ class CloudTests(unittest.TestCase):
             self.assertEqual(self.cloud.stream(self.job,self.payload,Cancelled),'{"parts":[]}')
         self.assertNotIn('response_format',json.loads(call.call_args.args[0].data))
 
+    def test_llama_schema_mode_constrains_fast_answer_shape(self):
+        from learning_engine import FAST_SCHEMA
+        self.cloud.json_mode='llama-schema'
+        self.payload['format']=FAST_SCHEMA
+        with patch.object(self.cloud.opener,'open',return_value=self.events('{"parts":[]}')) as call:
+            self.cloud.stream(self.job,self.payload,Cancelled)
+        body=json.loads(call.call_args.args[0].data)
+        self.assertEqual(body['response_format'],{'type':'json_object','schema':FAST_SCHEMA})
+        self.assertIn('parts',FAST_SCHEMA['required'])
+
     def test_vision_image_becomes_data_url_only_on_server(self):
         encoded=base64.b64encode(b'\x89PNG\r\n\x1a\n' + b'fake-test-image').decode()
         payload={**self.payload,'messages':[{'role':'user','content':'Transcribe only','images':[encoded]}]}
@@ -164,6 +174,7 @@ class CloudTests(unittest.TestCase):
         self.assertEqual(job['status'],'completed')
         self.assertEqual(stream.call_count,1)
         self.assertLess(stream.call_args.args[1]['options']['num_predict'],10000)
+        self.assertEqual(stream.call_args.args[1]['format']['required'],['parts'])
         self.assertEqual(prediction_budget('solve','normal',12,True),6000)
 
     def test_cloud_submit_does_not_wait_for_model_list_probe(self):
