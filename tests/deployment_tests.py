@@ -19,6 +19,12 @@ def free_port():
 
 
 class DeploymentTests(unittest.TestCase):
+    def test_phone_restart_stops_the_whole_service_process_group(self):
+        script = (ROOT / "deploy" / "phone" / "restart-service.sh").read_text(encoding="utf-8")
+        self.assertIn('kill -- "-$old_pid"', script)
+        self.assertIn('kill -0 -- "-$old_pid"', script)
+        self.assertNotIn('kill "$old_pid"', script)
+
     def test_all_public_versions_match(self):
         desktop = json.loads((ROOT / "version.json").read_text(encoding="utf-8"))["version"]
         web = json.loads((ROOT / "dist" / "app-version.json").read_text(encoding="utf-8"))["version"]

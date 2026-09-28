@@ -19,10 +19,12 @@ fi
 stop_service() {
   if [ -f "$pid_file" ]; then
     old_pid="$(tr -cd '0-9' < "$pid_file")"
-    if [ -n "$old_pid" ] && kill -0 "$old_pid" 2>/dev/null; then
-      kill "$old_pid"
+    if [ -n "$old_pid" ] && [ "$old_pid" -gt 100 ] && kill -0 -- "-$old_pid" 2>/dev/null; then
+      # launch-detached starts a new session. Stop its whole process group so
+      # the foreground Python child cannot survive after the wrapper exits.
+      kill -- "-$old_pid"
       for _ in 1 2 3 4 5 6 7 8 9 10; do
-        kill -0 "$old_pid" 2>/dev/null || break
+        kill -0 -- "-$old_pid" 2>/dev/null || break
         sleep 1
       done
     fi
