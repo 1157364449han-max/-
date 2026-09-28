@@ -11,4 +11,3 @@ fi
 printf '%s\n' 'github.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UOoqKLsabgH5C9okWi0dh2l9GKJl' > "$HOME/.ssh/known_hosts"
 chmod 600 "$HOME/.ssh/dongjiexi_deploy" "$HOME/.ssh/known_hosts"
 cat "$HOME/.ssh/dongjiexi_deploy.pub"
-

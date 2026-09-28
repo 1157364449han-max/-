@@ -7,7 +7,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from learning_engine import EngineError, assemble_solution  # noqa: E402
-from server import fallback_solution, normalise_scene_contract, standard_conic, verify_ai_scene  # noqa: E402
+from server import fallback_solution, normalise_scene_contract, standard_conic, verify_ai_scene, verify_ai_solution  # noqa: E402
 from verification_engine import _q, _sign, attach_trust_report, has_uncertainty  # noqa: E402
 
 
@@ -21,6 +21,15 @@ def result(scene, text="", parts=None):
 
 
 class VerificationTests(unittest.TestCase):
+    def test_ai_conic_feature_guess_replaced_by_symbolic_value(self):
+        text = "已知椭圆 C：x²/4+y²=1，求两个焦点的坐标。"
+        raw = result(None, text, [{"index": 0, "label": "完整题目", "body": text,
+                                  "answer": "焦点为 (±1,0)", "steps": ["猜测焦距。"], "status": "answered"}])
+        checked = verify_ai_solution(raw)
+        self.assertIn("√(3)", checked["parts"][0]["answer"])
+        self.assertNotIn("±1", checked["parts"][0]["answer"])
+        self.assertEqual(checked["parts"][0]["source"], "symbolic-conic-features")
+
     def test_manual_circle_tangent_normal_survive_scene_repair(self):
         objects = [
             {"id": "circle", "kind": "circle", "h": 2, "k": 1, "r": 3},

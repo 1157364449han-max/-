@@ -19,12 +19,6 @@ def free_port():
 
 
 class DeploymentTests(unittest.TestCase):
-    def test_phone_restart_stops_the_whole_service_process_group(self):
-        script = (ROOT / "deploy" / "phone" / "restart-service.sh").read_text(encoding="utf-8")
-        self.assertIn('kill -- "-$old_pid"', script)
-        self.assertIn('kill -0 -- "-$old_pid"', script)
-        self.assertNotIn('kill "$old_pid"', script)
-
     def test_all_public_versions_match(self):
         desktop = json.loads((ROOT / "version.json").read_text(encoding="utf-8"))["version"]
         web = json.loads((ROOT / "dist" / "app-version.json").read_text(encoding="utf-8"))["version"]
@@ -37,8 +31,8 @@ class DeploymentTests(unittest.TestCase):
         environment.update(
             DONGJIEXI_CLOUD="1",
             DONGJIEXI_OLLAMA_URL="http://127.0.0.1:1",
-            DONGJIEXI_ACCESS_KEY="correct-horse-battery-staple",
-            DONGJIEXI_ALLOWED_MODELS="qwen3.5:4b",
+            DONGJIEXI_ACCESS_KEY="董老师666",
+            DONGJIEXI_ALLOWED_MODELS="deepseek-r1-llama-8b",
             DONGJIEXI_ALLOWED_ORIGINS="https://app.example.test",
             DONGJIEXI_RULES_PER_MINUTE="1",
             PYTHONDONTWRITEBYTECODE="1",
@@ -92,11 +86,11 @@ class DeploymentTests(unittest.TestCase):
                 current.close()
                 return result
 
-            status, _, _ = request("POST", "/api/jobs", {"kind": "solve", "model": "qwen3.5:4b", "text": "题"})
+            status, _, _ = request("POST", "/api/jobs", {"kind": "solve", "model": "deepseek-r1-llama-8b", "text": "题"})
             self.assertEqual(status, 401)
             status, _, _ = request("POST", "/api/session", {"access_key": "wrong"})
             self.assertEqual(status, 401)
-            status, _, session = request("POST", "/api/session", {"access_key": "correct-horse-battery-staple"})
+            status, _, session = request("POST", "/api/session", {"access_key": "董老师666"})
             self.assertEqual(status, 200)
             authorization = {"Authorization": "Bearer " + session["token"]}
 

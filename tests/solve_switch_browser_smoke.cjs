@@ -14,6 +14,9 @@ module.exports=async({page,context,assert})=>{
   assert.equal(await page.locator('#solveModePanel').isVisible(),true,'Solve mode menu opens');
   assert.equal(await page.locator('#engineSetup').isVisible(),true,'Model settings stay inside the mode menu');
   await page.locator('[data-solve-mode="cloud"]').click();
+  assert.equal(await page.locator('#engineRouteTitle').textContent(),'当前路径：云端解题');
+  assert.match(await page.locator('#modelNameLabel').textContent(),/云端 AI 模型/,'Cloud selector must name where its model runs');
+  assert.equal(await page.locator('#modelSelectorRow').evaluate(element=>!element.hidden),true,'Cloud model selector remains available');
   await page.locator('[data-quick-conic="ellipse"]').click();
   const before=await page.locator('#sceneJson').inputValue();
   await page.locator('#question').fill('圆x²+y²=81，求半径。');
@@ -37,6 +40,9 @@ module.exports=async({page,context,assert})=>{
   await page.reload({waitUntil:'domcontentloaded'});
   await page.locator('#solveModeToggle').click();
   await page.locator('[data-solve-mode="local"]').click();
+  assert.equal(await page.locator('#engineRouteTitle').textContent(),'当前路径：本机解题');
+  assert.match(await page.locator('#engineRouteDetail').textContent(),/不调用上方云端模型/,'Web local route must explicitly exclude cloud models');
+  assert.equal(await page.locator('#modelSelectorRow').evaluate(element=>element.hidden),true,'Cloud model names must be hidden for browser-local solving');
   await page.locator('#question').fill('圆x²+y²=9，求半径。');
   await page.locator('#solveButton').click();
   await page.waitForFunction(()=>document.querySelector('#solution').textContent.includes('董解析浏览器内置解答'));

@@ -157,9 +157,9 @@ def question_consistency_issue(text: str) -> str | None:
     return None
 
 
-def request_json(path, payload=None, timeout=8):
+def request_json(path, payload=None, timeout=8, method=None):
     encoded = json.dumps(payload, ensure_ascii=False).encode() if payload is not None else None
-    request = urllib.request.Request(OLLAMA_BASE_URL + path, data=encoded, headers=ollama_headers())
+    request = urllib.request.Request(OLLAMA_BASE_URL + path, data=encoded, headers=ollama_headers(), method=method)
     with urllib.request.urlopen(request, timeout=timeout) as response:
         return json.load(response)
 
@@ -173,6 +173,31 @@ def short_text(value, limit=18000):
 
 def strings(value, count=30):
     return [short_text(item, 5000) for item in value[:count] if isinstance(item, str)] if isinstance(value, list) else []
+
+
+def solution_quality_issues(solution):
+    """Detect unfinished AI scratch work before it is presented as a solution."""
+    issues = []
+    for part in solution.get("parts", []):
+        if not isinstance(part, dict):
+            continue
+        material = "\n".join([str(part.get("answer", "")), *map(str, part.get("steps", []))])
+        labels = []
+        if "?" in material or "？" in material:
+            labels.append("含问号占位符")
+        for pattern, label in [
+            (r"等等(?:[，。；]|需要|重新)", "含未完成的自我修正"),
+            (r"重新核算|仔细计算", "把演算草稿当成正式步骤"),
+            (r"需(?:要)?另行讨论|必要时单独检验", "遗漏了声明需要讨论的特殊情形"),
+            (r"较复杂|略去|省略|从略", "跳过了关键推导"),
+        ]:
+            if re.search(pattern, material):
+                labels.append(label)
+        if part.get("status") == "answered" and not part.get("steps"):
+            labels.append("标记已完成但没有推导")
+        if labels:
+            issues.append(f"{part.get('label', '本问')}：" + "、".join(dict.fromkeys(labels)))
+    return issues
 
 
 def validate_scene(value):
@@ -358,7 +383,7 @@ class LearningEngine:
         text = body.get("text", "")
         if not isinstance(text, str) or len(text) > 18000:
             raise EngineError("题目文字请控制在 18000 字以内。")
-        model = body.get("model", "qwen3.5:4b")
+        model = body.get("model", "hf.co/bartowski/DeepSeek-R1-Distill-Llama-8B-GGUF:Q4_K_M")
         if not isinstance(model, str) or not re.fullmatch(r"[A-Za-z0-9_./:-]{1,100}", model):
             raise EngineError("模型名称格式无效。")
         image = body.get("image")
@@ -380,8 +405,9 @@ class LearningEngine:
             raise EngineError("题面仍含“[看不清]”或其它未确认字段。请先在识别结果中补正，再开始解题。")
         if kind == "solve" and (issue := question_consistency_issue(text)):
             raise EngineError(issue)
-        if kind == "pull" and model not in {"qwen3.5:4b", "qwen3.5:9b", "deepseek-r1:8b", "deepseek-r1:1.5b"}:
-            raise EngineError("内置下载支持 Qwen3.5 4B/9B 与 DeepSeek-R1 1.5B/8B。其它本地模型可自行安装后选择。")
+        supported_downloads = {"hf.co/bartowski/DeepSeek-R1-Distill-Llama-8B-GGUF:Q4_K_M"}
+        if kind == "pull" and model not in supported_downloads:
+            raise EngineError("内置下载当前支持 DeepSeek-R1 Distill Llama 8B。其它本地模型可自行安装后选择。")
         if kind == "pull" and (REMOTE_OLLAMA or self.cloud.enabled):
             raise EngineError("在线版不能从浏览器下载模型，请由服务管理员配置推理模型。")
         if self.cloud.enabled:
@@ -488,10 +514,20 @@ class LearningEngine:
     def _run(self, identifier, body):
         job = self.jobs[identifier]
         try:
-            kind, model, text = body.get("kind", "solve"), body.get("model", "qwen3.5:4b"), body.get("text", "").strip()
+            kind, model, text = body.get("kind", "solve"), body.get("model", "hf.co/bartowski/DeepSeek-R1-Distill-Llama-8B-GGUF:Q4_K_M"), body.get("text", "").strip()
             if kind == "pull":
+                previous = list(self.health().get("models", []))
                 self._stream(job, "/api/pull", {"model": model, "stream": True})
-                result = {"message": "模型已下载，可以开始 AI 解题。"}
+                removed, retained = [], []
+                for old_model in previous:
+                    if old_model == model:
+                        continue
+                    try:
+                        request_json("/api/delete", {"model": old_model}, timeout=90, method="DELETE")
+                        removed.append(old_model)
+                    except (OSError, ValueError):
+                        retained.append(old_model)
+                result = {"message": "新模型已下载，可以开始 AI 解题。" + (" 已自动删除旧模型：" + "、".join(removed) + "。" if removed else "") + (" 以下旧模型未能自动清理：" + "、".join(retained) + "。" if retained else "")}
             else:
                 information = ({"capabilities": ["vision"] if self.cloud.vision else []} if kind == "recognize" else {"capabilities": []}) if self.cloud.enabled else request_json("/api/show", {"model": model}, timeout=15)
                 if not REMOTE_OLLAMA and (information.get("remote_host") or information.get("remote_model")):
@@ -542,6 +578,43 @@ class LearningEngine:
                 if kind == "solve":
                     raw = json.loads(content)
                     result = assemble_solution(raw, text, expected, model)
+                    quality_issues = solution_quality_issues(result)
+                    if self.cloud.enabled and quality_issues:
+                        job["phase"] = "发现未完成推导，正在复核并重写"
+                        repair_payload = {
+                            **payload,
+                            "messages": [
+                                messages[0],
+                                {"role": "user", "content":
+                                 f"原题：\n{text}\n\n上一稿仅用于定位问题，不得照抄：\n"
+                                 f"{json.dumps(raw, ensure_ascii=False)[:22000]}\n\n"
+                                 f"质量检查发现：{'；'.join(quality_issues)}。请从头独立复核所有代数、结论和取等条件，"
+                                 "重写完整答案。禁止问号占位、'等等'、'较复杂'、省略关键计算或声称另行讨论却不讨论。"
+                                 "只返回与原请求相同结构的 JSON。"},
+                            ],
+                            "options": {**payload["options"], "deep_thinking": True,
+                                        "num_predict": max(6000, payload["options"]["num_predict"])},
+                        }
+                        if "think" in repair_payload:
+                            repair_payload["think"] = True
+                        try:
+                            repaired_raw = json.loads(self._complete_chat(job, repair_payload))
+                            repaired = assemble_solution(repaired_raw, text, expected, model)
+                            repaired_issues = solution_quality_issues(repaired)
+                            if not repaired_issues:
+                                raw, result = repaired_raw, repaired
+                            else:
+                                for part in result["parts"]:
+                                    if part["status"] == "answered":
+                                        part["status"] = "partial"
+                                result["quality_notice"] = "AI 复核后仍含未完成推导，已标为待核对草稿。"
+                        except Cancelled:
+                            raise
+                        except (ValueError, OSError, json.JSONDecodeError):
+                            for part in result["parts"]:
+                                if part["status"] == "answered":
+                                    part["status"] = "partial"
+                            result["quality_notice"] = "AI 自动复核未完成，当前内容已标为待核对草稿。"
                     repairs = 0
                     for part in ([] if fast_cloud else result["parts"]):
                         if part["status"] != "partial" or part["steps"]:
@@ -561,8 +634,9 @@ class LearningEngine:
                         except (ValueError, OSError):
                             part["answer"] += " 自动补答未完成，可以继续追问。"
                     result["completion"]["answered"] = sum(part["status"] == "answered" for part in result["parts"])
-                    if not fast_cloud and not result["scene"] and result["completion"]["answered"]:
-                        geometry = {**payload, "messages": [messages[0], {"role": "user", "content": f"原题：{text}\n已完成的解答：{json.dumps(result['parts'], ensure_ascii=False)[:22000]}\n仅提取已确定的绘图参数，返回 JSON scene 本身。type 为 ellipse/hyperbola/circle/parabola，a,b,r,p,h,k 是数字（根号转小数），orientation 为 horizontal/vertical。points 包含实际定点坐标，curvePoints 包含曲线上自由动点名称，lines 包含题目需要的连线并标 part。未知图形返回 null。"}], "format": SCENE_SCHEMA, "options": {**payload["options"], "num_predict": 2200}}
+                    if not result["scene"] and result["completion"]["answered"]:
+                        scene_system = {"role": "system", "content": "你是解析几何作图建模器。必须先以已完成答案为依据，再提取需要展示的曲线、点、直线和分问图层。只返回符合给定 Schema 的 JSON，不重新解题，不猜测未知坐标，不输出说明文字。"}
+                        geometry = {**payload, "messages": [scene_system, {"role": "user", "content": f"原题：{text}\n已完成的解答：{json.dumps(result['parts'], ensure_ascii=False)[:22000]}\n根据答案中已经求出的量生成 scene。type 为 ellipse/hyperbola/circle/parabola，a,b,r,p,h,k 是数字（根号转小数），orientation 为 horizontal/vertical。points 包含实际定点坐标，curvePoints 包含曲线上自由动点名称，lines 包含题目或答案需要展示的连线并标 part。未知图形返回 null。"}], "format": SCENE_SCHEMA, "options": {**payload["options"], "num_predict": 2200}}
                         if "think" in geometry:
                             geometry["think"] = False
                         try:

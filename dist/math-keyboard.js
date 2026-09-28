@@ -38,6 +38,15 @@
       {label:'∪',insert:'∪'},{label:'∩',insert:'∩'},{label:'∅',insert:'∅'},{label:'ℝ',insert:'ℝ'},
       {label:'ℤ',insert:'ℤ'},{label:'ℕ',insert:'ℕ'},{label:'⇒',insert:'⇒'},{label:'⇔',insert:'⇔'},
       {label:'∀',insert:'∀'},{label:'∃',insert:'∃'},{label:'∵',insert:'∵'},{label:'∴',insert:'∴'}
+    ]},
+    {id:'advanced', name:'微积分与矩阵', keys:[
+      {label:'导数',insert:'\\frac{d}{dx}'},{label:'二阶导',insert:'\\frac{d^2}{dx^2}'},{label:'偏导',insert:'\\frac{\\partial}{\\partial x}'},
+      {label:'不定积分',insert:'\\int  \\, dx',caret:-5},{label:'定积分',insert:'\\int_{a}^{b}  \\, dx',caret:-5},
+      {label:'极限',insert:'\\lim_{x\\to 0}'},{label:'求和',insert:'\\sum_{i=1}^{n}'},{label:'连乘',insert:'\\prod_{i=1}^{n}'},
+      {label:'组合数',insert:'\\binom{n}{k}'},{label:'向量',insert:'\\vec{a}'},{label:'模长',insert:'\\left|\\vec{a}\\right|'},
+      {label:'上划线',insert:'\\overline{AB}'},{label:'帽符号',insert:'\\widehat{ABC}'},{label:'分段',insert:'\\begin{cases}f_1(x),&x<0\\\\f_2(x),&x\\ge0\\end{cases}'},
+      {label:'2×2 矩阵',insert:'\\begin{pmatrix}a&b\\\\c&d\\end{pmatrix}'},{label:'行列式',insert:'\\begin{vmatrix}a&b\\\\c&d\\end{vmatrix}'},
+      {label:'交集',insert:'\\cap'},{label:'并集',insert:'\\cup'},{label:'属于',insert:'\\in'},{label:'推出',insert:'\\Rightarrow'},{label:'等价',insert:'\\Leftrightarrow'}
     ]}
   ];
 
@@ -45,7 +54,7 @@
     const panel = document.createElement('section');
     panel.id = 'mathKeyboard';panel.className = 'math-keyboard';panel.hidden = true;
     panel.setAttribute('role','dialog');panel.setAttribute('aria-labelledby','mathKeyboardTitle');panel.setAttribute('aria-describedby','mathKeyboardHelp');
-    panel.innerHTML = '<header><div><strong id="mathKeyboardTitle">数学键盘</strong><span id="mathKeyboardHelp">点按符号会插入到当前参数或文字输入框</span><span id="mathKeyboardTarget" aria-live="polite"></span></div><div class="math-keyboard-edit"><button type="button" data-key-command="left" aria-label="光标左移">←</button><button type="button" data-key-command="right" aria-label="光标右移">→</button><button type="button" data-key-command="backspace" aria-label="退格">⌫</button><button type="button" data-key-command="close">关闭</button></div></header><div class="math-keyboard-tabs" role="tablist"></div><div class="math-keyboard-keys"></div>';
+    panel.innerHTML = '<header><div><strong id="mathKeyboardTitle">数学键盘</strong><span id="mathKeyboardHelp">点按符号会插入到当前参数或文字输入框</span><span id="mathKeyboardTarget" aria-live="polite"></span></div><div class="math-keyboard-edit"><button type="button" data-key-command="left" aria-label="光标左移">←</button><button type="button" data-key-command="right" aria-label="光标右移">→</button><button type="button" data-key-command="backspace" aria-label="退格">⌫</button><button type="button" data-key-command="close">关闭</button></div></header><div class="mathlive-host" data-mathlive-host><p class="mathlive-note">正在准备完整 LaTeX 公式编辑器…</p></div><div class="math-keyboard-tabs" role="tablist"></div><div class="math-keyboard-keys"></div>';
     document.body.append(panel);
     const tabBox=panel.querySelector('.math-keyboard-tabs'),keyBox=panel.querySelector('.math-keyboard-keys');
     let activeGroup=groups[0].id,lastTarget=defaultTarget || null;
@@ -93,13 +102,14 @@
       const modal=usable(lastTarget)?lastTarget.closest('dialog[open]'):null;
       if(modal&&panel.parentNode!==modal)modal.append(panel);
       else if(!modal&&panel.parentNode!==document.body)document.body.append(panel);
-      panel.hidden=false;document.body.classList.add('math-keyboard-open');renderGroup();announceTarget();if(usable(lastTarget))lastTarget.focus();
+      panel.hidden=false;document.body.classList.add('math-keyboard-open');renderGroup();announceTarget();window.DongMathLive?.connect(panel,lastTarget);if(!window.DongMathLive&&usable(lastTarget))lastTarget.focus();
     }
-    function close(){panel.hidden=true;document.body.classList.remove('math-keyboard-open');if(panel.parentNode!==document.body)document.body.append(panel);if(usable(lastTarget))lastTarget.focus();}
+    function close(){panel.hidden=true;document.body.classList.remove('math-keyboard-open');window.DongMathLive?.close();if(panel.parentNode!==document.body)document.body.append(panel);if(usable(lastTarget))lastTarget.focus();}
     function toggle(target){panel.hidden?open(target):close();}
     document.addEventListener('click',event=>{const trigger=event.target.closest('[data-open-math-keyboard]');if(!trigger)return;event.preventDefault();const scope=trigger.dataset.mathScope?document.querySelector(trigger.dataset.mathScope):null;let target=usable(lastTarget)&&(!scope||scope.contains(lastTarget))?lastTarget:null;if(!target&&trigger.dataset.mathTarget)target=document.querySelector(trigger.dataset.mathTarget);if(!panel.hidden&&target&&target!==lastTarget)open(target);else toggle(target||lastTarget);});
     panel.addEventListener('click',event=>{const button=event.target.closest('[data-key-command]');if(!button)return;const value=button.dataset.keyCommand;if(value==='close')close();else command(value);});
     document.addEventListener('keydown',event=>{if(event.ctrlKey&&event.shiftKey&&event.key.toLowerCase()==='k'){event.preventDefault();toggle(document.activeElement);}else if(event.key==='Escape'&&!panel.hidden)close();});
+    document.addEventListener('dong-mathlive-ready',()=>{if(!panel.hidden)window.DongMathLive?.connect(panel,lastTarget);});
     return {open,close,insert,get target(){return lastTarget;}};
   }
 

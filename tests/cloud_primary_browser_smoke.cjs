@@ -14,8 +14,8 @@ module.exports=async({page,context,assert})=>{
   assert.equal(jobs,1);assert.equal(rules,0,'即使规则可解，也应按云端优先处理整题');
   await page.locator('#question').fill('已知椭圆x²/9+y²/4=1，求标准方程。');
   await page.locator('#solveButton').click();
-  await page.waitForFunction(()=>document.querySelector('#status').textContent.includes('无需等待云端模型'));
-  assert.equal(jobs,1,'完整且已核验的内置答案不应再等待手机模型');
+  for(let i=0;jobs<2&&i<100;i++)await new Promise(resolve=>setTimeout(resolve,20));
+  assert.equal(jobs,2,'选择云端解题后，已覆盖题型也应先由云端 AI 作答，再根据答案作图');
   assert(await page.locator('#pullModel').isHidden(),'云服务器不得提供浏览器下载模型操作');
   assert.equal(await page.locator('#recognizeButton').isDisabled(),false,'浏览器本地 OCR 不应被纯文本云模型禁用');
   await page.locator('#solveModeToggle').click();

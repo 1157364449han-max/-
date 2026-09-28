@@ -19,14 +19,10 @@ if [[ "${DONGJIEXI_MODEL_API_BASE:-}" == https://* ]]; then
   export DONGJIEXI_MODEL_VISION="${DONGJIEXI_MODEL_VISION:-0}"
   exec python server.py --host 127.0.0.1 --port 8765
 fi
-case "${DONGJIEXI_MODEL_ID:-qwen3-4b}" in
-  qwen3-4b)
-    model_file="$HOME/models/Qwen3-4B-Q4_K_M.gguf"
-    model_size=2497280256
-    ;;
-  deepseek-r1-8b)
-    model_file="$HOME/models/deepseek-r1-8b.gguf"
-    model_size=5027783040
+case "${DONGJIEXI_MODEL_ID:-deepseek-r1-llama-8b}" in
+  deepseek-r1-llama-8b)
+    model_file="$HOME/models/DeepSeek-R1-Distill-Llama-8B-Q4_K_M.gguf"
+    model_size=4920736608
     ;;
   *) echo '不支持的模型 ID。' >&2; exit 1 ;;
 esac

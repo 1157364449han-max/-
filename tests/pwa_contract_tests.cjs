@@ -24,7 +24,7 @@ assert.equal(manifest.start_url, './');
 assert.equal(manifest.scope, './');
 assert.equal(manifest.display, 'standalone');
 assert.ok(manifest.icons.some(icon => icon.purpose === 'maskable'));
-for (const required of ['manifest.webmanifest', 'runtime-config.js', `runtime.js?v=${app.version}`, `pwa.js?v=${app.version}`, `equation-builder.js?v=${app.version}`, `math-keyboard.js?v=${app.version}`, 'pwaBanner']) {
+for (const required of ['manifest.webmanifest', 'runtime-config.js', `runtime.js?v=${app.version}`, `pwa.js?v=${app.version}`, `equation-builder.js?v=${app.version}`, `math-keyboard.js?v=${app.version}`, `mathlive-adapter.js?v=${app.version}`, 'pwaBanner']) {
   assert.ok(html.includes(required), `index missing ${required}`);
 }
 assert.match(html, /id="draftRecovery"/, 'index must expose draft recovery UI');
@@ -33,6 +33,8 @@ assert.match(worker, /pathname\.includes\('\/api\/'\)/, 'service worker must byp
 assert.match(worker, /'\.\/runtime-config\.js'/, 'runtime config must be part of the first offline app shell');
 assert.match(worker, /'\.\/equation-builder\.js'/, 'structured equation templates must work offline');
 assert.match(worker, /'\.\/math-keyboard\.js'/, 'math keyboard must work offline');
+assert.match(worker, /'\.\/mathlive-adapter\.js'/, 'MathLive adapter must work offline');
+assert.match(worker, /vendor\/mathlive\/mathlive\.min\.mjs/, 'Self-hosted MathLive must be cached for offline input');
 assert.match(worker, /'\.\/ellipse-distance\.js'/, 'distance solver must be available offline');
 assert.match(worker, /'\.\/orthogonal-chord\.js'/, 'orthogonal chord solver must be available offline');
 assert.match(worker, /'\.\/ellipse-focal-chord\.js'/, 'ellipse focal chord solver must be available offline');

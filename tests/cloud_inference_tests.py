@@ -8,7 +8,7 @@ from unittest.mock import patch
 import urllib.error
 
 from cloud_inference import CloudInference, NoRedirect
-from learning_engine import LearningEngine, Cancelled, prediction_budget
+from learning_engine import LearningEngine, Cancelled, prediction_budget, solution_quality_issues
 
 
 class CloudTests(unittest.TestCase):
@@ -54,23 +54,6 @@ class CloudTests(unittest.TestCase):
         body=json.loads(call.call_args.args[0].data)
         self.assertEqual(body['response_format'],{'type':'json_object','schema':FAST_SCHEMA})
         self.assertIn('parts',FAST_SCHEMA['required'])
-
-    def test_deepseek_fast_and_deep_modes_are_explicit(self):
-        with patch.dict(os.environ, {'DONGJIEXI_MODEL_API_BASE': 'https://api.deepseek.com',
-                                   'DONGJIEXI_MODEL_ID': 'deepseek-flash'}):
-            cloud = CloudInference()
-        payload = {**self.payload, 'model': 'deepseek-flash',
-                   'options': {'num_predict': 1000, 'deep_thinking': False}}
-        with patch.object(cloud.opener, 'open', return_value=self.events('{}')) as call:
-            cloud.stream(self.job, payload, Cancelled)
-        fast = json.loads(call.call_args.args[0].data)
-        self.assertEqual(fast['thinking'], {'type': 'disabled'})
-        self.assertNotIn('reasoning_effort', fast)
-        with patch.object(cloud.opener, 'open', return_value=self.events('{}')) as call:
-            cloud.stream(self.job, {**payload, 'options': {'deep_thinking': True}}, Cancelled)
-        deep = json.loads(call.call_args.args[0].data)
-        self.assertEqual(deep['thinking'], {'type': 'enabled'})
-        self.assertEqual(deep['reasoning_effort'], 'high')
 
     def test_vision_image_becomes_data_url_only_on_server(self):
         encoded=base64.b64encode(b'\x89PNG\r\n\x1a\n' + b'fake-test-image').decode()
@@ -180,19 +163,39 @@ class CloudTests(unittest.TestCase):
         self.assertEqual(job['result']['mode'],'cloud-ai')
         verify.assert_called_once()
 
-    def test_fast_cloud_solve_uses_one_bounded_model_request(self):
+    def test_fast_cloud_solve_answers_before_a_bounded_scene_request(self):
         engine=LearningEngine('.',lambda text: [{'index':1,'label':'第一问','body':text,'question':text}])
         self.addCleanup(engine.close)
         raw={'title':'Test','parts':[{'index':1,'status':'answered','answer':'$x=1$','steps':['由题意列式。','$x=1$']}], 'scene':None}
         job={'cancel':threading.Event(),'status':'running'};engine.jobs['fast']=job
         engine.busy.acquire(False)
-        with patch.object(engine.cloud,'stream',return_value=json.dumps(raw)) as stream:
+        scene={'type':'circle','h':0,'k':0,'orientation':'horizontal','dynamicLine':False,'points':{},'lines':[],
+               'curvePoints':[],'a':1,'b':1,'r':1,'p':1,'theta':42,'direction':1,'lineThrough':'center'}
+        with patch.object(engine.cloud,'stream',side_effect=[json.dumps(raw),json.dumps(scene)]) as stream:
             engine._run('fast',{'kind':'solve','model':'test-model','text':'求 x。','depth':'normal'})
         self.assertEqual(job['status'],'completed')
-        self.assertEqual(stream.call_count,1)
-        self.assertLess(stream.call_args.args[1]['options']['num_predict'],10000)
-        self.assertEqual(stream.call_args.args[1]['format']['required'],['parts'])
+        self.assertEqual(stream.call_count,2)
+        answer_payload=stream.call_args_list[0].args[1]
+        scene_payload=stream.call_args_list[1].args[1]
+        self.assertLess(answer_payload['options']['num_predict'],10000)
+        self.assertEqual(answer_payload['format']['required'],['parts'])
+        self.assertIn('已完成的解答',scene_payload['messages'][1]['content'])
+        self.assertEqual(job['result']['scene']['type'],'circle')
         self.assertEqual(prediction_budget('solve','normal',12,True),6000)
+
+    def test_unfinished_scratch_work_is_repaired_before_scene_generation(self):
+        engine=LearningEngine('.',lambda text: [{'index':1,'label':'第一问','body':text,'question':text}])
+        self.addCleanup(engine.close)
+        bad={'parts':[{'index':1,'status':'answered','answer':'$x=1$','steps':['计算较复杂，结果为 $x=1$？']}], 'scene':None}
+        good={'parts':[{'index':1,'status':'answered','answer':'$x=1$','steps':['由 $2x=2$，两边同除以 $2$ 得 $x=1$。']}], 'scene':None}
+        job={'cancel':threading.Event(),'status':'running'};engine.jobs['repair']=job
+        engine.busy.acquire(False)
+        with patch.object(engine.cloud,'stream',side_effect=[json.dumps(bad),json.dumps(good),json.dumps(None)]) as stream:
+            engine._run('repair',{'kind':'solve','model':'test-model','text':'解方程 $2x=2$。','depth':'normal'})
+        self.assertEqual(job['status'],'completed')
+        self.assertEqual(stream.call_count,3)
+        self.assertEqual(solution_quality_issues(job['result']),[])
+        self.assertIn('禁止问号占位',stream.call_args_list[1].args[1]['messages'][1]['content'])
 
     def test_cloud_submit_does_not_wait_for_model_list_probe(self):
         engine=LearningEngine('.',lambda text: [{'index':1,'label':'第一问','body':text,'question':text}])

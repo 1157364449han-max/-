@@ -12,4 +12,3 @@ fi
 setsid "$HOME/dongjiexi/start.sh" > "$HOME/dongjiexi/app.log" 2>&1 < /dev/null &
 echo $! > "$HOME/dongjiexi/server.pid"
 echo '已在手机后台启动董解析。'
-

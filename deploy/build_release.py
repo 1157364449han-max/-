@@ -25,6 +25,13 @@ APP_FILES = {
     '安装更新包.bat', '安装本地AI.bat', '安装本地AI.ps1',
     'deploy/build_release.py', 'deploy/部署说明.md', 'deploy/cloud.env.example',
     'deploy/runtime-config.web.example.js', '.github/workflows/deploy-dongjiexi.yml',
+    'deploy/phone/README.md', 'deploy/phone/start.sh', 'deploy/phone/configure.sh',
+    'deploy/phone/download-model.sh', 'deploy/phone/download-deepseek.sh', 'deploy/phone/serve-only.sh',
+    'deploy/phone/boot.sh', 'deploy/phone/launch-detached.sh', 'deploy/phone/launch-test-tunnel.sh',
+    'deploy/phone/launch-download-deepseek.sh', 'deploy/phone/download-deepseek-fast.sh',
+    'deploy/phone/launch-download-deepseek-fast.sh',
+    'deploy/phone/runtime-config.js',
+    'deploy/phone/rotate-model-key.py',
 }
 
 

@@ -12,8 +12,9 @@
   <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
   <link rel="apple-touch-icon" href="icons/icon.svg">
   <link rel="stylesheet" href="vendor/katex/katex.min.css">
-  <link rel="stylesheet" href="learning-ui.css?v=0.39.0">
-  <link rel="stylesheet" href="classroom.css?v=0.39.0">
+  <link rel="stylesheet" href="vendor/mathlive/mathlive-fonts.css">
+  <link rel="stylesheet" href="learning-ui.css?v=0.40.0">
+  <link rel="stylesheet" href="classroom.css?v=0.40.0">
   <style>
     :root { --ink:#0c1b33; --ink-2:#1a3152; --paper:#f6f8fb; --panel:#ffffff; --line:#d7e0eb; --muted:#64748b; --teal:#0f9f99; --teal-soft:#e1f7f4; --amber:#f2a33c; --amber-soft:#fff2d9; --red:#df5b62; --blue:#3f78d8; --shadow:0 10px 30px rgba(12,27,51,.09); }
     * { box-sizing:border-box; }
@@ -244,6 +245,11 @@
     .math-keyboard-keys { display:grid;grid-template-columns:repeat(12,minmax(44px,1fr));gap:.35rem;max-height:184px;overflow:auto; }
     .math-keyboard-keys button { font-family:Cambria Math,"Times New Roman","Microsoft YaHei UI",sans-serif;font-size:.9rem; }
     .math-keyboard-keys button.wide { grid-column:span 3;font-size:.75rem; }
+    .mathlive-host { margin:.45rem .65rem;padding:.5rem;border:1px solid #cbdce8;border-radius:9px;background:#f8fbfd; }
+    .mathlive-host math-field { display:block;width:100%;min-height:48px;padding:.45rem .55rem;border:1px solid #aebfd0;border-radius:8px;background:#fff;font-size:1.12rem;--caret-color:#087f80;--selection-background-color:#c8ebe6; }
+    .mathlive-label,.mathlive-note { display:block;margin-bottom:.25rem;color:#446078;font-size:.72rem;line-height:1.4; }
+    .mathlive-note { margin:.2rem 0 0; }
+    .mathlive-open-keyboard { min-height:34px;margin-top:.4rem;padding:.28rem .55rem;border:1px solid #9fc9c5;border-radius:7px;background:#edf9f6;color:#12625d;font-size:.76rem;font-weight:750; }
     body.math-keyboard-open .footer { padding-bottom:240px; }
     .ai-card { padding:.72rem;border-color:#d6e0eb;background:#f8fafc; }
     .ai-card-head { display:flex;align-items:center;justify-content:space-between;gap:.5rem;margin-bottom:.1rem; }
@@ -260,12 +266,15 @@
     .native-toolbar .tool-group { display:flex;align-items:center;flex-wrap:wrap;gap:.3rem;padding-right:.35rem;border-right:1px solid #e1e8ef; }
     .native-toolbar .tool-group:last-child { padding-right:0;border-right:0; }
     .board-shell.toolbox-collapsed .native-toolbar { display:none; }
+    .toolbox-mobile-collapse { display:none; }
     .quick-function-details,.compact-section { margin-top:.55rem;border:1px solid #d9e5ed;border-radius:9px;background:#fbfdff; }
     .quick-function-details summary,.compact-section summary { padding:.55rem .7rem;color:#28506a;font-size:.82rem;font-weight:700;cursor:pointer; }
     .quick-function-details[open] summary,.compact-section[open] summary { border-bottom:1px solid #e2ebf1; }
     .quick-function-details > .quick-conic-grid,.quick-function-details > .help,.compact-section > div { margin:.65rem; }
     .compact-section > .scan { margin:.65rem;border:0;padding:0; }
     .snap-status { min-height:22px;padding:2px .8rem;color:#087f80;background:#f1fbf8;font-size:.75rem; }
+    .point-hover-card { position:absolute;z-index:15;max-width:min(280px,calc(100% - 16px));padding:.42rem .58rem;border:1px solid #9ccdc7;border-radius:8px;background:rgba(247,255,253,.97);color:#124e50;box-shadow:0 5px 18px rgba(18,57,70,.18);font-size:.86rem;pointer-events:none;transform:translate(12px,12px); }
+    .point-hover-card .katex { font-size:1.05em; }
     #addConicDialog { width:min(560px,calc(100vw - 24px)); }
     .layer-edit { margin-left:auto; flex:none; font-size:.75rem; padding:.2rem .35rem; color:#087f80; border:1px solid #c9e4df; background:#f1fbf8; border-radius:5px; cursor:pointer; }
     .drag-hint { min-height:38px;padding:.45rem .72rem;border-top:0;font-size:.76rem; }
@@ -321,6 +330,7 @@
       .hero-actions { grid-template-columns:1fr 1fr; }
       .quick-conic-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
       .native-toolbar .tool-group { border-right:0; }
+      .toolbox-mobile-collapse { display:block;position:sticky;top:0;z-index:12;flex:0 0 100%;width:100%;min-height:44px!important;border-color:#8dbab7!important;background:#e7f6f3!important;color:#0b6662!important;font-weight:800;box-shadow:0 2px 7px rgba(25,59,70,.14); }
       .inspector-switch { position:relative!important;top:auto!important; }
       .scene-preview-summary { grid-template-columns:1fr; }
       .condition-grid,.condition-list { grid-template-columns:1fr 1fr; }
@@ -363,7 +373,7 @@
 <body>
   <main class="app">
     <header class="topbar">
-      <div class="brand"><span class="brand-mark">董</span><span class="brand-name">董解析</span><button class="version-button" id="versionButton" title="查看版本、更新记录和能力边界">v0.39.0 · 更新记录</button></div>
+      <div class="brand"><span class="brand-mark">董</span><span class="brand-name">董解析</span><button class="version-button" id="versionButton" title="查看版本、更新记录和能力边界">v0.40.0 · 更新记录</button></div>
       <div class="top-actions"><span class="top-note">内置符号解题 · 动态几何 · 可选智能增强 · 我的题本</span><button id="pwaInstall" class="install-button" hidden>安装到设备</button></div>
     </header>
     <section id="pwaBanner" class="pwa-banner" hidden role="status"><span id="pwaMessage"></span><button id="pwaUpdate" hidden>立即更新</button><button id="pwaDismiss">稍后</button></section>
@@ -387,7 +397,7 @@
           <div class="solve-split"><button class="button primary" id="solveButton">解题</button><button class="button primary" id="solveModeToggle" type="button" aria-label="展开解题方式" aria-expanded="false" aria-controls="solveModePanel">▾</button></div>
           <button class="button secondary" id="parseButton">仅快速建图</button>
         </div>
-        <div id="solveModePanel" class="solve-mode-panel" hidden><p class="help">选择一次后会记住；点 ▾ 可随时切换。</p><button type="button" class="solve-mode-option" data-solve-mode="cloud"><strong>云端解题</strong><span>联网使用，无需下载；繁忙时可能等待。</span></button><button type="button" class="solve-mode-option" data-solve-mode="local"><strong>本机解题</strong><span>内置题型直接解；电脑本机版可下载模型增强。</span></button><details id="engineSetup"><summary>模型与连接设置</summary><div><p class="help">生成的推导与作图仍需核验。</p><div class="model-row" id="cloudAuth" hidden><input id="cloudAccessKey" type="password" autocomplete="current-password" placeholder="在线解题访问口令" aria-label="在线解题访问口令"><button class="button secondary" id="cloudLogin">连接在线解题</button></div><div class="model-row"><select id="modelName" aria-label="解题模型"><option>qwen3.5:4b</option></select><button class="button secondary" id="engineRefresh">检测连接</button></div><div class="learning-settings"><label for="solveDepth">推导模式</label><select id="solveDepth"><option value="normal">快速解题</option><option value="deep">深入推导（较慢）</option></select></div><button id="pullModel" class="button secondary">下载所选本机模型</button></div></details></div>
+        <div id="solveModePanel" class="solve-mode-panel" hidden><p class="help">选择一次后会记住；点 ▾ 可随时切换。</p><button type="button" class="solve-mode-option" data-solve-mode="cloud"><strong>云端解题</strong><span>调用在线服务中的 AI 模型，模型名称会标注“云端”；无需在当前设备下载。</span></button><button type="button" class="solve-mode-option" data-solve-mode="local"><strong>本机解题</strong><span>先用当前浏览器的内置精确引擎；电脑本机版还可下载标注“本机”的 AI 模型增强。</span></button><div id="engineRouteSummary" class="engine-route-summary" role="status" aria-live="polite"><strong id="engineRouteTitle">尚未选择解题路径</strong><span id="engineRouteDetail">点击上方“云端解题”或“本机解题”。</span></div><details id="engineSetup"><summary>当前解题引擎与连接</summary><div><p class="help">模型所属位置会明确标注；生成的推导与作图仍需核验。</p><div class="model-row" id="cloudAuth" hidden><input id="cloudAccessKey" type="password" autocomplete="current-password" placeholder="在线解题访问口令" aria-label="在线解题访问口令"><button class="button secondary" id="cloudLogin">连接在线解题</button></div><div class="model-row model-selector-row" id="modelSelectorRow"><label id="modelNameLabel" class="model-field" for="modelName"><span>AI 模型</span><select id="modelName" aria-label="AI 模型"><option>等待检测模型</option></select></label><button class="button secondary" id="engineRefresh">检测连接</button></div><div class="learning-settings"><label for="solveDepth">推导模式</label><select id="solveDepth"><option value="normal">快速解题</option><option value="deep">深入推导（较慢）</option></select></div><button id="pullModel" class="button secondary">下载所选本机模型</button></div></details></div>
         <div class="input-utilities" aria-label="题目导入工具">
           <label class="file-button" for="textFile">导入文字<input id="textFile" type="file" accept=".txt,text/plain"></label>
           <label class="file-button" for="imageFile">上传题图<input id="imageFile" type="file" accept="image/*"></label>
@@ -436,7 +446,7 @@
       <section class="panel board-shell toolbox-collapsed" aria-label="动态图形画板">
         <div class="board-toolbar">
           <div class="board-title-wrap"><span class="board-kicker">第 3 步 · 动态画板</span><div class="board-title" id="boardTitle">未载入图形</div></div>
-          <div class="tool-actions"><button class="toolbox-toggle" id="inputPanelToggle" type="button" aria-expanded="true">隐藏题目栏</button><button class="toolbox-toggle" id="toolboxToggle" type="button" aria-expanded="false">展开作图工具</button><button class="tool-button" id="zoomOut" title="缩小视图">−</button><button class="tool-button" id="homeButton" title="适应图形">⌂</button><button class="tool-button" id="zoomIn" title="放大视图">＋</button><label class="toggle"><input type="checkbox" id="guideToggle" checked>辅助线</label><label class="toggle"><input type="checkbox" id="gridToggle" checked>网格</label></div>
+          <div class="tool-actions"><button class="toolbox-toggle" id="inputPanelToggle" type="button" aria-expanded="true">隐藏题目栏</button><button class="toolbox-toggle" id="toolboxToggle" type="button" aria-expanded="false" aria-controls="nativeToolbar">展开作图工具</button><button class="tool-button" id="zoomOut" title="缩小视图">−</button><button class="tool-button" id="homeButton" title="适应图形">⌂</button><button class="tool-button" id="zoomIn" title="放大视图">＋</button><label class="toggle"><input type="checkbox" id="guideToggle" checked>辅助线</label><label class="toggle"><input type="checkbox" id="gridToggle" checked>网格</label></div>
         </div>
         <div class="drag-toolbar" aria-label="画板操作">
           <span class="toolbar-caption">操作</span>
@@ -447,7 +457,8 @@
           <label class="toggle" title="靠近点、交点和曲线时吸附；建立依赖后会随源对象移动"><input type="checkbox" id="geometrySnap" checked>点线吸附</label>
           <label class="toggle"><input type="checkbox" id="snapDrag">网格 0.5</label>
         </div>
-        <div class="native-toolbar" aria-label="本地几何构造工具">
+        <div class="native-toolbar" id="nativeToolbar" aria-label="本地几何构造工具">
+          <button class="toolbox-mobile-collapse" id="toolboxMobileCollapse" type="button" aria-controls="toolboxToggle">↑ 收起作图工具</button>
           <span class="toolbar-caption">添加曲线</span>
           <span class="tool-group"><button data-add-conic="ellipse">＋ 椭圆</button><button data-add-conic="hyperbola">＋ 双曲线</button><button data-add-conic="parabola">＋ 抛物线</button><button data-add-conic="circle">＋ 圆</button></span>
           <span class="toolbar-caption">构造</span>
@@ -460,6 +471,7 @@
         <div id="snapStatus" class="snap-status" role="status" aria-live="polite"></div>
         <div class="canvas-wrap">
           <canvas id="canvas" aria-label="解析几何动态画板"></canvas>
+          <div id="pointHoverCard" class="point-hover-card" role="tooltip" hidden></div>
           <div class="empty" id="emptyState"><div><strong>直接在这里作图</strong>选择上方“点”“直线”或“圆”，再点击画板。不必先输入标准方程；也可以在左侧导入题目。</div></div>
         </div>
         <p id="undefinedObjects" class="native-warning" role="status"></p>
@@ -543,21 +555,22 @@
   </dialog>
 
   <script src="runtime-config.js"></script>
-  <script src="runtime.js?v=0.39.0"></script>
+  <script src="runtime.js?v=0.40.0"></script>
   <script src="vendor/katex/katex.min.js"></script>
   <script src="vendor/katex/contrib/auto-render.min.js"></script>
-  <script src="math-input.js?v=0.39.0"></script>
-  <script src="number-display.js?v=0.39.0"></script>
-  <script src="tangent-solver.js?v=0.39.0"></script>
-  <script src="ellipse-distance.js?v=0.39.0"></script>
-  <script src="orthogonal-chord.js?v=0.39.0"></script>
-  <script src="ellipse-focal-chord.js?v=0.39.0"></script>
-  <script src="learning-ui.js?v=0.39.0"></script>
-  <script src="classroom.js?v=0.39.0"></script>
-  <script src="construction-board.js?v=0.39.0"></script>
-  <script src="drag-board.js?v=0.39.0"></script>
-  <script src="equation-builder.js?v=0.39.0"></script>
-  <script src="math-keyboard.js?v=0.39.0"></script>
+  <script src="math-input.js?v=0.40.0"></script>
+  <script src="number-display.js?v=0.40.0"></script>
+  <script src="tangent-solver.js?v=0.40.0"></script>
+  <script src="ellipse-distance.js?v=0.40.0"></script>
+  <script src="orthogonal-chord.js?v=0.40.0"></script>
+  <script src="ellipse-focal-chord.js?v=0.40.0"></script>
+  <script src="learning-ui.js?v=0.40.0"></script>
+  <script src="classroom.js?v=0.40.0"></script>
+  <script src="construction-board.js?v=0.40.0"></script>
+  <script src="drag-board.js?v=0.40.0"></script>
+  <script src="equation-builder.js?v=0.40.0"></script>
+  <script src="math-keyboard.js?v=0.40.0"></script>
+  <script type="module" src="mathlive-adapter.js?v=0.40.0"></script>
   <script src="geogebra-bridge.js?v=0.7.0"></script>
   <script>
   (() => {
@@ -1362,7 +1375,9 @@ function motionStep(timestamp){if(!state.model){stopMotion(false);return;}const 
     function resetParams(){if(!state.original){setStatus('请先载入图形。',true);return;}const before=dragController?.checkpoint(),source=cloneScene(state.original);state.model=source.model;state.p=source.values;state.exploring=false;homeView();buildParams();updateSceneJson();refreshLayers();if(before)dragController?.record(before);setStatus('已还原到本题初始参数。');render();}
     function restoreLocal(){try{const saved=JSON.parse(localStorage.getItem('zhigeometry:last')||'null');if(!saved)return;question.value=saved.question||'';state.solution=saved.solution||null;state.activePart=saved.activePart??null;state.grid=saved.grid!==false;state.guides=saved.guides!==false;$('#gridToggle').checked=state.grid;$('#guideToggle').checked=state.guides;if(saved.scene)installScene(modelFromJson(JSON.stringify(saved.scene)),'上次保存');state.exploring=!!saved.exploring;$('#exploreNotice').hidden=!state.exploring;if(state.solution)renderSolution();if(state.model)updateSceneJson();setStatus('已恢复上次的题目和学习进度。');}catch{}}
     $('#parseButton').addEventListener('click',parseAndInstall);$('#clearButton').addEventListener('click',clear);$('#applyJson').addEventListener('click',applyJson);$('#exportJson').addEventListener('click',exportJson);$('#pngButton').addEventListener('click',exportPng);$('#copyButton').addEventListener('click',copyForCodex);$('#scanButton').addEventListener('click',scan);$('#extremeMetric').addEventListener('change',()=>{extremeScan=null;scanResult.textContent='请选择“寻找最大 / 最小”开始扫描。';$('#jumpMinimum').hidden=$('#jumpMaximum').hidden=true;render();});$('#jumpMinimum').addEventListener('click',()=>jumpExtreme('min'));$('#jumpMaximum').addEventListener('click',()=>jumpExtreme('max'));$('#solveButton').addEventListener('click',solveLocal);$('#motionPlay').addEventListener('click',toggleMotion);$('#addObject').addEventListener('click',addFreeObject);$('#clearObjects').addEventListener('click',()=>{if(!state.model)return;state.model.objects=[];stopMotion(false);updateSceneJson();refreshLayers();syncMotionButton();render();setStatus('已清除本次手动添加的对象。');});$('#objectType').addEventListener('change',updateObjectHint);$('#gridToggle').addEventListener('change',e=>{state.grid=e.target.checked;remember();render();});$('#guideToggle').addEventListener('change',e=>{state.guides=e.target.checked;remember();render();});$('#zoomIn').addEventListener('click',()=>zoom(.8));$('#zoomOut').addEventListener('click',()=>zoom(1.25));$('#homeButton').addEventListener('click',()=>{homeView();render();});$('#resetParams').addEventListener('click',resetParams);$('#saveLocal').addEventListener('click',()=>{remember();setStatus('已保存在这台设备的浏览器中。');});
-    $('#toolboxToggle').addEventListener('click',()=>{const shell=$('.board-shell'),collapsed=shell.classList.toggle('toolbox-collapsed'),button=$('#toolboxToggle');button.textContent=collapsed?'展开作图工具':'收起作图工具';button.setAttribute('aria-expanded',String(!collapsed));requestAnimationFrame(render);});
+    function setToolboxCollapsed(collapsed){const shell=$('.board-shell'),button=$('#toolboxToggle');shell.classList.toggle('toolbox-collapsed',collapsed);button.textContent=collapsed?'展开作图工具':'收起作图工具';button.setAttribute('aria-expanded',String(!collapsed));if(collapsed&&innerWidth<=760){$('.board-toolbar').scrollIntoView({block:'start',behavior:'smooth'});button.focus({preventScroll:true});}requestAnimationFrame(render);}
+    $('#toolboxToggle').addEventListener('click',()=>setToolboxCollapsed(!$('.board-shell').classList.contains('toolbox-collapsed')));
+    $('#toolboxMobileCollapse').addEventListener('click',()=>setToolboxCollapsed(true));
     $('#inputPanelToggle').addEventListener('click',()=>setInputPanelCollapsed(!document.querySelector('.workspace').classList.contains('input-collapsed'),{persist:true}));
     document.querySelectorAll('[data-quick-conic]').forEach(button=>button.addEventListener('click',()=>quickConic(button.dataset.quickConic)));
     document.querySelectorAll('[data-quick-function]').forEach(button=>button.addEventListener('click',()=>quickFunction(button.dataset.quickFunction)));
@@ -1393,6 +1408,17 @@ function motionStep(timestamp){if(!state.model){stopMotion(false);return;}const 
       liveChanged(){equationEl.textContent=equationText();updateParameterEquation();$('#exploreNotice').hidden=!state.exploring;for(const input of paramsEl.querySelectorAll('input')){const key=input.dataset.key;if(key){input.value=input.type==='range'?P(key):window.DongNumber.input(P(key),state.model.parameterExpressions?.[key]);}}},
       changed(){$('#gridToggle').checked=state.grid;$('#guideToggle').checked=state.guides;buildParams();updateSceneJson();refreshLayers();}
     });
+    const pointHoverCard=$('#pointHoverCard'),canvasWrap=canvas.parentElement;let pointHoverKey='';
+    function hidePointHover(){pointHoverCard.hidden=true;pointHoverKey='';}
+    canvas.addEventListener('pointermove',event=>{
+      if(!state.model||nativeController.active()||event.pointerType==='touch'){hidePointHover();return;}
+      const box=canvas.getBoundingClientRect(),screen={x:event.clientX-box.left,y:event.clientY-box.top},found=nativeController.hoverPoint(screen,15);
+      if(!found){hidePointHover();return;}
+      const x=window.DongNumber?.text(found.x)??String(Number(found.x.toFixed(5))),y=window.DongNumber?.text(found.y)??String(Number(found.y.toFixed(5))),key=`${found.name}|${x}|${y}`;
+      if(key!==pointHoverKey){pointHoverKey=key;pointHoverCard.textContent=`${found.name}(${x}, ${y})`;window.DongMathInput?.formula(pointHoverCard,pointHoverCard.textContent);}
+      pointHoverCard.hidden=false;const wrapBox=canvasWrap.getBoundingClientRect(),left=Math.max(6,Math.min(canvasWrap.clientWidth-pointHoverCard.offsetWidth-6,event.clientX-wrapBox.left+12)),top=Math.max(6,Math.min(canvasWrap.clientHeight-pointHoverCard.offsetHeight-6,event.clientY-wrapBox.top+12));pointHoverCard.style.left=left+'px';pointHoverCard.style.top=top+'px';
+    });
+    canvas.addEventListener('pointerleave',hidePointHover);canvas.addEventListener('pointerdown',hidePointHover);
     $('#saveNativeFile').addEventListener('click',exportJson);
     $('#openNativeFile').addEventListener('change',async e=>{const file=e.target.files[0];if(!file)return;try{if(file.size>2*1024*1024)throw new Error('图稿超过 2 MB，暂不支持。');const raw=await file.text(),parsed=JSON.parse(raw);if(parsed.schemaVersion>2)throw new Error('这是更高版本的图稿，请先更新董解析。');if((parsed.objects||[]).length>500)throw new Error('图稿对象超过 500 个，暂不支持。');const scene=modelFromJson(raw);state.solution=null;state.activePart=parsed.activePart??null;$('#solution').hidden=true;installScene(scene,'图稿文件');setStatus('图稿及构造关系已恢复，可继续拖动与编辑。');}catch(error){setStatus(error.message,true);}finally{e.target.value='';}});
     $('#openGeoGebra').addEventListener('click',()=>window.DongGeoGebra.open(state.model?{...sceneData(),activePart:state.activePart}:null));
@@ -1428,6 +1454,6 @@ function motionStep(timestamp){if(!state.model){stopMotion(false);return;}const 
     document.getElementById('closeReleases').addEventListener('click',()=>dialog.close());
   })();
   </script>
-  <script src="pwa.js?v=0.39.0"></script>
+  <script src="pwa.js?v=0.40.0"></script>
 </body>
 </html>

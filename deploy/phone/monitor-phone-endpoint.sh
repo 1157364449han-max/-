@@ -14,4 +14,3 @@ while true; do
   fi
   sleep 60
 done
-

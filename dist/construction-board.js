@@ -371,7 +371,7 @@
     $('undoDrag').addEventListener('click',()=>{resetPending();select(null);});$('redoDrag').addEventListener('click',()=>{resetPending();select(null);});
     document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!document.querySelector('dialog[open]')){setTool(null);$('moveMode').click();}if((e.ctrlKey||e.metaKey)&&['z','y'].includes(e.key.toLowerCase()))resetPending();});
     inspector();
-    return {engine,draw,hit,begin,move,active:()=>!!tool,select,remove:removeObject,description:id=>describe(engine.resolve(id)),reset(){resetPending();tool=null;selected=null;document.querySelectorAll('[data-construct]').forEach(b=>b.setAttribute('aria-pressed','false'));inspector();}};
+    return {engine,draw,hit,begin,move,active:()=>!!tool,select,remove:removeObject,description:id=>describe(engine.resolve(id)),hoverPoint(screen,threshold=14){const found=pointAt(screen,threshold);return found?{name:title(found.id),x:found.x,y:found.y}:null;},reset(){resetPending();tool=null;selected=null;document.querySelectorAll('[data-construct]').forEach(b=>b.setAttribute('aria-pressed','false'));inspector();}};
   }
   window.DongConstruct={createEngine,intersect,conicShape,attach};
 })();

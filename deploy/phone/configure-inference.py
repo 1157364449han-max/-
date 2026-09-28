@@ -1,5 +1,5 @@
 #!/data/data/com.termux/files/usr/bin/python
-"""Safely switch the phone gateway between local Qwen and DeepSeek Cloud."""
+"""Safely switch the phone gateway between local DeepSeek-Llama and DeepSeek Cloud."""
 
 from __future__ import annotations
 
@@ -24,10 +24,10 @@ LOCAL_VALUES = {
     "DONGJIEXI_INFERENCE_PROVIDER": "chat-completions",
     "DONGJIEXI_ALLOW_LOOPBACK_MODEL_HTTP": "1",
     "DONGJIEXI_MODEL_API_BASE": "http://127.0.0.1:8080/v1",
-    "DONGJIEXI_MODEL_ID": "qwen3-4b",
+    "DONGJIEXI_MODEL_ID": "deepseek-r1-llama-8b",
     "DONGJIEXI_MODEL_VISION": "0",
     "DONGJIEXI_MODEL_JSON_MODE": "prompt-only",
-    "DONGJIEXI_ALLOWED_MODELS": "qwen3-4b",
+    "DONGJIEXI_ALLOWED_MODELS": "deepseek-r1-llama-8b",
 }
 
 
@@ -148,7 +148,7 @@ def configure_local() -> None:
         local_key = os.urandom(24).hex()
     local_values["DONGJIEXI_MODEL_API_KEY"] = local_key
     backup = write_env(local_values)
-    print(f"已切回手机本机 Qwen。旧配置已备份为 {backup.name}。")
+    print(f"已切回手机本机 DeepSeek-R1 Llama 8B。旧配置已备份为 {backup.name}。")
 
 
 def main() -> int:

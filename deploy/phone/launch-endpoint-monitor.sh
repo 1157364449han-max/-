@@ -11,4 +11,3 @@ fi
 setsid "$HOME/dongjiexi/monitor-phone-endpoint.sh" >> endpoint-monitor.log 2>&1 < /dev/null &
 echo $! > endpoint-monitor.pid
 echo '地址同步监控已启动。'
-

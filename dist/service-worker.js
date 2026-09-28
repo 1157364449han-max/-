@@ -1,15 +1,23 @@
 'use strict';
 
-const VERSION = '0.39.0';
+const VERSION = '0.40.0';
 const CACHE = `dongjiexi-app-${VERSION}`;
 const CORE = [
   './math-input.js', './number-display.js', './tangent-solver.js', './ellipse-distance.js', './orthogonal-chord.js', './ellipse-focal-chord.js',
   './', './index.html', './offline.html', './manifest.webmanifest', './app-version.json',
   './runtime-config.js', './runtime.js', './pwa.js', './learning-ui.css', './learning-ui.js', './classroom.css',
-  './classroom.js', './construction-board.js', './drag-board.js', './equation-builder.js', './math-keyboard.js', './geogebra-bridge.js',
+  './classroom.js', './construction-board.js', './drag-board.js', './equation-builder.js', './math-keyboard.js', './mathlive-adapter.js', './geogebra-bridge.js',
   './releases.json', './icons/icon.svg', './icons/maskable.svg',
   './vendor/katex/katex.min.css', './vendor/katex/katex.min.js',
-  './vendor/katex/contrib/auto-render.min.js'
+  './vendor/katex/contrib/auto-render.min.js',
+  './vendor/mathlive/mathlive.min.mjs', './vendor/mathlive/mathlive-fonts.css',
+  './vendor/mathlive/fonts/KaTeX_AMS-Regular.woff2', './vendor/mathlive/fonts/KaTeX_Caligraphic-Bold.woff2', './vendor/mathlive/fonts/KaTeX_Caligraphic-Regular.woff2',
+  './vendor/mathlive/fonts/KaTeX_Fraktur-Bold.woff2', './vendor/mathlive/fonts/KaTeX_Fraktur-Regular.woff2', './vendor/mathlive/fonts/KaTeX_Main-Bold.woff2',
+  './vendor/mathlive/fonts/KaTeX_Main-BoldItalic.woff2', './vendor/mathlive/fonts/KaTeX_Main-Italic.woff2', './vendor/mathlive/fonts/KaTeX_Main-Regular.woff2',
+  './vendor/mathlive/fonts/KaTeX_Math-BoldItalic.woff2', './vendor/mathlive/fonts/KaTeX_Math-Italic.woff2', './vendor/mathlive/fonts/KaTeX_SansSerif-Bold.woff2',
+  './vendor/mathlive/fonts/KaTeX_SansSerif-Italic.woff2', './vendor/mathlive/fonts/KaTeX_SansSerif-Regular.woff2', './vendor/mathlive/fonts/KaTeX_Script-Regular.woff2',
+  './vendor/mathlive/fonts/KaTeX_Size1-Regular.woff2', './vendor/mathlive/fonts/KaTeX_Size2-Regular.woff2', './vendor/mathlive/fonts/KaTeX_Size3-Regular.woff2',
+  './vendor/mathlive/fonts/KaTeX_Size4-Regular.woff2', './vendor/mathlive/fonts/KaTeX_Typewriter-Regular.woff2'
 ];
 
 self.addEventListener('install', event => {

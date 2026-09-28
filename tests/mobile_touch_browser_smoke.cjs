@@ -8,6 +8,7 @@ module.exports=async({page,baseURL,assert,errors})=>{
     assert.equal(await phone.locator('#inputPanelToggle').isVisible(),false,'手机端不应显示无效的隐藏题目按钮');
     await phone.locator('[data-mobile-panel="board"]').tap();
     await phone.locator('#toolboxToggle').tap();
+    assert.equal(await phone.locator('#toolboxMobileCollapse').isVisible(),true,'展开作图工具后必须显示手机端收起按钮');
     await phone.locator('[data-add-conic="circle"]').tap();
     const dialog=await phone.locator('#addConicDialog').boundingBox();assert(dialog.x>=0&&dialog.x+dialog.width<=391,'手机模板弹窗不能超出屏幕');
     await phone.locator('#addConicFields [data-equation-param="r"]').fill('');
@@ -16,6 +17,9 @@ module.exports=async({page,baseURL,assert,errors})=>{
     await phone.locator('#mathKeyboard [data-key-command="close"]').tap();
     await phone.locator('#confirmAddConic').tap();
     const scene=JSON.parse(await phone.locator('#sceneJson').inputValue());assert.equal(scene.type,'ellipse');assert.equal(scene.objects.at(-1).r,1.5);
+    await phone.locator('#toolboxMobileCollapse').tap();
+    assert.equal(await phone.locator('#nativeToolbar').isVisible(),false,'手机端收起按钮应关闭整组作图工具');
+    assert.equal(await phone.locator('#toolboxToggle').textContent(),'展开作图工具','顶部按钮文字必须同步复位');
     await phone.locator('#canvas').scrollIntoViewIfNeeded();
     assert.equal(await phone.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth+1),true,'手机页面不得横向溢出');
     await phone.setViewportSize({width:844,height:390});

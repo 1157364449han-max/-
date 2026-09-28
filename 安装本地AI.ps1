@@ -19,4 +19,4 @@ if (-not (Test-Path -LiteralPath $runtimeExecutable)) {
     Expand-Archive -LiteralPath $archivePath -DestinationPath $runtimeDirectory -Force
 }
 Write-Host '运行组件已安装。请打开董解析，点击“检测 / 启动”，再点击“下载本地模型”。'
-Write-Host '默认模型约 3.4 GB。下载完成后可以离线解题，不需要打开 Codex。'
+Write-Host '推荐模型为 DeepSeek-R1 Llama 8B（约 4.9 GB，不使用千问底座）。新模型下载并校验成功后会自动删除旧模型。'

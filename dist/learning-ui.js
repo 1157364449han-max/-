@@ -44,7 +44,7 @@
     let solveMode = ['cloud','local'].includes(localStorage.getItem(modeKey)) ? localStorage.getItem(modeKey) : null;
     const modePanel = find('#solveModePanel'), modeToggle = find('#solveModeToggle');
     function showModes(show) { modePanel.hidden=!show;modeToggle.setAttribute('aria-expanded',String(show)); }
-    function selectMode(mode) { if(processing){api.setStatus('当前解题仍在运行；可先停止，再切换解题方式。');return;}solveMode=mode;localStorage.setItem(modeKey,mode);modePanel.querySelectorAll('[data-solve-mode]').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.solveMode===mode)));showModes(false);api.setStatus((mode==='cloud'?'云端':'本机')+'解题已选定。');if(api.question.value.trim())void solve(); }
+    function selectMode(mode) { if(processing){api.setStatus('当前解题仍在运行；可先停止，再切换解题方式。');return;}solveMode=mode;localStorage.setItem(modeKey,mode);modePanel.querySelectorAll('[data-solve-mode]').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.solveMode===mode)));showModes(false);renderEngineRoute();api.setStatus((mode==='cloud'?'云端':'本机')+'解题已选定；点击“解题”开始。');void refreshEngine(); }
     modePanel.querySelectorAll('[data-solve-mode]').forEach(button=>button.addEventListener('click',()=>selectMode(button.dataset.solveMode)));
     modeToggle.addEventListener('click',()=>showModes(modePanel.hidden));
     modePanel.querySelectorAll('[data-solve-mode]').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.solveMode===solveMode)));
@@ -58,6 +58,24 @@
     let visionAvailable = true;
     let selectedImage = null;
     let ocrScriptPromise = null;
+    function modelOwner(name){const value=String(name||'').toLowerCase();if(value.includes('deepseek'))return 'DeepSeek';if(value.includes('qwen'))return '通义千问';if(value.includes('gemini'))return 'Gemini';if(value.includes('gpt'))return 'OpenAI';return 'AI';}
+    function renderEngineRoute(){
+      const remote=runtime.config.deployment==='web'||!!runtime.config.apiBase;
+      const summary=find('#engineRouteSummary'),title=find('#engineRouteTitle'),detail=find('#engineRouteDetail');
+      const row=find('#modelSelectorRow'),select=find('#modelName'),label=find('#modelNameLabel span');
+      if(!solveMode){summary.dataset.route='';title.textContent='尚未选择解题路径';detail.textContent='点击上方“云端解题”或“本机解题”。';row.hidden=true;return;}
+      summary.dataset.route=solveMode;
+      if(solveMode==='cloud'){
+        title.textContent='当前路径：云端解题';
+        detail.textContent=engineReady&&select.value?`云端服务提供：${modelOwner(select.value)} · ${select.value}。当前设备无需下载该模型。`:'将通过在线服务调用 AI 模型；当前设备无需下载。';
+        row.hidden=false;label.textContent='云端 AI 模型（运行于在线服务）';select.setAttribute('aria-label','云端 AI 模型');
+      }else{
+        title.textContent='当前路径：本机解题';
+        detail.textContent=remote?'使用当前浏览器内置精确引擎，不调用上方云端模型。':'先用浏览器内置精确引擎；未覆盖题型可调用安装在这台电脑上的本机模型。';
+        row.hidden=remote;label.textContent='本机 AI 模型（运行于这台电脑）';select.setAttribute('aria-label','本机 AI 模型');
+      }
+    }
+    renderEngineRoute();
     function loadBrowserOcr() {
       if (window.Tesseract) return Promise.resolve(window.Tesseract);
       if (!ocrScriptPromise) ocrScriptPromise = new Promise((resolve,reject)=>{
@@ -126,7 +144,7 @@
       const modelDetails=model?`<details class="problem-model"><summary>结构化题目模型 · ${model.curve?escapeText(model.curve.kind):'曲线未确定'} · ${model.parts?.length||0} 问</summary><p>输入确认：${model.source?.confirmed?'已确认':'存在模糊字段'}；点 ${model.points?.length||0} 个；直线 ${model.lines?.length||0} 条。</p>${model.source?.ambiguities?.length?`<p class="verification-conflict">未确认：${escapeText(model.source.ambiguities.join('、'))}</p>`:''}</details>`:'';
       const checkList=(part)=>{const checks=(report.checks||[]).filter(item=>item.part==null||Number(item.part)===Number(part.index));if(!checks.length)return '';return `<details class="verification-details"><summary>查看本问机器核验（${checks.length} 项）</summary><ul>${checks.map(item=>`<li class="check-${escapeText(item.status)}"><strong>${escapeText(checkNames[item.status]||item.status)}</strong> · ${escapeText(item.label)}：${escapeText(item.detail)}${item.formula?textBlock('$'+item.formula+'$'):''}</li>`).join('')}</ul></details>`;};
       const partMarkup=visible.map(part=>{const partTrust=part.verification||{status:'generated',message:'仅生成'};const derivation=part.derivation||{};const obligations=derivation.proof_obligations||[];return `<section class="part-body" data-part-index="${escapeText(part.index)}"><h3>${escapeText(part.label||'本问')}</h3><span class="answer-status ${['answered','partial','needs_information'].includes(part.status)?part.status:'partial'}">${escapeText(statusNames[part.status]||'请核对解答')}</span><span class="verification-status ${escapeText(partTrust.status||'generated')}">${escapeText(verificationNames[partTrust.status]||partTrust.message||'待核验')}</span><div class="answer-summary">${textBlock(part.answer)}</div><ol>${(part.steps||[]).map(step=>'<li>'+textBlock(step)+'</li>').join('')}</ol>${obligations.length?`<details class="proof-obligations"><summary>尚需完成的证明义务（${obligations.length}）</summary><ul>${obligations.map(item=>'<li>'+textBlock(item)+'</li>').join('')}</ul></details>`:''}${checkList(part)}</section>`;}).join('');
-      return `<h3>${escapeText(solution.title||'解题结果')}</h3><p>${escapeText(summary)}${solution.model?' · '+escapeText(solution.model):''}</p>${trust}${stale}<details><summary>查看原题</summary>${textBlock(solution.restatement)}</details>${modelDetails}${tabs}${solution.knowns?.length?`<details><summary>已知条件</summary><ul>${solution.knowns.map(value=>'<li>'+textBlock(value)+'</li>').join('')}</ul></details>`:''}${solution.strategy?`<div class="method-overview"><p><strong>解题方法</strong></p>${textBlock(solution.strategy)}</div>`:''}${partMarkup}${solution.assumptions?.length?`<p class="lesson-assumptions">使用的假设：${escapeText(solution.assumptions.join('；'))}</p>`:''}<div class="proof">${escapeText(report.message||'尚未核验')}${solution.scene_notice?'<p>'+escapeText(solution.scene_notice)+'</p>':''}</div>`;
+      return `<h3>${escapeText(solution.title||'解题结果')}</h3><p>${escapeText(summary)}${solution.model?' · '+escapeText(solution.model):''}</p>${trust}${stale}${solution.quality_notice?`<p class="verification-conflict">${escapeText(solution.quality_notice)}</p>`:''}<details><summary>查看原题</summary>${textBlock(solution.restatement)}</details>${modelDetails}${tabs}${solution.knowns?.length?`<details><summary>已知条件</summary><ul>${solution.knowns.map(value=>'<li>'+textBlock(value)+'</li>').join('')}</ul></details>`:''}${solution.strategy?`<div class="method-overview"><p><strong>解题方法</strong></p>${textBlock(solution.strategy)}</div>`:''}${partMarkup}${solution.assumptions?.length?`<p class="lesson-assumptions">使用的假设：${escapeText(solution.assumptions.join('；'))}</p>`:''}<div class="proof">${escapeText(report.message||'尚未核验')}${solution.scene_notice?'<p>'+escapeText(solution.scene_notice)+'</p>':''}</div>`;
     }
     function bindTabs(element) {
       element.querySelectorAll('[data-study-part]').forEach(button=>button.addEventListener('click',()=>{
@@ -164,6 +182,11 @@
       const notice=find('#deploymentNotice');
       notice.hidden=false;
       notice.textContent=remote?'内置确定性解题与画板无需另装模型；配置在线服务后可继续增强开放题推理。':'内置确定性解题无需下载模型；本机模型仅用于尚未覆盖的开放题增强。';
+      find('#cloudAuth').hidden=true;
+      if(!solveMode){engineReady=false;find('#cloudVisionChoice').hidden=true;find('#pullModel').hidden=true;find('#engineStatus').classList.remove('ready');find('#engineStatus').textContent='请选择云端解题或本机解题';renderEngineRoute();return;}
+      if(remote&&solveMode==='local'){
+        engineReady=false;cloudPrimary=true;find('#cloudVisionChoice').hidden=true;find('#pullModel').hidden=true;find('#engineStatus').classList.add('ready');find('#engineStatus').textContent='本机浏览器内置解题引擎已就绪 · 不调用云端模型';renderEngineRoute();return;
+      }
       if(!runtime.config.apiEnabled){
         engineReady=false;
         find('#cloudVisionChoice').hidden=true;
@@ -172,10 +195,10 @@
         find('#pullModel').hidden=true;
         find('#solveButton').disabled=processing;
         find('#engineRefresh').disabled=true;
-        return;
+        renderEngineRoute();return;
       }
       const needsLogin=remote&&runtime.config.requiresAuth&&!runtime.hasSession();
-      find('#cloudAuth').hidden=!remote||!runtime.config.requiresAuth;
+      find('#cloudAuth').hidden=!remote||!runtime.config.requiresAuth||solveMode!=='cloud';
       if(needsLogin){
         engineReady=false;
         find('#cloudVisionChoice').hidden=true;
@@ -184,7 +207,7 @@
         find('#pullModel').hidden=true;
         find('#solveButton').disabled=processing;
         find('#engineRefresh').disabled=true;
-        return;
+        renderEngineRoute();return;
       }
       try{
         if(start&&!remote)await request('/api/ai/start',{});
@@ -193,10 +216,13 @@
         visionAvailable=data.engine.vision!==false;
         find('#cloudVisionChoice').hidden=!(remote&&visionAvailable&&data.engine.available);
         const names=data.engine.models||[];
-        const choices=remote?[...names]:[...new Set([...names,data.default_model||'qwen3.5:4b','qwen3.5:9b','deepseek-r1:8b','deepseek-r1:1.5b'])];
+        const recommended='hf.co/bartowski/DeepSeek-R1-Distill-Llama-8B-GGUF:Q4_K_M';
+        const localNames=names.filter(name=>!/qwen/i.test(name)&&!/^deepseek-r1:(?:1\.5b|7b|8b|14b|32b)$/i.test(name));
+        const choices=remote?[...names]:[...new Set([...localNames,data.default_model||recommended,recommended])];
         const select=find('#modelName');
-        const chosen=lastModel||select.value||data.default_model;
-        select.replaceChildren(...choices.map(name=>{const option=document.createElement('option');option.value=name;option.textContent=name+(remote?' · 云端服务':names.includes(name)?' · 已下载':' · 未下载');return option;}));
+        const remembered=remote?lastModel:(/qwen/i.test(lastModel)?'':lastModel);
+        const chosen=remembered||select.value||data.default_model||recommended;
+        select.replaceChildren(...choices.map(name=>{const option=document.createElement('option');option.value=name;option.textContent=remote?`云端 · ${modelOwner(name)} · ${name}`:`本机 · ${modelOwner(name)} · ${name} · ${names.includes(name)?'已下载':'未下载'}`;return option;}));
         select.value=choices.includes(chosen)?chosen:(names[0]||choices[0]);
         const selectedReady=data.engine.available&&names.includes(select.value);
         engineReady=selectedReady;
@@ -204,7 +230,8 @@
         find('#engineStatus').textContent=selectedReady?(remote?'内置解题 + 在线智能增强已就绪':'内置解题 + 可选本机智能增强已就绪'):data.engine.available?(remote?'内置解题可用 · 在线增强模型未选择':'内置解题可用 · 可选择已安装模型增强'):data.engine.installed?'内置解题可用 · 智能增强组件可选':remote?'内置解题可用 · 在线增强暂不可用':'内置解题已就绪 · 无需安装额外模型';
         find('#pullModel').hidden=remote||cloudPrimary||selectedReady;
         find('#engineSetup').hidden=false;
-      }catch(error){engineReady=false;find('#cloudVisionChoice').hidden=true;find('#engineStatus').classList.remove('ready');find('#engineStatus').textContent=remote?'内置浏览器解题可用；在线增强暂不可用。':'无法连接本机服务；浏览器内置解题仍可使用。';find('#solveButton').disabled=processing;if(start)report(error);}
+        renderEngineRoute();
+      }catch(error){engineReady=false;find('#cloudVisionChoice').hidden=true;find('#engineStatus').classList.remove('ready');find('#engineStatus').textContent=remote?'内置浏览器解题可用；在线增强暂不可用。':'无法连接本机服务；浏览器内置解题仍可使用。';find('#solveButton').disabled=processing;renderEngineRoute();if(start)report(error);}
     }
     async function runJob(body,done) {
       if(activeJob)return;
@@ -311,9 +338,10 @@
       progress('solving','正在解题：识别条件、推导并核对结果…');
       const acceptResult=result=>{
         if(api.question.value.trim()!==original){api.setStatus('题目已修改，本次旧题结果未应用。请点击“解题”求解当前题目。');return;}
-        if(result.mode==='cloud-ai'&&!result.scene){
-          let localScene;try{localScene=api.solveDeterministic?.(original)?.scene;}catch{}
-          if(localScene){result.scene=localScene;result.scene_notice='图形由内置建模生成，请核对与云端解析是否一致。';}
+        if(['cloud-ai','local-ollama'].includes(result.mode)&&!result.scene){
+          const answerContext=[original,result.strategy,...(result.parts||[]).flatMap(part=>[part.answer,...(part.steps||[])])].filter(Boolean).join('\n');
+          let localScene;try{localScene=api.solveDeterministic?.(answerContext)?.scene;}catch{}
+          if(localScene){result.scene=localScene;result.scene_notice='AI 已先完成解答；图形再由题目与已求结论共同建模，请核对标注。';}
         }
         result=api.enrichSolvedScene?.(result,original)||result;
         api.showSolution(result);
@@ -327,24 +355,12 @@
         return completion;
       };
       if(solveMode==='cloud'&&engineReady&&cloudPrimary){
-        let previewShown=false;
-        let localResult=null;
-        try{
-          localResult=api.solveDeterministic?.(original)||null;
-          const completion=localResult?.completion;
-          const trusted=['fully-verified','locally-verified'].includes(localResult?.verification?.status);
-          if(trusted&&completion?.total>0&&completion.answered===completion.total){
-            acceptResult(localResult);
-            api.setStatus('内置精确引擎已解完并核验本题，无需等待云端模型。');
-            return;
-          }
-          const preview=localResult?.scene;
-          if(preview&&api.question.value.trim()===original){
-            api.installScene(api.modelFromJson(JSON.stringify(preview)),'题干图形预览（云端解析中）');
-            previewShown=true;
-          }
-        }catch{}
-        api.setStatus(`${previewShown?'题干图形已预览；':''}云端正在推导完整答案并进行核验。`);
+        api.setStatus('云端 AI 正在先识别题意并完成答案；答案确定后再建立对应图形。');
+        await runJob({kind:'solve',text:original,model:find('#modelName').value,depth:find('#solveDepth').value},acceptResult);
+        return;
+      }
+      if(solveMode==='local'&&engineReady&&!cloudPrimary){
+        api.setStatus('本机 AI 正在先识别题意并完成答案；答案确定后再建立对应图形。');
         await runJob({kind:'solve',text:original,model:find('#modelName').value,depth:find('#solveDepth').value},acceptResult);
         return;
       }
@@ -426,7 +442,7 @@
     });
     find('#cloudAccessKey').addEventListener('keydown',event=>{if(event.key==='Enter')find('#cloudLogin').click();});
     find('#clearButton').addEventListener('click',renderSolution);
-    find('#modelName').addEventListener('change',event=>{lastModel=event.target.value;localStorage.setItem(modelKey,lastModel);refreshEngine();});
+    find('#modelName').addEventListener('change',event=>{lastModel=event.target.value;localStorage.setItem(modelKey,lastModel);renderEngineRoute();refreshEngine();});
     find('#pullModel').addEventListener('click',()=>runJob({kind:'pull',model:find('#modelName').value},result=>api.setStatus(result.message)));
     find('#cancelJob').addEventListener('click',async()=>{if(activeJob){try{await request('/api/jobs/'+activeJob+'/cancel',{});find('#jobPhase').textContent='正在停止，请稍候…';}catch(error){report(error);}}});
     find('#recognizeButton').addEventListener('click',()=>recognize().catch(report));

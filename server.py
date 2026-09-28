@@ -38,7 +38,7 @@ from verification_engine import attach_trust_report, has_uncertainty
 
 
 def load_config() -> dict:
-    default = {"name": "董解析", "version": "0.21.0", "default_model": "qwen3.5:4b", "update_channel": ""}
+    default = {"name": "董解析", "version": "0.21.0", "default_model": "hf.co/bartowski/DeepSeek-R1-Distill-Llama-8B-GGUF:Q4_K_M", "update_channel": ""}
     try:
         return default | json.loads(CONFIG.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError):
@@ -2159,7 +2159,7 @@ CLOUD_MODE = os.environ.get("DONGJIEXI_CLOUD", "").strip().lower() in {"1", "tru
 ALLOWED_ORIGINS = {item.strip().rstrip("/") for item in os.environ.get("DONGJIEXI_ALLOWED_ORIGINS", "").split(",") if item.strip()}
 ACCESS_KEY = os.environ.get("DONGJIEXI_ACCESS_KEY", "").strip()
 TRUST_PROXY = os.environ.get("DONGJIEXI_TRUST_PROXY", "").strip().lower() in {"1", "true", "yes"}
-ALLOWED_MODELS = {item.strip() for item in os.environ.get("DONGJIEXI_ALLOWED_MODELS", os.environ.get("DONGJIEXI_MODEL_ID", "qwen3.5:4b")).split(",") if item.strip()}
+ALLOWED_MODELS = {item.strip() for item in os.environ.get("DONGJIEXI_ALLOWED_MODELS", os.environ.get("DONGJIEXI_MODEL_ID", "hf.co/bartowski/DeepSeek-R1-Distill-Llama-8B-GGUF:Q4_K_M")).split(",") if item.strip()}
 
 
 def env_integer(name: str, default: int, low: int, high: int) -> int:
@@ -2339,7 +2339,12 @@ class AppHandler(SimpleHTTPRequestHandler):
                 if not allowed:
                     self.json_response({"error": "口令尝试过于频繁，请稍后再试。"}, 429, {"Retry-After": str(retry)}); return
                 supplied = str(body.get("access_key", ""))
-                if not supplied or not hmac.compare_digest(supplied, ACCESS_KEY):
+                # compare_digest() rejects non-ASCII ``str`` values.  Access
+                # phrases are user-facing and may legitimately contain
+                # Chinese characters, so compare their UTF-8 bytes instead.
+                if not supplied or not hmac.compare_digest(
+                    supplied.encode("utf-8"), ACCESS_KEY.encode("utf-8")
+                ):
                     self.json_response({"error": "访问口令不正确。"}, 401); return
                 token = secrets.token_urlsafe(32)
                 with AUTH_LOCK:

@@ -28,4 +28,3 @@ git -C "$repo" add -- deploy/active-phone-api.txt
 git -C "$repo" commit -m 'Refresh live phone inference tunnel URL'
 git -C "$repo" push origin main
 echo '已更新 GitHub Pages 的手机服务地址。'
-

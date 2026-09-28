@@ -5,4 +5,3 @@ export PREFIX=/data/data/com.termux/files/usr
 export PATH="$PREFIX/bin:/system/bin"
 apt update
 apt install -y git openssh
-

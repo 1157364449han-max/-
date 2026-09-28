@@ -5,6 +5,12 @@
 .learning-settings label { margin:0;white-space:nowrap; }
 .learning-settings select,.model-row select { min-width:0;width:100%;border:1px solid #cbd9e7;border-radius:7px;padding:.4rem;font-size:.8rem;background:white; }
 .model-row .button { font-size:.75rem;padding:.3rem; }
+.model-field { display:grid;gap:.25rem;min-width:0;margin:0;color:#456078;font-size:.72rem;font-weight:750; }
+.engine-route-summary { display:grid;gap:.16rem;margin:.62rem 0;padding:.58rem .65rem;border:1px solid #cbdbe9;border-radius:9px;background:#f6f9fc;color:#294b66; }
+.engine-route-summary strong { font-size:.82rem; }
+.engine-route-summary span { font-size:.75rem;line-height:1.45; }
+.engine-route-summary[data-route="cloud"] { border-color:#9fcfc9;background:#edf9f6;color:#12625d; }
+.engine-route-summary[data-route="local"] { border-color:#b8cce2;background:#f1f6fb;color:#294f78; }
 .job-panel { margin-top:.7rem;padding:.7rem;border-radius:9px;background:#e1f7f4;font-size:.82rem; }
 .job-panel button { margin-top:.4rem;min-height:30px; }
 #questionImage { display:block;max-width:100%;max-height:200px;object-fit:contain;margin:.6rem auto; }
