@@ -23,6 +23,8 @@
 
 如需更快的复杂题解答，可在手机私有 `private.env` 中按 `deepseek.env.example` 配置 DeepSeek 官方 HTTPS API；`start.sh` 会跳过本地模型装载，手机仅承担认证和结果校验，不进行大模型计算。快速解题请求显式关闭深度思考，深入推导请求开启；网页和仓库永远不存放上游 API 密钥。该模式只有管理员完成 DeepSeek 平台开户、额度和 API 密钥配置后才可启用；未取得凭证前保留本地 Qwen 服务。
 
+开户并创建密钥后，在 Termux 中运行 `cd ~/dongjiexi && python configure-inference.py deepseek`，直接在手机上隐藏输入密钥。工具会先验证密钥、额度和模型，再原子替换私有配置并保留权限为 `600` 的时间戳备份；验证失败不会修改现有服务。随后运行 `bash restart-service.sh --rollback-on-failure`，若新服务健康检查失败会恢复上一份配置。如需主动切回，运行 `python configure-inference.py local && bash restart-service.sh`。
+
 4B 模型能力有限，不承诺所有高考压轴题都可正确解答；现有答案验证流程仍必须保留。该文本模型不支持图片视觉推理，图片识题需另接 OCR 或视觉模型。
 
 2026-09-28 手机实测：DeepSeek-R1-Distill-Qwen-8B Q4_K 在现有 CPU 推理程序上约每秒生成 3 个 token，短椭圆题超过 240 秒仍未完成；Qwen3-4B 同题在 JSON Schema 输出模式下约 70 秒完成。因此暂保留 Qwen3-4B 为默认模型。DeepSeek 文件保留，可在 GPU/NPU 后端可用时重新测试；模型体积或可用内存增大本身不会提升 CPU 推理速度。`benchmark-solve.sh` 现在会输出测试题的答案，升级默认模型前须同时核对耗时与答案正确性。
