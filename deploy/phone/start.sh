@@ -29,8 +29,7 @@ fi
 export DONGJIEXI_MODEL_VISION=0
 umask 077
 printf '%s\n' "$DONGJIEXI_MODEL_API_KEY" > "$HOME/dongjiexi/model.key"
-llama-server -m "$model_file" -c 4096 --reasoning off --host 127.0.0.1 --port 8080 --alias "$DONGJIEXI_MODEL_ID" --api-key-file "$HOME/dongjiexi/model.key" > "$HOME/dongjiexi/model.log" 2>&1 &
+llama-server -m "$model_file" -c 4096 -ngl 0 --reasoning off --host 127.0.0.1 --port 8080 --alias "$DONGJIEXI_MODEL_ID" --api-key-file "$HOME/dongjiexi/model.key" > "$HOME/dongjiexi/model.log" 2>&1 &
 model_pid=$!
 trap 'kill "$model_pid" 2>/dev/null || true' EXIT
 python server.py --host 127.0.0.1 --port 8765
-

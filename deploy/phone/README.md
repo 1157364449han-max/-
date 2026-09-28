@@ -19,6 +19,8 @@
 
 当前联调阶段已安装地址监控：`launch-endpoint-monitor.sh` 启动 `monitor-phone-endpoint.sh`，隧道重连时 `sync-phone-endpoint.sh` 只更新本仓库的 `deploy/active-phone-api.txt`，由 GitHub Actions 重建网页配置。手机使用仓库专属可写 deploy key；私钥只应留在手机的 `$HOME/.ssh/dongjiexi_deploy`，不得提交。`boot.sh` 会启动监控和解题服务。该机制可自动恢复临时地址，但仍受 Cloudflare Quick Tunnel 可用性、GitHub Actions 发布时延及手机联网/供电影响，不等同于固定域名和正式 SLA。
 
+加速实测（2026-09-28，iQOO Neo8 Pro）：切换 Termux 的 `vulkan-loader-android` 后，`llama-server --list-devices` 能识别 Mali-G715-Immortalis MC11。Qwen3-4B Q4_K_M 的合成测试在全 GPU 下生成速度约 6.55 token/秒，但同一道短椭圆题的完整解题耗时约 118 秒、首次输出约 83 秒，反而慢于先前 CPU 的约 70 秒。因此默认明确使用 `-ngl 0`；不要仅凭 GPU token/秒宣称网页解题加速。未来更换设备或推理程序时，应以完整题目和答案校验重新测试。
+
 4B 模型能力有限，不承诺所有高考压轴题都可正确解答；现有答案验证流程仍必须保留。该文本模型不支持图片视觉推理，图片识题需另接 OCR 或视觉模型。
 
 2026-09-28 手机实测：DeepSeek-R1-Distill-Qwen-8B Q4_K 在现有 CPU 推理程序上约每秒生成 3 个 token，短椭圆题超过 240 秒仍未完成；Qwen3-4B 同题在 JSON Schema 输出模式下约 70 秒完成。因此暂保留 Qwen3-4B 为默认模型。DeepSeek 文件保留，可在 GPU/NPU 后端可用时重新测试；模型体积或可用内存增大本身不会提升 CPU 推理速度。`benchmark-solve.sh` 现在会输出测试题的答案，升级默认模型前须同时核对耗时与答案正确性。
