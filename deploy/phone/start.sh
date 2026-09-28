@@ -11,6 +11,14 @@ fi
 set -a
 . "$HOME/dongjiexi/private.env"
 set +a
+if [[ "${DONGJIEXI_MODEL_API_BASE:-}" == https://* ]]; then
+  if [ -z "${DONGJIEXI_MODEL_API_KEY:-}" ] || [ -z "${DONGJIEXI_MODEL_ID:-}" ]; then
+    echo '云端 API 缺少服务端密钥或模型 ID。' >&2
+    exit 1
+  fi
+  export DONGJIEXI_MODEL_VISION="${DONGJIEXI_MODEL_VISION:-0}"
+  exec python server.py --host 127.0.0.1 --port 8765
+fi
 case "${DONGJIEXI_MODEL_ID:-qwen3-4b}" in
   qwen3-4b)
     model_file="$HOME/models/Qwen3-4B-Q4_K_M.gguf"

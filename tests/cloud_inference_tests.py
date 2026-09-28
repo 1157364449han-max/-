@@ -55,6 +55,23 @@ class CloudTests(unittest.TestCase):
         self.assertEqual(body['response_format'],{'type':'json_object','schema':FAST_SCHEMA})
         self.assertIn('parts',FAST_SCHEMA['required'])
 
+    def test_deepseek_fast_and_deep_modes_are_explicit(self):
+        with patch.dict(os.environ, {'DONGJIEXI_MODEL_API_BASE': 'https://api.deepseek.com',
+                                   'DONGJIEXI_MODEL_ID': 'deepseek-flash'}):
+            cloud = CloudInference()
+        payload = {**self.payload, 'model': 'deepseek-flash',
+                   'options': {'num_predict': 1000, 'deep_thinking': False}}
+        with patch.object(cloud.opener, 'open', return_value=self.events('{}')) as call:
+            cloud.stream(self.job, payload, Cancelled)
+        fast = json.loads(call.call_args.args[0].data)
+        self.assertEqual(fast['thinking'], {'type': 'disabled'})
+        self.assertNotIn('reasoning_effort', fast)
+        with patch.object(cloud.opener, 'open', return_value=self.events('{}')) as call:
+            cloud.stream(self.job, {**payload, 'options': {'deep_thinking': True}}, Cancelled)
+        deep = json.loads(call.call_args.args[0].data)
+        self.assertEqual(deep['thinking'], {'type': 'enabled'})
+        self.assertEqual(deep['reasoning_effort'], 'high')
+
     def test_vision_image_becomes_data_url_only_on_server(self):
         encoded=base64.b64encode(b'\x89PNG\r\n\x1a\n' + b'fake-test-image').decode()
         payload={**self.payload,'messages':[{'role':'user','content':'Transcribe only','images':[encoded]}]}

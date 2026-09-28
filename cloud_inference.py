@@ -87,6 +87,12 @@ class CloudInference:
             messages.append({'role': message.get('role'), 'content': content})
         body = {'model': payload['model'], 'messages': messages, 'stream': True,
                 'max_tokens': min(10000, payload.get('options', {}).get('num_predict', 10000))}
+        if (urlparse(self.base).hostname == 'api.deepseek.com'
+                and payload['model'] in {'deepseek-flash', 'deepseek-v4-pro'}):
+            deep = bool(payload.get('options', {}).get('deep_thinking'))
+            body['thinking'] = {'type': 'enabled' if deep else 'disabled'}
+            if deep:
+                body['reasoning_effort'] = 'high'
         if payload.get('format') and self.json_mode == 'llama-schema':
             body['response_format'] = {'type': 'json_object', 'schema': payload['format']}
         elif payload.get('format') and self.json_mode != 'prompt-only':

@@ -490,6 +490,7 @@ class LearningEngine:
                 messages = [{"role": "system", "content": FAST_SYSTEM if fast_cloud and kind == "solve" else SYSTEM}]
                 payload = {"model": model, "messages": messages, "stream": True, "keep_alive": "5m",
                            "options": {"temperature": .3, "num_ctx": 16384,
+                                       "deep_thinking": body.get("depth") == "deep",
                                        "num_predict": prediction_budget(kind, body.get("depth"), cloud=self.cloud.enabled)}}
                 if "thinking" in capabilities:
                     payload["think"] = body.get("depth") == "deep" and kind != "recognize"
