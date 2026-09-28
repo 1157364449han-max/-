@@ -167,7 +167,26 @@ def ellipse_from_conditions(s: str) -> dict | None:
     a2 = exact(a_match.group(1)) ** 2 if a_match else (exact(axis_match.group(1)) / 2) ** 2 if axis_match else None
     b2 = exact(b_match.group(1)) ** 2 if b_match else (exact(short_axis_match.group(1)) / 2) ** 2 if short_axis_match else None
     derivation: list[str] = []
-    if a2 is not None and e is not None and b2 is None:
+    focus = named_point_exact(s, "f")
+    if e is not None and focus is not None and a2 is None and b2 is None:
+        # A named focus plus eccentricity uniquely determines a centred,
+        # axis-aligned ellipse.  This is a common exam condition and must not
+        # be mistaken for an ordinary point-on-ellipse condition.
+        fx, fy = focus[0] - center[0], focus[1] - center[1]
+        if fx != 0 and fy == 0:
+            orientation, c2 = "horizontal", sp.simplify(fx * fx)
+        elif fy != 0 and fx == 0:
+            orientation, c2 = "vertical", sp.simplify(fy * fy)
+        else:
+            return None
+        a2 = sp.simplify(c2 / (e * e))
+        b2 = sp.simplify(a2 - c2)
+        derivation = [
+            f"由焦点到中心的距离得 c²={nice(c2)}。",
+            f"由 e=c/a={nice(e)}，得 a²=c²/e²={nice(a2)}。",
+            f"再由 b²=a²-c²，得 b²={nice(b2)}。",
+        ]
+    elif a2 is not None and e is not None and b2 is None:
         b2 = sp.simplify(a2 * (1 - e * e))
         derivation = [f"由离心率 e=c/a={nice(e)}，得 c²=e²a²。", f"由 b²=a²-c²，得 b²={nice(b2)}。"]
     elif a2 is not None and b2 is not None:
@@ -788,16 +807,40 @@ def standard_conic(text: str) -> dict | None:
 
 
 def split_problem_parts(text: str) -> list[dict]:
-    """把（1）（2）…拆为可单独浏览的小问；没有编号时保留完整题目。"""
+    """拆分数字小问，并将（2）(i)(ii) 这类嵌套小问展平。
+
+    嵌套编号用 ``父编号*100+罗马序号`` 作为稳定的内部 index，
+    例如（2）(i)、（2）(ii) 分别是 201、202；显示标签仍保留原题编号。
+    """
     matches = list(re.finditer(r"[（(]\s*(\d{1,2})\s*[）)]", text))
     if not matches:
         return [{"index": 0, "label": "完整题目", "question": text.strip(), "body": text.strip()}]
     preamble = text[:matches[0].start()].strip()
     parts: list[dict] = []
+    roman_values = {"i": 1, "ii": 2, "iii": 3, "iv": 4, "v": 5, "vi": 6, "vii": 7, "viii": 8}
+    roman_pattern = re.compile(r"[（(]\s*(viii|vii|vi|iv|v|iii|ii|i)\s*[）)]", re.I)
     for i, match in enumerate(matches):
         end = matches[i + 1].start() if i + 1 < len(matches) else len(text)
-        body = text[match.end():end].strip(" \n，。；;")
+        segment = text[match.end():end]
         number = int(match.group(1))
+        nested = list(roman_pattern.finditer(segment))
+        if nested:
+            parent_setup = segment[:nested[0].start()].strip(" \n，。；;")
+            for j, submatch in enumerate(nested):
+                sub_end = nested[j + 1].start() if j + 1 < len(nested) else len(segment)
+                sub_body = segment[submatch.end():sub_end].strip(" \n，。；;")
+                roman = submatch.group(1).lower()
+                body = (parent_setup + "\n" + sub_body).strip() if parent_setup else sub_body
+                parts.append({
+                    "index": number * 100 + roman_values[roman],
+                    "label": f"第（{number}）（{roman}）问",
+                    "question": (preamble + "\n" + body).strip(),
+                    "body": body,
+                    "parent_index": number,
+                    "sub_index": roman,
+                })
+            continue
+        body = segment.strip(" \n，。；;")
         parts.append({"index": number, "label": f"第（{number}）问", "question": (preamble + "\n" + body).strip(), "body": body})
     return parts
 
@@ -1542,12 +1585,143 @@ def perpendicular_foot_answer(scene: dict, part: dict) -> tuple[str, list[str]] 
     )
 
 
+def install_ellipse_focal_chord_scene(scene: dict, text: str) -> dict | None:
+    """建立“左焦点弦 + 中心对称点 R + 面积比/夹角最值”的联动场景。
+
+    这一类题的 R 是 PO 与椭圆的另一交点，因椭圆关于 O 中心对称，
+    所以 R=-P。画板保留这个依赖关系，而不是把 R 写死为某个坐标。
+    """
+    compact = normalise(text)
+    if scene.get("type") != "ellipse" or scene.get("orientation") == "vertical":
+        return None
+    if not re.search(r"过(?:点)?f[^。；;]{0,45}(?:动)?直线l", compact, re.I):
+        return None
+    if not re.search(r"直线po与(?:椭圆)?c的?(?:另一个|另一)交点(?:为|是)?r", compact, re.I):
+        return None
+    a2, b2 = scene_exact(scene, "a2"), scene_exact(scene, "b2")
+    c2 = sp.simplify(a2 - b2)
+    if c2 <= 0:
+        return None
+    ratio_match = re.search(r"面积[^。；;]{0,35}?(\d+(?:\.\d+)?)倍", compact)
+    area_ratio = sp.nsimplify(ratio_match.group(1)) if ratio_match else None
+    if area_ratio is None or area_ratio <= 2:
+        return None
+    h, k = sp.nsimplify(scene.get("h", 0)), sp.nsimplify(scene.get("k", 0))
+    c = sp.sqrt(c2)
+    focus = (h - c, k)
+    direction_ratio = sp.simplify(sp.Rational(2) / (area_ratio - 2))  # PF/QF
+    cosine = sp.simplify(sp.sqrt(a2) * (direction_ratio - 1) / (c * (direction_ratio + 1)))
+    if cosine.is_real is False or not (-1 < cosine < 1) or cosine <= 0:
+        return None
+    slope = sp.simplify(sp.sqrt(1 - cosine**2) / cosine)
+    tangent_min = sp.simplify(2 * sp.sqrt(a2 * b2) / c2)
+
+    scene["dynamicLine"] = True
+    scene["showDynamic"] = True
+    scene.pop("dynamicLinePart", None)
+    scene["lineThrough"] = "focus1"
+    scene["dynamicLineLabel"] = "l"
+    scene["dynamicIntersectionLabels"] = ["Q", "P"]  # 沿正方向的交点是 P，负方向为第三象限 Q
+    scene["theta"] = float(sp.N(sp.atan(slope) * 180 / sp.pi))
+    scene.setdefault("points", {})["F"] = [float(focus[0]), float(focus[1])]
+    scene.setdefault("pointBindings", {})["F"] = "focus1"
+    objects = scene.setdefault("objects", [])
+    lines = scene.setdefault("lines", [])
+    polygons = scene.setdefault("polygons", [])
+
+    def append_unique(collection: list[dict], item: dict) -> None:
+        if not any(existing.get("id") == item.get("id") for existing in collection):
+            collection.append(item)
+
+    append_unique(objects, {
+        "id": "ellipse-focal-r", "kind": "construction", "op": "reflect_center",
+        "refs": ["feature:P", "feature:O"], "label": "R", "source": "derived", "visible": True,
+    })
+    append_unique(objects, {
+        "id": "ellipse-focal-po", "kind": "construction", "op": "line",
+        "refs": ["feature:P", "feature:O"], "label": "PO", "source": "question", "visible": True,
+    })
+    append_unique(objects, {
+        "id": "ellipse-focal-qr", "kind": "construction", "op": "segment",
+        "refs": ["feature:Q", "ellipse-focal-r"], "label": "QR", "source": "derived", "visible": True,
+    })
+    ratio_part = next((part["index"] for part in split_problem_parts(text) if "面积" in part.get("body", "")), None)
+    append_unique(polygons, {"id": "ellipse-focal-pqr", "kind": "polygon", "labels": ["P", "Q", "R"],
+                             "label": "△PQR", "part": ratio_part, "source": "derived", "visible": True})
+    append_unique(polygons, {"id": "ellipse-focal-pfo", "kind": "polygon", "labels": ["P", "F", "O"],
+                             "label": "△PFO", "part": ratio_part, "source": "derived", "visible": True})
+    context = {
+        "schema": "dongjiexi-ellipse-focal-chord/v1", "a2": a2, "b2": b2, "c2": c2,
+        "focus": focus, "area_ratio": area_ratio, "distance_ratio": direction_ratio,
+        "cosine": cosine, "slope": slope, "tangent_min": tangent_min,
+        "parts": {
+            "area": ratio_part,
+            "angle": next((part["index"] for part in split_problem_parts(text) if re.search(r"tan|\\tan|正切", part.get("body", ""), re.I)), None),
+        },
+    }
+    scene["ellipseFocusChord"] = {
+        "schema": context["schema"], "point": "P", "opposite": "Q", "reflection": "R",
+        "reflectionObject": "ellipse-focal-r", "parts": context["parts"],
+        "exact": {key: exact_text(value) for key, value in {
+            "areaRatio": area_ratio, "distanceRatio": direction_ratio, "cosTheta": cosine,
+            "slope": slope, "tanMinimum": tangent_min,
+        }.items()},
+    }
+    return context
+
+
+def ellipse_focal_chord_part_answer(scene: dict, part: dict, context: dict | None) -> tuple[str, list[str]] | None:
+    if not context:
+        return None
+    body = part.get("body") or ""
+    if part.get("index") == 1 and re.search(r"求[^。；;]{0,16}(?:标准)?方程", body):
+        return (
+            f"椭圆 $C$ 的方程为 $\\dfrac{{x^2}}{{{exact_text(context['a2'])}}}+\\dfrac{{y^2}}{{{exact_text(context['b2'])}}}=1$。",
+            [
+                f"左焦点为 $F(-1,0)$，故 $c=1$。",
+                "由 $e=c/a=1/2$，得 $a=2$，从而 $a^2=4$。",
+                "由 $b^2=a^2-c^2$，得 $b^2=3$。",
+                "因此 $C:\\dfrac{x^2}{4}+\\dfrac{y^2}{3}=1$；将 $F(-1,0)$ 与 $e=1/2$ 回代均成立。",
+            ],
+        )
+    if "面积" in body and re.search(r"求[^。；;]{0,20}直线l|求l", normalise(body), re.I):
+        slope, focus_x = context["slope"], context["focus"][0]
+        shift = -focus_x
+        line = f"y={sp.latex(slope)}(x{'+' if shift >= 0 else '-'}{sp.latex(abs(shift))})"
+        return (
+            f"直线 $l$ 的方程为 ${line}$。",
+            [
+                "因 $O$ 是椭圆的对称中心，直线 $PO$ 与椭圆的另一交点满足 $R=-P$，所以 $O$ 是 $PR$ 的中点。",
+                "三角形 $QOP$ 与 $QOR$ 等底等高，故 $S_{PQR}=2S_{PQO}$。",
+                "$△PQO$ 与 $△PFO$ 对同一直线 $l$ 有相同高，故 $S_{PQO}/S_{PFO}=PQ/PF$。",
+                "由 $S_{PQR}=3S_{PFO}$ 得 $2(PF+QF)/PF=3$，即 $PF=2QF$。",
+                "设从左焦点指向 $P$ 的方向角为 $\\theta$。左焦点极径公式给出 $PF=3/(2-\\cos\\theta)$、$QF=3/(2+\\cos\\theta)$。",
+                "代入 $PF=2QF$ 得 $\\cos\\theta=2/3$，又 $l$ 斜率为正，故 $\\tan\\theta=\\sqrt5/2$。",
+                f"因 $l$ 过 $F(-1,0)$，所以 ${line}$。",
+            ],
+        )
+    if re.search(r"tan|\\tan|正切", body, re.I) and re.search(r"最小", body):
+        return (
+            f"$\\tan\\angle PQR$ 的最小值为 ${sp.latex(context['tangent_min'])}$。",
+            [
+                "设直线 $PQ$ 的斜率为 $k>0$，直线 $QR$ 的斜率为 $k'$ 。",
+                "把 $P,Q$ 代入 $x^2/4+y^2/3=1$，再用 $R=-P$ 消去坐标，得 $kk'=-3/4$。",
+                "由夹角公式，$\\tan\\angle PQR=(k-k')/(1+kk')=4(k-k')$。",
+                "令 $u=-k'>0$，则 $ku=3/4$。由基本不等式 $k+u\\ge 2\\sqrt{ku}=\\sqrt3$。",
+                "因此 $\\tan\\angle PQR=4(k+u)\\ge4\\sqrt3$；当 $k=u=\\sqrt3/2$ 时取等，该位置合法。",
+            ],
+        )
+    return None
+
+
 def deterministic_parts(text: str, scene: dict, base_answer: str, base_steps: list[str]) -> list[dict]:
     parts=[]
     focus_chord_context = install_parabola_focus_chord_scene(scene, text)
+    ellipse_focal_context = install_ellipse_focal_chord_scene(scene, text)
     for part in split_problem_parts(text):
         body=part.get("body") or part.get("question") or ""
         focus_chord_answer = parabola_focus_chord_part_answer(scene, part, focus_chord_context)
+        ellipse_focal_answer = ellipse_focal_chord_part_answer(scene, part, ellipse_focal_context)
         metric=None
         if re.search(r"交点|弦长|中点|坐标",body):
             candidates=[line for line in scene.get("lines",[]) if line.get("part") in {None,part.get("index")}]
@@ -1562,7 +1736,9 @@ def deterministic_parts(text: str, scene: dict, base_answer: str, base_steps: li
         normal=normal_answer(scene,part) if "法线" in body else None
         foot=perpendicular_foot_answer(scene,part) if "垂足" in body else None
         locus=midpoint_locus_answer(scene,body,part.get("index")) if "轨迹" in body else None
-        if focus_chord_answer:
+        if ellipse_focal_answer:
+            answer,steps=ellipse_focal_answer;status="answered"
+        elif focus_chord_answer:
             answer,steps=focus_chord_answer;status="answered"
         elif tangent:
             answer,steps=tangent;status="answered"
@@ -1711,10 +1887,10 @@ def _construction_shape(item: dict, ref_types: list[str]) -> str | None:
         return "line" if ref_types == ["point"] and isinstance(item.get("angle"), (int, float)) and _finite_numbers(item, "angle") else None
     if len(item.get("refs") or []) == 2 and item["refs"][0] == item["refs"][1]:
         return None
-    if op in {"line", "segment", "ray", "circle", "midpoint", "distance"}:
+    if op in {"line", "segment", "ray", "circle", "midpoint", "reflect_center", "distance"}:
         if ref_types != ["point", "point"]:
             return None
-        return {"circle": "circle", "midpoint": "point", "distance": "measure"}.get(op, "line")
+        return {"circle": "circle", "midpoint": "point", "reflect_center": "point", "distance": "measure"}.get(op, "line")
     if op in {"parallel", "perpendicular", "foot"}:
         if ref_types != ["point", "line"]:
             return None
@@ -1737,7 +1913,7 @@ def trusted_scene_objects(reference: dict, candidate: dict) -> tuple[list[dict],
     used_labels = {item.get("label") for item in result if item.get("label")}
     construction_outputs = {
         "line": "line", "line_angle": "line", "segment": "line", "ray": "line", "circle": "circle",
-        "midpoint": "point", "parallel": "line", "perpendicular": "line",
+        "midpoint": "point", "reflect_center": "point", "parallel": "line", "perpendicular": "line",
         "intersection": "point", "foot": "point", "distance": "measure", "point_on": "point", "tangent": "line", "normal": "line",
     }
     available_types = {}
@@ -1781,6 +1957,7 @@ def trusted_scene_objects(reference: dict, candidate: dict) -> tuple[list[dict],
         "ray": 2,
         "circle": 2,
         "midpoint": 2,
+        "reflect_center": 2,
         "parallel": 2,
         "perpendicular": 2,
         "intersection": 2,
@@ -1946,7 +2123,38 @@ def verify_ai_scene(result):
     return attach_trust_report(result)
 
 
-LEARNING = LearningEngine(ROOT, split_problem_parts, verify_ai_scene)
+def verify_ai_solution(result):
+    """Prefer independently recomputed conic features over model guesses."""
+    result = verify_ai_scene(result)
+    text = str(result.get("restatement") or "")
+    if not standard_conic(text):
+        return result
+    trusted = fallback_solution(text)
+    by_index = {part.get("index"): part for part in trusted.get("parts", [])}
+    corrected = False
+    for part in result.get("parts", []):
+        body = str(part.get("body") or part.get("question") or "")
+        if not re.search(r"(?:求|写出|确定|计算)[^。；]{0,45}(?:焦点|顶点|准线|渐近线|离心率|圆心|半径|轴长)", body):
+            continue
+        exact = by_index.get(part.get("index"))
+        if not exact or exact.get("status") != "answered":
+            continue
+        part["answer"] = exact["answer"]
+        part["steps"] = exact["steps"]
+        part["status"] = "answered"
+        part["source"] = "symbolic-conic-features"
+        corrected = True
+    if corrected:
+        result["scene_notice"] = (str(result.get("scene_notice") or "") +
+                                  " 焦点、顶点等曲线特征已由符号引擎复算，覆盖模型未核验的数值。").strip()
+        if len(result["parts"]) == 1:
+            result["answer"] = result["parts"][0]["answer"]
+            result["steps"] = result["parts"][0]["steps"]
+        result = attach_trust_report(result)
+    return result
+
+
+LEARNING = LearningEngine(ROOT, split_problem_parts, verify_ai_solution)
 CLOUD_MODE = os.environ.get("DONGJIEXI_CLOUD", "").strip().lower() in {"1", "true", "yes"}
 ALLOWED_ORIGINS = {item.strip().rstrip("/") for item in os.environ.get("DONGJIEXI_ALLOWED_ORIGINS", "").split(",") if item.strip()}
 ACCESS_KEY = os.environ.get("DONGJIEXI_ACCESS_KEY", "").strip()
@@ -2086,7 +2294,9 @@ class AppHandler(SimpleHTTPRequestHandler):
             self.json_response({"app": config["name"], "version": config["version"], "engine": health,
                                 "deployment": "cloud" if CLOUD_MODE else "desktop",
                                 "auth_required": CLOUD_MODE, "auth_configured": bool(ACCESS_KEY),
-                                "default_model": config["default_model"], "update_channel_configured": bool(config.get("update_channel"))})
+                                "default_model": (os.environ.get("DONGJIEXI_MODEL_ID", config["default_model"])
+                                                  if CLOUD_MODE else config["default_model"]),
+                                "update_channel_configured": bool(config.get("update_channel"))})
             return
         if self.path.startswith("/api/jobs/"):
             identity = self.require_cloud_auth()

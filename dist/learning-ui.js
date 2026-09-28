@@ -6,6 +6,16 @@
   const verificationNames = {generated:'仅生成 · 待核验','locally-verified':'局部代数核验通过',conflict:'发现确定性冲突','fully-verified':'完整验证通过'};
   const checkNames = {verified:'通过',contradicted:'冲突',unresolved:'未决'};
   const hasUncertainty = value => /\[(?:看不清|模糊|无法辨认|不确定)[^\]]*\]|(?:看不清|无法辨认)处|[?？]{3,}/i.test(String(value||''));
+  function questionRepairSuggestion(value) {
+    const plain=window.DongMathInput?.toPlain(value)??String(value||'');
+    const target=/直线\s*[（(]?\s*P\s*Q\s*[）)]?(?=\s*与\s*(?:椭圆\s*)?C\s*的?\s*(?:另一个|另一)\s*交点\s*(?:为|是)?\s*R)/i;
+    if(!target.test(plain))return null;
+    return{
+      issue:'直线 PQ 已与二次曲线 C 交于 P、Q，不可能再有第三个交点 R。',
+      suggestion:'原题应为“直线 PO 与 C 的另一个交点为 R”。',
+      corrected:plain.replace(target,'直线 PO')
+    };
+  }
   function typeset(element) {
     if (!window.renderMathInElement) return;
     window.renderMathInElement(element, {delimiters:[{left:'$$',right:'$$',display:true},{left:'\\[',right:'\\]',display:true},{left:'\\(',right:'\\)',display:false},{left:'$',right:'$',display:false}],throwOnError:false,trust:false,strict:'ignore',maxExpand:300,maxSize:20});
@@ -19,7 +29,7 @@
     const mobileNav=find('.mobile-panel-nav'),workspace=find('.workspace');
     const solveProgress=find('#solveProgress');
     function progress(state,message){solveProgress.dataset.state=state;solveProgress.textContent=message;}
-    api.question.addEventListener('input',()=>{if(!processing)progress('idle','题目已修改，等待重新解题。');});
+    api.question.addEventListener('input',()=>progress('idle','题目已修改，等待重新解题。'));
     mobileNav.querySelectorAll('[data-mobile-panel]').forEach(button=>button.addEventListener('click',()=>{
       workspace.dataset.mobileView=button.dataset.mobilePanel;
       mobileNav.querySelectorAll('button').forEach(item=>item.setAttribute('aria-pressed',String(item===button)));
@@ -289,9 +299,15 @@
     async function solve() {
       if(processing)return;
       if(!solveMode){showModes(true);api.setStatus('请先选择云端解题或本机解题。');return;}
-      const original=api.question.value.trim();
+      let original=api.question.value.trim();
       if(!original){report(new Error(find('#imageFile').files[0]?'请先点击“识别题图”，核对文字后解答。':'请先输入完整题目。'));return;}
       if(hasUncertainty(original)){report(new Error('题面仍含“[看不清]”或其它未确认字段。请先补正后再解题。'));return;}
+      const repair=questionRepairSuggestion(original);
+      if(repair){
+        const accepted=window.confirm(`${repair.issue}\n\n${repair.suggestion}\n\n是否按照原题“PO”修正后继续解题？`);
+        if(!accepted){progress('error','题面冲突，已停止解题。');api.setStatus('请核对 PQ/PO 后再解题。');return;}
+        api.question.value=repair.corrected;original=repair.corrected.trim();api.remember();api.setStatus('已在你确认后将矛盾的“直线 PQ”修正为“直线 PO”，正在继续解题。');
+      }
       progress('solving','正在解题：识别条件、推导并核对结果…');
       const acceptResult=result=>{
         if(api.question.value.trim()!==original){api.setStatus('题目已修改，本次旧题结果未应用。请点击“解题”求解当前题目。');return;}
@@ -454,5 +470,5 @@
     renderDraftRecovery();
     return {refreshEngine,renderSolution,solve};
   }
-  window.DongLearning={attach};
+  window.DongLearning={attach,questionRepairSuggestion};
 })();

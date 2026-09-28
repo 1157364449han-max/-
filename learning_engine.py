@@ -146,6 +146,17 @@ class EngineBusy(EngineError):
     pass
 
 
+def question_consistency_issue(text: str) -> str | None:
+    """拦截确定性几何矛盾，避免大模型对错题干强行编造答案。"""
+    compact = str(text or "").lower()
+    compact = re.sub(r"\\(?:left|right)", "", compact)
+    compact = re.sub(r"\\[()[\]]", "", compact)
+    compact = re.sub(r"[\s`$*_（）()]", "", compact)
+    if re.search(r"直线pq与(?:椭圆)?c的?(?:另一个|另一)交点(?:为|是)?r", compact, re.I):
+        return "题面存在确定性矛盾：直线 PQ 已与二次曲线 C 交于 P、Q，不可能再有第三个交点 R。请核对是否应为“直线 PO 与 C 的另一个交点为 R”。"
+    return None
+
+
 def request_json(path, payload=None, timeout=8):
     encoded = json.dumps(payload, ensure_ascii=False).encode() if payload is not None else None
     request = urllib.request.Request(OLLAMA_BASE_URL + path, data=encoded, headers=ollama_headers())
@@ -367,6 +378,8 @@ class LearningEngine:
             raise EngineError("请先识别并核对题图，再用确认的文字解题。")
         if kind == "solve" and has_uncertainty(text):
             raise EngineError("题面仍含“[看不清]”或其它未确认字段。请先在识别结果中补正，再开始解题。")
+        if kind == "solve" and (issue := question_consistency_issue(text)):
+            raise EngineError(issue)
         if kind == "pull" and model not in {"qwen3.5:4b", "qwen3.5:9b", "deepseek-r1:8b", "deepseek-r1:1.5b"}:
             raise EngineError("内置下载支持 Qwen3.5 4B/9B 与 DeepSeek-R1 1.5B/8B。其它本地模型可自行安装后选择。")
         if kind == "pull" and (REMOTE_OLLAMA or self.cloud.enabled):
@@ -516,11 +529,12 @@ class LearningEngine:
                     if len(expected) > 12:
                         raise EngineError("单次最多解答 12 个小问，请分批输入。")
                     numbers = [part["index"] for part in expected]
+                    numbering = "；".join(f"{part['index']}={part.get('label', '小问')}" for part in expected)
                     payload["options"]["num_predict"] = prediction_budget("solve", body.get("depth"), len(expected), self.cloud.enabled)
                     if fast_cloud:
-                        messages.append({"role": "user", "content": f"题目：\n{text}\n逐一解答编号 {numbers}。只返回包含 parts 数组的 JSON；每项仅含 index、answer、steps、status。给出关键计算、证明与取等条件。"})
+                        messages.append({"role": "user", "content": f"题目：\n{text}\n逐一解答内部编号 {numbers}，映射为：{numbering}。嵌套小问必须分开作答。只返回包含 parts 数组的 JSON；每项仅含 index、answer、steps、status。给出关键计算、证明与取等条件。"})
                     else:
-                        messages.append({"role": "user", "content": f"题目：\n{text}\n必须逐一完成小问编号 {numbers}。parts 要有 {len(numbers)} 个元素，每个元素的 index 必须使用对应的原题编号。返回字段 title,restatement,knowns,strategy,answer,parts,assumptions,scene。parts 每项为 {{index:编号,answer:结论,steps:[带美元符号公式的实际推导],status:answered或partial或needs_information,equations:[关键等式],substitutions:[代入与消元],candidate_solutions:[候选解],domain:[定义域和参数限制],proof_obligations:[尚需验证的充分必要性、端点或退化情形]}}。scene 必须给实际参数，无法作图才给 null。"})
+                        messages.append({"role": "user", "content": f"题目：\n{text}\n必须逐一完成内部编号 {numbers}，映射为：{numbering}。parts 要有 {len(numbers)} 个元素，每个元素的 index 必须使用映射中的内部编号，嵌套小问必须分开作答。返回字段 title,restatement,knowns,strategy,answer,parts,assumptions,scene。parts 每项为 {{index:编号,answer:结论,steps:[带美元符号公式的实际推导],status:answered或partial或needs_information,equations:[关键等式],substitutions:[代入与消元],candidate_solutions:[候选解],domain:[定义域和参数限制],proof_obligations:[尚需验证的充分必要性、端点或退化情形]}}。scene 必须给实际参数，无法作图才给 null。"})
                     payload["format"] = FAST_SCHEMA if fast_cloud else SCHEMA
                 content = self._complete_chat(job, payload)
                 if not content.strip():

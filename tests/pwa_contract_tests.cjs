@@ -35,6 +35,7 @@ assert.match(worker, /'\.\/equation-builder\.js'/, 'structured equation template
 assert.match(worker, /'\.\/math-keyboard\.js'/, 'math keyboard must work offline');
 assert.match(worker, /'\.\/ellipse-distance\.js'/, 'distance solver must be available offline');
 assert.match(worker, /'\.\/orthogonal-chord\.js'/, 'orthogonal chord solver must be available offline');
+assert.match(worker, /'\.\/ellipse-focal-chord\.js'/, 'ellipse focal chord solver must be available offline');
 assert.match(worker, /'\.\/number-display\.js'/, 'exact number formatting must be available offline');
 assert.match(worker, /SKIP_WAITING/);
 assert.match(workflow, /update-manifest\.json/);

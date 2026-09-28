@@ -110,6 +110,7 @@
             if(obj.op==='circle'&&a?.type==='point'&&b?.type==='point')result={type:'circle',x:a.x,y:a.y,r:distance(a,b)};
             if(obj.op==='midpoint'&&a?.type==='point'&&b?.type==='point')result=pointValue(mul(add(a,b),.5));
             if(obj.op==='reflect_axis'&&a?.type==='point'){const value=Number(obj.axisValue)||0;result=pointValue(obj.axis==='y'?{x:2*value-a.x,y:a.y}:{x:a.x,y:2*value-a.y});}
+            if(obj.op==='reflect_center'&&a?.type==='point'&&b?.type==='point')result=pointValue({x:2*b.x-a.x,y:2*b.y-a.y});
             if(['parallel','perpendicular'].includes(obj.op)&&a?.type==='point'&&validLine(b))result={type:'line',o:a,d:obj.op==='parallel'?b.d:{x:-b.d.y,y:b.d.x}};
             if(obj.op==='foot'&&a?.type==='point'&&validLine(b))result=pointValue(add(b.o,mul(b.d,dot(sub(a,b.o),b.d)/dot(b.d,b.d))));
             if(['tangent','normal'].includes(obj.op)&&a?.type==='point')result=curveLine(a,b,obj.op==='normal');
