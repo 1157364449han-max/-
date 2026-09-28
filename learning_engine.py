@@ -356,11 +356,17 @@ class LearningEngine:
             raise EngineError("内置下载支持 Qwen3.5 4B/9B 与 DeepSeek-R1 1.5B/8B。其它本地模型可自行安装后选择。")
         if kind == "pull" and (REMOTE_OLLAMA or self.cloud.enabled):
             raise EngineError("在线版不能从浏览器下载模型，请由服务管理员配置推理模型。")
-        health = self.health()
-        if not health["available"]:
-            health = self.start()
-        if kind != "pull" and model not in health["models"]:
-            raise EngineError(f"推理服务尚未提供 {model}。请改选可用模型或联系管理员配置。")
+        if self.cloud.enabled:
+            if not self.cloud.configured():
+                raise EngineError("云端解题服务尚未配置完整。")
+            if model not in self.cloud.models:
+                raise EngineError(f"推理服务尚未提供 {model}。请改选可用模型或联系管理员配置。")
+        else:
+            health = self.health()
+            if not health["available"]:
+                health = self.start()
+            if kind != "pull" and model not in health["models"]:
+                raise EngineError(f"推理服务尚未提供 {model}。请改选可用模型或联系管理员配置。")
         if not self.busy.acquire(blocking=False):
             raise EngineBusy("解题服务并发已满，请稍后重试；也可自愿使用本机模型。")
         with self.lock:
@@ -459,7 +465,7 @@ class LearningEngine:
                 self._stream(job, "/api/pull", {"model": model, "stream": True})
                 result = {"message": "模型已下载，可以开始 AI 解题。"}
             else:
-                information = {"capabilities": ["vision"] if self.cloud.enabled and self.cloud.health().get("vision") else []} if self.cloud.enabled else request_json("/api/show", {"model": model}, timeout=15)
+                information = ({"capabilities": ["vision"] if self.cloud.vision else []} if kind == "recognize" else {"capabilities": []}) if self.cloud.enabled else request_json("/api/show", {"model": model}, timeout=15)
                 if not REMOTE_OLLAMA and (information.get("remote_host") or information.get("remote_model")):
                     raise EngineError("所选模型是云端模型；当前本机模式不发送题目到云端。")
                 capabilities = information.get("capabilities", [])

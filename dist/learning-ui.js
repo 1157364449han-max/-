@@ -311,7 +311,15 @@
         return completion;
       };
       if(solveMode==='cloud'&&engineReady&&cloudPrimary){
-        api.setStatus('正在由独立云端理解完整题目、生成解析并进行数学核验；不会占用你的电脑运行模型。');
+        let previewShown=false;
+        try{
+          const preview=api.solveDeterministic?.(original)?.scene;
+          if(preview&&api.question.value.trim()===original){
+            api.installScene(api.modelFromJson(JSON.stringify(preview)),'题干图形预览（云端解析中）');
+            previewShown=true;
+          }
+        }catch{}
+        api.setStatus(`${previewShown?'题干图形已预览；':''}云端正在推导完整答案并进行核验。`);
         await runJob({kind:'solve',text:original,model:find('#modelName').value,depth:find('#solveDepth').value},acceptResult);
         return;
       }

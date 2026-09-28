@@ -166,5 +166,14 @@ class CloudTests(unittest.TestCase):
         self.assertLess(stream.call_args.args[1]['options']['num_predict'],10000)
         self.assertEqual(prediction_budget('solve','normal',12,True),6000)
 
+    def test_cloud_submit_does_not_wait_for_model_list_probe(self):
+        engine=LearningEngine('.',lambda text: [{'index':1,'label':'第一问','body':text,'question':text}])
+        self.addCleanup(engine.close)
+        with patch.object(engine,'health',side_effect=AssertionError('Text solve must not probe /models')):
+            with patch.object(engine,'_run'):
+                job=engine.submit({'kind':'solve','model':'test-model','text':'求 x。','depth':'normal'})
+        self.assertEqual(job['status'],'running')
+        engine.busy.release()
+
 
 if __name__=='__main__':unittest.main()
