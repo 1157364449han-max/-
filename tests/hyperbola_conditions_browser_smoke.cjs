@@ -6,7 +6,7 @@ module.exports=async({page,assert,screenshot})=>{
     },
     {
       question:'已知双曲线 C:x^2/a^2-y^2/b^2=1 的离心率为 3/2，右焦点 F(3,0)，求标准方程。',
-      exact:{a2:'4',b2:'5'},answer:/x²\/4-y²\/5=1/
+      exact:{a2:'4',b2:'5'},answer:/x²\/4\s*[−-]\s*y²\/5\s*=\s*1/
     }
   ];
   for(const item of cases){
