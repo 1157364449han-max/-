@@ -20,7 +20,11 @@ git -C "$repo" config user.email 'phone-endpoint@users.noreply.github.com'
 git -C "$repo" pull --ff-only origin main
 current="$(tr -d '\r\n' < "$repo/deploy/active-phone-api.txt")"
 if [ "$current" = "$endpoint" ]; then
-  echo '公网地址未变，无需更新。'
+  # The phone can also receive an audited release bundle from the maintainer
+  # while the desktop network is unavailable.  Push any such fast-forward
+  # commits even when the tunnel address itself did not change.
+  git -C "$repo" push origin main
+  echo '公网地址未变；已确认待发布提交同步到 GitHub。'
   exit 0
 fi
 printf '%s\n' "$endpoint" > "$repo/deploy/active-phone-api.txt"
