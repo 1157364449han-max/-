@@ -17,6 +17,26 @@ QUESTION = (
 
 
 class HyperbolaFocalChordConditionTests(unittest.TestCase):
+    def test_focus_and_asymptote_determine_hyperbola_with_exact_radical(self):
+        question = "已知双曲线 C 的右焦点为 F(3,0)，渐近线为 y=±√2x，求离心率。"
+        result = server.fallback_solution(question)
+        self.assertEqual(result["scene"]["exact"], {"a2": "3", "b2": "6"})
+        self.assertEqual(result["scene"]["equation"], "x²/3-y²/6=1")
+        self.assertIn("e=√(3)", result["answer"])
+
+    def test_eccentricity_and_focus_determine_hyperbola(self):
+        question = "已知双曲线 C:x^2/a^2-y^2/b^2=1 的离心率为 3/2，右焦点 F(3,0)，求标准方程。"
+        result = server.fallback_solution(question)
+        self.assertEqual(result["scene"]["exact"], {"a2": "4", "b2": "5"})
+        self.assertEqual(result["scene"]["equation"], "x²/4-y²/5=1")
+
+    def test_nested_latex_radical_fraction_stays_exact_for_ellipse(self):
+        question = r"已知椭圆 C:x^2/a^2+y^2/b^2=1 的离心率为 \frac{\sqrt{2}}{2}，且经过点 P(1,\frac{\sqrt{2}}{2})，求标准方程。"
+        result = server.fallback_solution(question)
+        self.assertEqual(result["scene"]["exact"], {"a2": "2", "b2": "1"})
+        self.assertEqual(result["scene"]["equation"], "x²/2+y²/1=1")
+        self.assertNotIn("条件不足", result["answer"])
+
     def test_conditions_determine_exact_hyperbola(self):
         scene = server.standard_conic(QUESTION)
         self.assertIsNotNone(scene)

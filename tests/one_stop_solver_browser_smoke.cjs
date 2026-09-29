@@ -48,9 +48,11 @@ module.exports = async ({page, context, assert}) => {
   assert.match(await page.locator('#engineStatus').innerText(), /内置解题.*已就绪/);
   await page.locator('#question').fill('已知双曲线 C 的右焦点为 F(3,0)，渐近线为 y=±√2x，求离心率。');
   await page.locator('#solveButton').click();
-  await page.waitForFunction(()=>document.querySelector('#solution')?.textContent.includes('当前内置规则尚未覆盖'));
-  const unsupported=await page.locator('#solution').innerText();
-  assert.match(unsupported,/不能据此判定题目条件不足/);
-  assert.doesNotMatch(unsupported,/需要补充条件/,'规则未覆盖不能伪装成题目缺少条件');
+  await page.waitForFunction(()=>!document.querySelector('#solveButton')?.disabled);
+  const inferred=await page.locator('#solution').innerText();
+  assert.match(inferred,/a²=.*=3/);
+  assert.doesNotMatch(inferred,/条件不足|尚未覆盖/,'焦点与渐近线已经能够唯一确定双曲线');
+  scene=JSON.parse(await page.locator('#sceneJson').inputValue());
+  assert.deepEqual(scene.exact,{a2:'3',b2:'6'});
   console.log('PASS: one-stop deterministic solve, exact scene reuse, no model job for covered questions, and browser-only web fallback.');
 };

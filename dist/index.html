@@ -13,8 +13,8 @@
   <link rel="apple-touch-icon" href="icons/icon.svg">
   <link rel="stylesheet" href="vendor/katex/katex.min.css">
   <link rel="stylesheet" href="vendor/mathlive/mathlive-fonts.css">
-  <link rel="stylesheet" href="learning-ui.css?v=0.40.2">
-  <link rel="stylesheet" href="classroom.css?v=0.40.2">
+  <link rel="stylesheet" href="learning-ui.css?v=0.40.3">
+  <link rel="stylesheet" href="classroom.css?v=0.40.3">
   <style>
     :root { --ink:#0c1b33; --ink-2:#1a3152; --paper:#f6f8fb; --panel:#ffffff; --line:#d7e0eb; --muted:#64748b; --teal:#0f9f99; --teal-soft:#e1f7f4; --amber:#f2a33c; --amber-soft:#fff2d9; --red:#df5b62; --blue:#3f78d8; --shadow:0 10px 30px rgba(12,27,51,.09); }
     * { box-sizing:border-box; }
@@ -373,7 +373,7 @@
 <body>
   <main class="app">
     <header class="topbar">
-      <div class="brand"><span class="brand-mark">董</span><span class="brand-name">董解析</span><button class="version-button" id="versionButton" title="查看版本、更新记录和能力边界">v0.40.2 · 更新记录</button></div>
+      <div class="brand"><span class="brand-mark">董</span><span class="brand-name">董解析</span><button class="version-button" id="versionButton" title="查看版本、更新记录和能力边界">v0.40.3 · 更新记录</button></div>
       <div class="top-actions"><span class="top-note">内置符号解题 · 动态几何 · 可选智能增强 · 我的题本</span><button id="pwaInstall" class="install-button" hidden>安装到设备</button></div>
     </header>
     <section id="pwaBanner" class="pwa-banner" hidden role="status"><span id="pwaMessage"></span><button id="pwaUpdate" hidden>立即更新</button><button id="pwaDismiss">稍后</button></section>
@@ -555,22 +555,22 @@
   </dialog>
 
   <script src="runtime-config.js"></script>
-  <script src="runtime.js?v=0.40.2"></script>
+  <script src="runtime.js?v=0.40.3"></script>
   <script src="vendor/katex/katex.min.js"></script>
   <script src="vendor/katex/contrib/auto-render.min.js"></script>
-  <script src="math-input.js?v=0.40.2"></script>
-  <script src="number-display.js?v=0.40.2"></script>
-  <script src="tangent-solver.js?v=0.40.2"></script>
-  <script src="ellipse-distance.js?v=0.40.2"></script>
-  <script src="orthogonal-chord.js?v=0.40.2"></script>
-  <script src="ellipse-focal-chord.js?v=0.40.2"></script>
-  <script src="learning-ui.js?v=0.40.2"></script>
-  <script src="classroom.js?v=0.40.2"></script>
-  <script src="construction-board.js?v=0.40.2"></script>
-  <script src="drag-board.js?v=0.40.2"></script>
-  <script src="equation-builder.js?v=0.40.2"></script>
-  <script src="math-keyboard.js?v=0.40.2"></script>
-  <script type="module" src="mathlive-adapter.js?v=0.40.2"></script>
+  <script src="math-input.js?v=0.40.3"></script>
+  <script src="number-display.js?v=0.40.3"></script>
+  <script src="tangent-solver.js?v=0.40.3"></script>
+  <script src="ellipse-distance.js?v=0.40.3"></script>
+  <script src="orthogonal-chord.js?v=0.40.3"></script>
+  <script src="ellipse-focal-chord.js?v=0.40.3"></script>
+  <script src="learning-ui.js?v=0.40.3"></script>
+  <script src="classroom.js?v=0.40.3"></script>
+  <script src="construction-board.js?v=0.40.3"></script>
+  <script src="drag-board.js?v=0.40.3"></script>
+  <script src="equation-builder.js?v=0.40.3"></script>
+  <script src="math-keyboard.js?v=0.40.3"></script>
+  <script type="module" src="mathlive-adapter.js?v=0.40.3"></script>
   <script src="geogebra-bridge.js?v=0.7.0"></script>
   <script>
   (() => {
@@ -645,17 +645,30 @@
     }
     function hyperbolaFromConditionsBrowser(s){
       if(!s.includes('双曲线'))return null;
-      const horizontal=/x\^2\/a\^2-y\^2\/b\^2=1/.test(s),vertical=/y\^2\/a\^2-x\^2\/b\^2=1/.test(s);
-      if(horizontal===vertical)return null;
+      const explicitHorizontal=/x\^2\/a\^2-y\^2\/b\^2=1/.test(s),explicitVertical=/y\^2\/a\^2-x\^2\/b\^2=1/.test(s);
+      if(explicitHorizontal&&explicitVertical)return null;
+      const vertical=explicitVertical||/焦点在y轴|实轴在y轴/.test(s),horizontal=!vertical,center=conditionCenter(s);
       const perpendicular=horizontal?/(?:平行于?y轴|垂直于?x轴)/.test(s):/(?:平行于?x轴|垂直于?y轴)/.test(s);
-      if(!perpendicular||!/过(?:右焦点|f2)/.test(s))return null;
       const length=label=>{const patterns=[new RegExp(`(?:\\\\left)?\\|${label}(?:\\\\right)?\\|=(${conditionNumber})`,'i'),new RegExp(`${label}(?:的)?(?:长度|长)?(?:为|是|等于|=)(${conditionNumber})`,'i')];for(const pattern of patterns){const match=s.match(pattern);if(match){const value=scalarValue(match[1]);return Number.isFinite(value)?value:null;}}return null;};
       const far=length('f1a')??length('f1b'),chord=length('ab');
-      if(!(far>0&&chord>0))return null;
-      const q=chord/2,a=(far-q)/2,b2=a*q,a2=a*a,c2=a2+b2,c=Math.sqrt(c2);
-      if(!(a>0&&b2>0)||Math.abs(4*c2+q*q-far*far)>1e-7)return null;
-      const points=horizontal?{A:[c,q],B:[c,-q]}:{A:[q,c],B:[-q,c]},line=horizontal?{id:'condition-focal-chord',kind:'vertical',x:c,label:'AB',equation:`x=${exactNumber(c)}`,source:'question',visible:true}:{id:'condition-focal-chord',kind:'slope',m:0,b:c,label:'AB',equation:`y=${exactNumber(c)}`,source:'question',visible:true};
-      return{type:'hyperbola',a,b:Math.sqrt(b2),orientation:horizontal?'horizontal':'vertical',h:0,k:0,points,lines:[line],objects:[{id:'condition-f1a',kind:'construction',op:'segment',refs:['feature:F₁','feature:A'],label:'F₁A',source:'question',visible:true},{id:'condition-ab',kind:'construction',op:'segment',refs:['feature:A','feature:B'],label:'AB',source:'question',visible:true}],exact:{a2:exactNumber(a2),b2:exactNumber(b2)},equation:`${horizontal?'x':'y'}²/${exactNumber(a2)}-${horizontal?'y':'x'}²/${exactNumber(b2)}=1`,fixedFocalPerpendicularChord:true,hyperbolaFocalPerpendicularChord:{farDistance:exactNumber(far),chordLength:exactNumber(chord),q:exactNumber(q),a:exactNumber(a),b2:exactNumber(b2),c2:exactNumber(c2),eccentricity:exactNumber(c/a)},derivation:[`设过右焦点的垂弦端点为 A(c,q)、B(c,−q)，由 2q=|AB|=${exactNumber(chord)} 得 q=${exactNumber(q)}。`,'将焦点横坐标（或纵坐标）代入双曲线，得 q=b²/a；又 c²=a²+b²。',`由 |F₁A|²=(2c)²+q² 化简得 |F₁A|=2a+q，所以 a=(${exactNumber(far)}−${exactNumber(q)})/2=${exactNumber(a)}。`,`于是 b²=aq=${exactNumber(b2)}，c²=a²+b²=${exactNumber(c2)}。`],inferred_from_conditions:true};
+      if(perpendicular&&/过(?:右焦点|f2)/.test(s)&&far>0&&chord>0){
+        const q=chord/2,a=(far-q)/2,b2=a*q,a2=a*a,c2=a2+b2,c=Math.sqrt(c2);
+        if(!(a>0&&b2>0)||Math.abs(4*c2+q*q-far*far)>1e-7)return null;
+        const points=horizontal?{A:[c,q],B:[c,-q]}:{A:[q,c],B:[-q,c]},line=horizontal?{id:'condition-focal-chord',kind:'vertical',x:c,label:'AB',equation:`x=${exactNumber(c)}`,source:'question',visible:true}:{id:'condition-focal-chord',kind:'slope',m:0,b:c,label:'AB',equation:`y=${exactNumber(c)}`,source:'question',visible:true};
+        return{type:'hyperbola',a,b:Math.sqrt(b2),orientation:horizontal?'horizontal':'vertical',h:center[0],k:center[1],points,lines:[line],objects:[{id:'condition-f1a',kind:'construction',op:'segment',refs:['feature:F₁','feature:A'],label:'F₁A',source:'question',visible:true},{id:'condition-ab',kind:'construction',op:'segment',refs:['feature:A','feature:B'],label:'AB',source:'question',visible:true}],exact:{a2:exactNumber(a2),b2:exactNumber(b2)},equation:`${horizontal?'x':'y'}²/${exactNumber(a2)}-${horizontal?'y':'x'}²/${exactNumber(b2)}=1`,fixedFocalPerpendicularChord:true,hyperbolaFocalPerpendicularChord:{farDistance:exactNumber(far),chordLength:exactNumber(chord),q:exactNumber(q),a:exactNumber(a),b2:exactNumber(b2),c2:exactNumber(c2),eccentricity:exactNumber(c/a)},derivation:[`设过右焦点的垂弦端点为 A(c,q)、B(c,−q)，由 2q=|AB|=${exactNumber(chord)} 得 q=${exactNumber(q)}。`,'将焦点横坐标（或纵坐标）代入双曲线，得 q=b²/a；又 c²=a²+b²。',`由 |F₁A|²=(2c)²+q² 化简得 |F₁A|=2a+q，所以 a=(${exactNumber(far)}−${exactNumber(q)})/2=${exactNumber(a)}。`,`于是 b²=aq=${exactNumber(b2)}，c²=a²+b²=${exactNumber(c2)}。`],inferred_from_conditions:true};
+      }
+      const eMatch=s.match(new RegExp(`(?:离心率(?:为|是)?|e=)(${conditionNumber})`));let e=eMatch?scalarValue(eMatch[1]):null;
+      const focus=namedConditionPoint(s,['f2','f']);let c2=null;if(focus){const fx=focus[0]-center[0],fy=focus[1]-center[1];if(horizontal&&Math.abs(fx)>1e-10&&Math.abs(fy)<1e-10)c2=fx*fx;else if(vertical&&Math.abs(fy)>1e-10&&Math.abs(fx)<1e-10)c2=fy*fy;}
+      const asymptote=s.match(new RegExp(`渐近线[^。;]*?y=±?(${conditionNumber})x`));const slope=asymptote?Math.abs(scalarValue(asymptote[1])):null;
+      if(e==null&&slope>0)e=horizontal?Math.sqrt(1+slope*slope):Math.sqrt(1+1/(slope*slope));
+      if(e!=null&&!(e>1))return null;
+      const point=/(?:经过|过)点?p/.test(s)?namedConditionPoint(s,['p']):null,aMatch=s.match(new RegExp(`(?:^|[,;])a=(${conditionNumber})`));let a2=aMatch?scalarValue(aMatch[1])**2:null,b2=null,derivation=[];
+      if(e!=null&&c2!=null){a2=c2/(e*e);b2=c2-a2;derivation=[`由焦点坐标得 c²=${exactNumber(c2)}。`,`由 e=c/a=${exactNumber(e)}，得 a²=c²/e²=${exactNumber(a2)}。`,`由 c²=a²+b²，得 b²=${exactNumber(b2)}。`];}
+      else if(e!=null&&point){const dx=point[0]-center[0],dy=point[1]-center[1],[major,minor]=horizontal?[dx,dy]:[dy,dx];a2=major*major-minor*minor/(e*e-1);b2=a2*(e*e-1);derivation=['由 c²=a²+b² 和 e=c/a，得 b²=a²(e²−1)。',`代入点 P 与 e=${exactNumber(e)}，解得 a²=${exactNumber(a2)}，b²=${exactNumber(b2)}。`];}
+      else if(a2!=null&&e!=null){b2=a2*(e*e-1);derivation=[`由 b²=a²(e²−1)，得 b²=${exactNumber(b2)}。`];}
+      if(!(a2>0&&b2>0))return null;
+      const shift=(v,c)=>Math.abs(c)<1e-10?v:`(${v}${c>0?'−':'+'}${exactNumber(Math.abs(c))})`,x=shift('x',center[0]),y=shift('y',center[1]);
+      return{type:'hyperbola',a:Math.sqrt(a2),b:Math.sqrt(b2),orientation:horizontal?'horizontal':'vertical',h:center[0],k:center[1],lineThrough:focus?'focus2':'center',theta:42,derivation,equation:horizontal?`${x}²/${exactNumber(a2)}-${y}²/${exactNumber(b2)}=1`:`${y}²/${exactNumber(a2)}-${x}²/${exactNumber(b2)}=1`,exact:{a2:exactNumber(a2),b2:exactNumber(b2)},inferred_from_conditions:true};
     }
     function circleFromConditionsBrowser(s){if(!s.includes('圆')||/椭圆|双曲线|抛物线/.test(s))return null;let center=conditionCenter(s),rMatch=s.match(new RegExp(`(?:半径|r=)(?:为|是)?(${conditionNumber})`)),r=rMatch?Math.abs(scalarValue(rMatch[1])):null,derivation=[];const point=namedConditionPoint(s,['p','m','q']);if(r!=null)derivation=[`由题设半径得 r=${num(r,6)}。`];else if(point&&/圆心|中心/.test(s)){r=Math.hypot(point[0]-center[0],point[1]-center[1]);derivation=['由圆心到圆上一点的距离求半径。'];}else{const a=namedConditionPoint(s,['a']),b=namedConditionPoint(s,['b']);if(!(a&&b&&/直径|端点/.test(s)))return null;center=[(a[0]+b[0])/2,(a[1]+b[1])/2];r=Math.hypot(a[0]-b[0],a[1]-b[1])/2;derivation=['直径中点为圆心，直径的一半为半径。'];}return r>0?{type:'circle',r,h:center[0],k:center[1],orientation:'horizontal',derivation,inferred_from_conditions:true}:null;}
     function parabolaFromConditionsBrowser(s){if(!s.includes('抛物线'))return null;const vertexMatch=s.match(new RegExp(`(?:顶点|vertex)(?:为|是)?[a-z]?\\((${conditionNumber}),(${conditionNumber})\\)`,'i'));if(!vertexMatch)return null;const h=scalarValue(vertexMatch[1]),k=scalarValue(vertexMatch[2]),focus=namedConditionPoint(s,['f']);let orientation,direction,p,derivation=[];if(focus){const dx=focus[0]-h,dy=focus[1]-k;if(Math.abs(dx)>1e-10&&Math.abs(dy)<1e-10){orientation='horizontal';direction=dx>0?1:-1;p=Math.abs(dx);}else if(Math.abs(dy)>1e-10&&Math.abs(dx)<1e-10){orientation='vertical';direction=dy>0?1:-1;p=Math.abs(dy);}else return null;derivation=[`顶点到焦点的距离为 p=${num(p,6)}。`];}else{const directrix=s.match(new RegExp(`准线([xy])=(${conditionNumber})`,'i'));if(!directrix)return null;const value=scalarValue(directrix[2]);orientation=directrix[1]==='x'?'horizontal':'vertical';const vertexValue=orientation==='horizontal'?h:k;direction=vertexValue>value?1:-1;p=Math.abs(vertexValue-value);derivation=[`顶点到准线的距离为 p=${num(p,6)}。`];}return p>0?{type:'parabola',p,direction,orientation,h,k,derivation,inferred_from_conditions:true}:null;}
@@ -1470,6 +1483,6 @@ function motionStep(timestamp){if(!state.model){stopMotion(false);return;}const 
     document.getElementById('closeReleases').addEventListener('click',()=>dialog.close());
   })();
   </script>
-  <script src="pwa.js?v=0.40.2"></script>
+  <script src="pwa.js?v=0.40.3"></script>
 </body>
 </html>

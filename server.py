@@ -63,28 +63,37 @@ def ollama_health() -> dict:
 
 
 def normalise(text: str) -> str:
-    for _ in range(3):
-        text = re.sub(r"\\\\(?:d?frac)\{([^{}]+)\}\{([^{}]+)\}", r"\1/\2", text)
+    # Resolve inner radicals before their surrounding fractions.  In exam
+    # text, values such as ``\frac{\sqrt{2}}{2}`` are extremely common; doing
+    # the fraction pass first leaves the nested braces untouched.
+    for _ in range(4):
+        text = re.sub(r"\\sqrt\{([^{}]+)\}", r"√\1", text)
+        text = re.sub(r"\\sqrt(?:\(([^()]+)\)|([0-9.]+))", lambda match: "√" + (match.group(1) or match.group(2)), text)
+        text = re.sub(r"\\(?:d?frac)\{([^{}]+)\}\{([^{}]+)\}", r"\1/\2", text)
     return (text.lower().replace("²", "^2").replace("³", "^3").replace("₁", "1").replace("₂", "2")
             .replace("₃", "3").replace("（", "(").replace("）", ")").replace("−", "-")
             .replace("，", ",").replace("：", ":").replace(" ", "").replace("*", ""))
 
 
 def scalar(token: str) -> float:
-    """解析题干中的整数、小数与分数；无效值直接抛错，避免静默猜测。"""
-    token = token.strip()
-    if "/" in token:
-        left, right = token.split("/", 1)
-        return float(left) / float(right)
-    return float(token)
+    """解析整数、分数和简单根式，并转成绘图所需浮点数。"""
+    return float(sp.N(exact(token), 30))
 
 
-def exact(token: str) -> sp.Rational:
-    """只接受数字或简单分数，避免把题干作为可执行表达式。"""
+def exact(token: str) -> sp.Expr:
+    """只接受数字、简单分数或单根式，避免执行任意题干表达式。"""
     token = token.strip()
-    if not re.fullmatch(r"[+-]?(?:\d+|\d+\.\d+|\d+/\d+)", token):
+    if re.fullmatch(r"[+-]?(?:\d+|\d+\.\d+|\d+(?:\.\d+)?/\d+(?:\.\d+)?)", token):
+        return sp.Rational(token)
+    match = re.fullmatch(r"([+-]?)(\d*(?:\.\d+)?)?√\(?([0-9]+(?:\.[0-9]+)?)\)?(?:/([0-9]+(?:\.[0-9]+)?))?", token)
+    if not match:
         raise ValueError("数值格式无效")
-    return sp.Rational(token)
+    sign = -1 if match.group(1) == "-" else 1
+    coefficient = sp.Rational(match.group(2)) if match.group(2) else sp.Integer(1)
+    denominator = sp.Rational(match.group(4)) if match.group(4) else sp.Integer(1)
+    if denominator == 0:
+        raise ValueError("分母不能为零")
+    return sp.simplify(sign * coefficient * sp.sqrt(sp.Rational(match.group(3))) / denominator)
 
 
 def nice(value: float | sp.Expr) -> str:
@@ -92,10 +101,12 @@ def nice(value: float | sp.Expr) -> str:
     value = sp.simplify(value)
     if value.is_Rational:
         return str(value.p) if value.q == 1 else f"{value.p}/{value.q}"
+    if not value.is_Float:
+        return exact_text(value)
     return f"{float(value):.6g}"
 
 
-NUM = r"([+-]?(?:\d+/\d+|\d+(?:\.\d+)?))"
+NUM = r"([+-]?(?:(?:\d+(?:\.\d+)?)?√\(?\d+(?:\.\d+)?\)?|\d+(?:\.\d+)?)(?:/\d+(?:\.\d+)?)?)"
 
 
 def named_point(s: str, name: str = "p") -> tuple[float, float] | None:
@@ -138,6 +149,13 @@ def equation_for_ellipse(a2: sp.Expr, b2: sp.Expr, orientation: str, h: sp.Expr,
     x = "x" if h == 0 else f"(x{'-' if h > 0 else '+'}{nice(abs(h))})"
     y = "y" if k == 0 else f"(y{'-' if k > 0 else '+'}{nice(abs(k))})"
     return f"{x}²/{nice(xden)}+{y}²/{nice(yden)}=1"
+
+
+def equation_for_hyperbola(a2: sp.Expr, b2: sp.Expr, orientation: str, h: sp.Expr, k: sp.Expr) -> str:
+    x = "x" if h == 0 else f"(x{'-' if h > 0 else '+'}{nice(abs(h))})"
+    y = "y" if k == 0 else f"(y{'-' if k > 0 else '+'}{nice(abs(k))})"
+    return (f"{y}²/{nice(a2)}-{x}²/{nice(b2)}=1" if orientation == "vertical"
+            else f"{x}²/{nice(a2)}-{y}²/{nice(b2)}=1")
 
 
 def ellipse_from_conditions(s: str) -> dict | None:
@@ -234,18 +252,19 @@ def ellipse_from_conditions(s: str) -> dict | None:
 
 
 def hyperbola_from_conditions(s: str) -> dict | None:
-    """由焦点垂弦条件精确还原中心在原点的轴对齐双曲线。"""
+    """从焦点、离心率、过点、渐近线或焦点垂弦精确还原双曲线。"""
     if "双曲线" not in s:
         return None
-    horizontal = bool(re.search(r"x\^2/a\^2-y\^2/b\^2=1", s))
-    vertical = bool(re.search(r"y\^2/a\^2-x\^2/b\^2=1", s))
-    if horizontal == vertical:
+    horizontal_equation = bool(re.search(r"x\^2/a\^2-y\^2/b\^2=1", s))
+    vertical_equation = bool(re.search(r"y\^2/a\^2-x\^2/b\^2=1", s))
+    if horizontal_equation and vertical_equation:
         return None
+    orientation = "vertical" if vertical_equation or "焦点在y轴" in s or "实轴在y轴" in s else "horizontal"
+    horizontal, vertical = orientation == "horizontal", orientation == "vertical"
+    center = center_from_text(s)
     perpendicular = (horizontal and re.search(r"(?:平行于?y轴|垂直于?x轴)", s)) or (
         vertical and re.search(r"(?:平行于?x轴|垂直于?y轴)", s)
     )
-    if not perpendicular or not re.search(r"过(?:右焦点|f2)", s):
-        return None
 
     def given_length(label: str) -> sp.Rational | None:
         for pattern in (rf"(?:\\left)?\|{label}(?:\\right)?\|={NUM}",
@@ -260,50 +279,82 @@ def hyperbola_from_conditions(s: str) -> dict | None:
 
     far_distance = given_length("f1a") or given_length("f1b")
     chord_length = given_length("ab")
-    if far_distance is None or chord_length is None:
+    if perpendicular and re.search(r"过(?:右焦点|f2)", s) and far_distance is not None and chord_length is not None:
+        q = sp.simplify(chord_length / 2)
+        a = sp.simplify((far_distance - q) / 2)
+        if q <= 0 or a <= 0:
+            return None
+        a2, b2 = sp.simplify(a * a), sp.simplify(a * q)
+        c2, c = sp.simplify(a2 + b2), sp.sqrt(sp.simplify(a2 + b2))
+        if sp.simplify(4 * c2 + q * q - far_distance * far_distance) != 0:
+            return None
+        equation = equation_for_hyperbola(a2, b2, orientation, center[0], center[1])
+        a_point = [float(c if horizontal else q), float(q if horizontal else c)]
+        b_point = [float(c if horizontal else -q), float(-q if horizontal else c)]
+        chord_line = ({"kind": "vertical", "x": float(c)} if horizontal
+                      else {"kind": "slope", "m": 0, "b": float(c)})
+        chord_line.update({"id": "condition-focal-chord", "label": "AB", "source": "question",
+                           "visible": True, "equation": f"{'x' if horizontal else 'y'}={exact_text(c)}"})
+        return {
+            "type": "hyperbola", "a": float(a), "b": math.sqrt(float(b2)), "orientation": orientation,
+            "h": float(center[0]), "k": float(center[1]), "lineThrough": "focus2", "theta": 90 if horizontal else 0,
+            "equation": equation, "exact": {"a2": nice(a2), "b2": nice(b2)},
+            "points": {"A": a_point, "B": b_point}, "lines": [chord_line],
+            "objects": [
+                {"id": "condition-f1a", "kind": "construction", "op": "segment", "refs": ["feature:F₁", "feature:A"], "label": "F₁A", "source": "question", "visible": True},
+                {"id": "condition-ab", "kind": "construction", "op": "segment", "refs": ["feature:A", "feature:B"], "label": "AB", "source": "question", "visible": True},
+            ],
+            "derivation": [
+                f"设过右焦点的垂弦端点为 A(c,q)、B(c,-q)，则 2q=|AB|={nice(chord_length)}，所以 q={nice(q)}。",
+                "将焦点坐标代入双曲线，得 q=b²/a；又 c²=a²+b²。",
+                f"由 |F₁A|²=(2c)²+q² 化简得 |F₁A|=2a+q，因此 a=({nice(far_distance)}-{nice(q)})/2={nice(a)}。",
+                f"于是 b²=aq={nice(b2)}，c²=a²+b²={nice(c2)}。",
+            ],
+            "hyperbola_focal_perpendicular_chord": {"farDistance": nice(far_distance), "chordLength": nice(chord_length), "q": nice(q), "a": nice(a), "b2": nice(b2), "c2": nice(c2), "eccentricity": nice(sp.simplify(c / a))},
+            "inferred_from_conditions": True, "fixed_focal_perpendicular_chord": True, "dynamicLine": False, "showDynamic": False,
+        }
+
+    e_match = re.search(rf"(?:离心率(?:为|是)?|e=){NUM}", s)
+    e = exact(e_match.group(1)) if e_match else None
+    focus = named_point_exact(s, "f2") or named_point_exact(s, "f")
+    c2 = None
+    if focus:
+        fx, fy = focus[0] - center[0], focus[1] - center[1]
+        if horizontal and fx != 0 and fy == 0:
+            c2 = sp.simplify(fx * fx)
+        elif vertical and fy != 0 and fx == 0:
+            c2 = sp.simplify(fy * fy)
+    asymptote = re.search(rf"(?:渐近线)[^。；]*?y=±?{NUM}x", s)
+    slope = abs(exact(asymptote.group(1))) if asymptote else None
+    if e is None and slope is not None and slope > 0:
+        e = sp.sqrt(1 + slope * slope) if horizontal else sp.sqrt(1 + 1/(slope*slope))
+    if e is not None and e <= 1:
         return None
-    q = sp.simplify(chord_length / 2)
-    a = sp.simplify((far_distance - q) / 2)
-    if q <= 0 or a <= 0:
+    point = named_point_exact(s, "p") if re.search(r"(?:经过|过)点?p", s) else None
+    a_match = re.search(rf"(?:^|[,;])a={NUM}", s)
+    a2 = exact(a_match.group(1)) ** 2 if a_match else None
+    b2 = None
+    derivation: list[str] = []
+    if e is not None and c2 is not None:
+        a2 = sp.simplify(c2/(e*e))
+        b2 = sp.simplify(c2-a2)
+        derivation = [f"由焦点坐标得 c²={nice(c2)}。", f"由 e=c/a={nice(e)}，得 a²=c²/e²={nice(a2)}。", f"由 c²=a²+b²，得 b²={nice(b2)}。"]
+    elif e is not None and point is not None:
+        dx, dy = point[0]-center[0], point[1]-center[1]
+        major, minor = (dx, dy) if horizontal else (dy, dx)
+        a2 = sp.simplify(major*major-minor*minor/(e*e-1))
+        b2 = sp.simplify(a2*(e*e-1))
+        derivation = [f"由 c²=a²+b² 和 e=c/a，得 b²=a²(e²-1)。", f"代入点 P 与 e={nice(e)}，解得 a²={nice(a2)}，b²={nice(b2)}。"]
+    elif a2 is not None and e is not None:
+        b2 = sp.simplify(a2*(e*e-1))
+        derivation = [f"由 b²=a²(e²-1)，得 b²={nice(b2)}。"]
+    if a2 is None or b2 is None or a2 <= 0 or b2 <= 0:
         return None
-    a2, b2 = sp.simplify(a * a), sp.simplify(a * q)
-    c2, c = sp.simplify(a2 + b2), sp.sqrt(sp.simplify(a2 + b2))
-    if sp.simplify(4 * c2 + q * q - far_distance * far_distance) != 0:
-        return None
-    equation = (f"x²/{exact_text(a2)}-y²/{exact_text(b2)}=1" if horizontal
-                else f"y²/{exact_text(a2)}-x²/{exact_text(b2)}=1")
-    a_point = [float(c if horizontal else q), float(q if horizontal else c)]
-    b_point = [float(c if horizontal else -q), float(-q if horizontal else c)]
-    chord_line = ({"kind": "vertical", "x": float(c)} if horizontal
-                  else {"kind": "slope", "m": 0, "b": float(c)})
-    chord_line.update({"id": "condition-focal-chord", "label": "AB", "source": "question",
-                       "visible": True, "equation": f"{'x' if horizontal else 'y'}={exact_text(c)}"})
-    return {
-        "type": "hyperbola", "a": float(a), "b": math.sqrt(float(b2)),
-        "orientation": "horizontal" if horizontal else "vertical", "h": 0, "k": 0,
-        "lineThrough": "focus2", "theta": 90 if horizontal else 0,
-        "equation": equation, "exact": {"a2": nice(a2), "b2": nice(b2)},
-        "points": {"A": a_point, "B": b_point}, "lines": [chord_line],
-        "objects": [
-            {"id": "condition-f1a", "kind": "construction", "op": "segment",
-             "refs": ["feature:F₁", "feature:A"], "label": "F₁A", "source": "question", "visible": True},
-            {"id": "condition-ab", "kind": "construction", "op": "segment",
-             "refs": ["feature:A", "feature:B"], "label": "AB", "source": "question", "visible": True},
-        ],
-        "derivation": [
-            f"设过右焦点的垂弦端点为 A(c,q)、B(c,-q)，则 2q=|AB|={nice(chord_length)}，所以 q={nice(q)}。",
-            "将 x=c 代入双曲线，得 q=b²/a；又 c²=a²+b²。",
-            f"由 |F₁A|²=(2c)²+q²，结合 b²=aq，可化为 |F₁A|=2a+q，因此 a=({nice(far_distance)}-{nice(q)})/2={nice(a)}。",
-            f"于是 b²=aq={nice(b2)}，c²=a²+b²={nice(c2)}。",
-        ],
-        "hyperbola_focal_perpendicular_chord": {
-            "farDistance": nice(far_distance), "chordLength": nice(chord_length),
-            "q": nice(q), "a": nice(a), "b2": nice(b2), "c2": nice(c2),
-            "eccentricity": nice(sp.simplify(c / a)),
-        },
-        "inferred_from_conditions": True, "fixed_focal_perpendicular_chord": True,
-        "dynamicLine": False, "showDynamic": False,
-    }
+    equation = equation_for_hyperbola(a2, b2, orientation, center[0], center[1])
+    return {"type": "hyperbola", "a": math.sqrt(float(a2)), "b": math.sqrt(float(b2)),
+            "orientation": orientation, "h": float(center[0]), "k": float(center[1]),
+            "lineThrough": "focus2" if focus else "center", "theta": 42, "derivation": derivation,
+            "equation": equation, "exact": {"a2": nice(a2), "b2": nice(b2)}, "inferred_from_conditions": True}
 
 
 def any_named_point(s: str, names: tuple[str, ...] = ("p", "m", "a", "b", "q")) -> tuple[sp.Rational, sp.Rational] | None:
