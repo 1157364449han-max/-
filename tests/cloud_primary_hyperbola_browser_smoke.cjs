@@ -1,7 +1,7 @@
 module.exports=async({page,context,assert})=>{
   await context.route('**/runtime-config.js',route=>route.fulfill({contentType:'application/javascript',body:'window.DONGJIEXI_CONFIG={deployment:"web",apiEnabled:true,requiresAuth:false};'}));
   await context.route('**/api/health',route=>route.fulfill({json:{engine:{available:true,installed:true,remote:true,vision:false,models:['deepseek-flash']},default_model:'deepseek-flash'}}));
-  await context.route('**/api/jobs',route=>route.fulfill({json:{id:'hyperbola-cloud',status:'completed',result:{mode:'cloud-ai',title:'云端解答',restatement:'双曲线焦点垂弦',parts:[{index:0,label:'完整题目',status:'answered',answer:'$e=\\frac32$',steps:['云端推导得 a=4，b²=20，c=6。']}],completion:{answered:1,total:1},scene:{type:'hyperbola',a:2,b:1,h:0,k:0,orientation:'horizontal',points:{},lines:[],objects:[]}}}}));
+  await context.route('**/api/jobs',route=>route.fulfill({json:{id:'hyperbola-cloud',status:'completed',result:{mode:'cloud-ai',title:'云端解答',restatement:'双曲线焦点垂弦',parts:[{index:0,label:'完整题目',status:'answered',answer:'$\\dfrac{\\sqrt{61}}{6}$',steps:['云端摘要与推导冲突。']}],completion:{answered:1,total:1},scene:{type:'hyperbola',a:2,b:1,h:0,k:0,orientation:'horizontal',points:{},lines:[],objects:[]}}}}));
   await page.reload({waitUntil:'domcontentloaded'});
   await page.waitForFunction(()=>document.querySelector('#modelName').value==='deepseek-flash');
   const question='设双曲线 C: x^2/a^2 - y^2/b^2 = 1 (a>0, b>0) 的左、右焦点分别为 F1、F2，过 F2 作平行于 y 轴的直线交 C 于 A、B 两点。若 |F1A|=13，|AB|=10，则 C 的离心率为';
@@ -14,5 +14,8 @@ module.exports=async({page,context,assert})=>{
   assert.deepEqual(scene.points.A,[6,5]);
   assert.deepEqual(scene.points.B,[6,-5]);
   assert(scene.lines.some(line=>line.kind==='vertical'&&line.x===6));
+  const solution=await page.locator('#solution').innerText();
+  assert.match(solution,/e=3\/2/,'验证答案必须覆盖云端错误摘要');
+  assert.doesNotMatch(solution,/61/,'错误云端摘要不得继续显示为最终答案');
   assert.match(await page.locator('#status').textContent(),/符号模型对齐/);
 };

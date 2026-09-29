@@ -195,9 +195,34 @@ def solution_quality_issues(solution):
                 labels.append(label)
         if part.get("status") == "answered" and not part.get("steps"):
             labels.append("标记已完成但没有推导")
+        if part.get("status") == "needs_information" and not has_insufficiency_certificate(part):
+            labels.append("声称条件不足但没有给出缺失的独立条件和非唯一性证据")
         if labels:
             issues.append(f"{part.get('label', '本问')}：" + "、".join(dict.fromkeys(labels)))
     return issues
+
+
+def has_insufficiency_certificate(part):
+    """Only accept 'conditions insufficient' with an explicit non-uniqueness witness."""
+    material = "\n".join([str(part.get("answer", "")), *map(str, part.get("steps", []))])
+    names_missing = bool(re.search(r"(?:缺少|还需|未给出|没有给出)[^。；\n]{0,60}(?:条件|参数|数值|坐标|关系)", material))
+    proves_non_unique = bool(re.search(r"(?:不唯一|无穷多|自由参数|任意取值|至少两组|两组不同|均满足|无法唯一确定)", material))
+    return names_missing and proves_non_unique
+
+
+def downgrade_uncertified_information(solution):
+    """Do not blame the question when a model merely failed to solve it."""
+    changed = False
+    for part in solution.get("parts", []):
+        if part.get("status") != "needs_information" or has_insufficiency_certificate(part):
+            continue
+        part["status"] = "partial"
+        part["answer"] = "当前 AI 尚未完成这一问；现有输出不足以证明题目条件缺失。"
+        part.setdefault("steps", []).append("只有明确指出缺少的独立条件，并给出至少两组均满足题设但结论不同的情形，才能判定条件不足。")
+        changed = True
+    if changed:
+        solution["quality_notice"] = "模型曾把未完成求解误判为条件不足，系统已撤销该结论并标为待继续推导。"
+    return changed
 
 
 def validate_scene(value):
@@ -633,6 +658,7 @@ class LearningEngine:
                             raise
                         except (ValueError, OSError):
                             part["answer"] += " 自动补答未完成，可以继续追问。"
+                    downgrade_uncertified_information(result)
                     result["completion"]["answered"] = sum(part["status"] == "answered" for part in result["parts"])
                     if not result["scene"] and result["completion"]["answered"]:
                         scene_system = {"role": "system", "content": "你是解析几何作图建模器。必须先以已完成答案为依据，再提取需要展示的曲线、点、直线和分问图层。只返回符合给定 Schema 的 JSON，不重新解题，不猜测未知坐标，不输出说明文字。"}

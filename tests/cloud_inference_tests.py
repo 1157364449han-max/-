@@ -8,7 +8,8 @@ from unittest.mock import patch
 import urllib.error
 
 from cloud_inference import CloudInference, NoRedirect
-from learning_engine import LearningEngine, Cancelled, prediction_budget, solution_quality_issues
+from learning_engine import (LearningEngine, Cancelled, downgrade_uncertified_information,
+                             prediction_budget, solution_quality_issues)
 
 
 class CloudTests(unittest.TestCase):
@@ -196,6 +197,21 @@ class CloudTests(unittest.TestCase):
         self.assertEqual(stream.call_count,3)
         self.assertEqual(solution_quality_issues(job['result']),[])
         self.assertIn('禁止问号占位',stream.call_args_list[1].args[1]['messages'][1]['content'])
+
+    def test_uncertified_condition_shortage_is_rejected(self):
+        false_shortage = {'parts':[{'index':0,'label':'本问','status':'needs_information',
+                                    'answer':'条件不足，无法求解。','steps':['还需要更多信息。']}]}
+        self.assertTrue(any('非唯一性证据' in issue for issue in solution_quality_issues(false_shortage)))
+        self.assertTrue(downgrade_uncertified_information(false_shortage))
+        self.assertEqual(false_shortage['parts'][0]['status'],'partial')
+        self.assertIn('不足以证明题目条件缺失',false_shortage['parts'][0]['answer'])
+
+    def test_real_condition_shortage_requires_a_non_uniqueness_witness(self):
+        certified = {'parts':[{'index':0,'label':'本问','status':'needs_information',
+                               'answer':'缺少一个独立条件，参数无法唯一确定。',
+                               'steps':['令 a 任意取值可得到无穷多组曲线，且均满足现有条件。']}]}
+        self.assertEqual(solution_quality_issues(certified),[])
+        self.assertFalse(downgrade_uncertified_information(certified))
 
     def test_cloud_submit_does_not_wait_for_model_list_probe(self):
         engine=LearningEngine('.',lambda text: [{'index':1,'label':'第一问','body':text,'question':text}])

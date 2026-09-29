@@ -30,6 +30,7 @@ GOALS = [
     ("length", ("弦长", "长度", "距离")),
     ("area", ("面积",)),
     ("locus", ("轨迹",)),
+    ("conic_feature", ("离心率", "焦点", "顶点", "准线", "渐近线", "轴长")),
     ("standard_equation", ("标准方程", "方程")),
     ("proof", ("证明", "求证")),
 ]
@@ -47,6 +48,7 @@ OBLIGATIONS = {
     "length": ["核对两端点与定义域", "用距离公式或弦长公式独立复算"],
     "area": ["核对顶点/底高定义", "检查参数范围和等号条件"],
     "locus": ["证明必要性", "回代证明充分性并排除增根"],
+    "conic_feature": ["由标准式精确计算曲线特征", "把所得特征量代回题设条件检查"],
     "proof": ["逐步列出可复核等式", "检查充分必要性和特殊情形"],
     "other": ["当前规则无法完整验证该问，需人工复核证明"],
 }
@@ -313,6 +315,34 @@ def _scene_checks(scene: dict, text: str, model_parts: list[dict] | None = None)
     checks.append(_check("curve-structure", "主曲线参数", "verified" if valid else "contradicted",
                          "参数满足该圆锥曲线的基本定义。" if valid else "参数不满足曲线定义。",
                          formula=sp.sstr(conic), category="curve"))
+
+    focal_chord_data = scene.get("hyperbola_focal_perpendicular_chord")
+    if kind == "hyperbola" and isinstance(focal_chord_data, dict):
+        for model_part in (model_parts or []):
+            part = model_part.get("index")
+            question = str(model_part.get("question") or "")
+            if not isinstance(part, int) or "离心率" not in question:
+                continue
+            try:
+                a0 = _q(focal_chord_data["a"])
+                q0 = _q(focal_chord_data["q"])
+                c20 = _q(focal_chord_data["c2"])
+                chord0 = _q(focal_chord_data["chordLength"])
+                far0 = _q(focal_chord_data["farDistance"])
+                e0 = _q(focal_chord_data["eccentricity"])
+                residuals = [2*q0-chord0, 4*c20+q0*q0-far0*far0, e0*e0*a0*a0-c20]
+                verified_feature = a0 > 0 and q0 > 0 and all(_sign(sp.simplify(value)) == 0 for value in residuals)
+            except (KeyError, TypeError, ValueError, ZeroDivisionError):
+                verified_feature = False
+                residuals = []
+                e0 = "?"
+            checks.append(_check(
+                f"hyperbola-focal-chord-e-{part}", "焦点垂弦离心率",
+                "verified" if verified_feature else "contradicted",
+                ("弦长、远焦点距离与 c²=a²+b² 均回代成立，离心率由 e=c/a 精确复算。"
+                 if verified_feature else "焦点垂弦条件与场景参数或离心率不一致。"),
+                formula=f"2q=|AB|, 4c²+q²=|F₁A|², e={sp.sstr(e0)}",
+                part=part, category="algebra"))
 
     compact = re.sub(r"\s+", "", text).lower().replace("（", "(").replace("）", ")")
     for name, coords in (scene.get("points") or {}).items():

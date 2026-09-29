@@ -351,6 +351,16 @@
           if(!exactSolution?.scene){try{exactSolution=api.solveDeterministic?.(answerContext);}catch{}}
           const exactScene=exactSolution?.scene,completion=exactSolution?.completion||{};
           const exactComplete=Number(completion.total)>0&&Number(completion.answered)===Number(completion.total);
+          if(exactSolution?.parts?.length){
+            const exactByIndex=new Map(exactSolution.parts.filter(part=>part.status==='answered').map(part=>[Number(part.index),part]));
+            let corrected=false;
+            result.parts=(result.parts||[]).map(part=>{const exact=exactByIndex.get(Number(part.index));if(!exact)return part;corrected=true;return{...part,answer:exact.answer,steps:exact.steps,status:'answered',verification:exact.verification,derivation:exact.derivation,source:'symbolic-verified-override'};});
+            if(corrected){
+              result.completion={answered:result.parts.filter(part=>part.status==='answered').length,total:result.parts.length};
+              if(result.parts.length===1){result.answer=result.parts[0].answer;result.steps=result.parts[0].steps;}
+              result.quality_notice='可精确求解的小问已由符号引擎独立复算并回代，最终结论以验证结果为准。';
+            }
+          }
           if(exactScene&&(!result.scene||exactComplete||exactScene.inferredFromConditions||exactScene.inferred_from_conditions)){
             result.scene=exactScene;
             result.scene_notice='AI 已先完成解答；画板再由可核验的符号模型对齐题目与答案。';

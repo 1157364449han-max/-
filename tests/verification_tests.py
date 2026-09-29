@@ -28,7 +28,7 @@ class VerificationTests(unittest.TestCase):
         checked = verify_ai_solution(raw)
         self.assertIn("√(3)", checked["parts"][0]["answer"])
         self.assertNotIn("±1", checked["parts"][0]["answer"])
-        self.assertEqual(checked["parts"][0]["source"], "symbolic-conic-features")
+        self.assertEqual(checked["parts"][0]["source"], "symbolic-verified-override")
 
     def test_manual_circle_tangent_normal_survive_scene_repair(self):
         objects = [

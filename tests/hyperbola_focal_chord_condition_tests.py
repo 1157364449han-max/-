@@ -40,6 +40,25 @@ class HyperbolaFocalChordConditionTests(unittest.TestCase):
         impossible = QUESTION.replace("|F1A|=13", "|F1A|=4")
         self.assertIsNone(server.standard_conic(impossible))
 
+    def test_cloud_headline_is_overridden_when_it_conflicts_with_exact_work(self):
+        ai_result = {
+            "mode": "cloud-ai", "title": "云端解答", "restatement": QUESTION,
+            "answer": r"$\dfrac{\sqrt{61}}{6}$",
+            "parts": [{"index": 0, "label": "完整题目", "body": QUESTION,
+                       "question": QUESTION, "status": "answered",
+                       "answer": r"$\dfrac{\sqrt{61}}{6}$", "steps": ["模型摘要与推导不一致。"]}],
+            "completion": {"answered": 1, "total": 1},
+            "scene": {"type": "hyperbola", "a": 2, "b": 1, "h": 0, "k": 0,
+                      "orientation": "horizontal", "points": {}, "lines": [], "objects": []},
+        }
+        result = server.verify_ai_solution(ai_result)
+        self.assertIn("e=3/2", result["answer"])
+        self.assertNotIn("sqrt{61}", result["answer"])
+        self.assertEqual(result["parts"][0]["source"], "symbolic-verified-override")
+        self.assertEqual(result["scene"]["exact"], {"a2": "16", "b2": "20"})
+        self.assertEqual(result["verification"]["status"], "locally-verified")
+        self.assertEqual(result["verification"]["counts"]["answer_verified"], 1)
+
 
 if __name__ == "__main__":
     unittest.main()

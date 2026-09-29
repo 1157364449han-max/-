@@ -1870,10 +1870,10 @@ def fallback_solution(text: str) -> dict:
     if not scene:
         base_parts = split_problem_parts(text)
         return attach_trust_report({
-            "mode": "symbolic-fallback", "title": "尚未建立可核验的模型", "restatement": text,
-            "answer": "内置确定性引擎暂未从现有条件唯一建立曲线。请核对识别文字，或补充焦点、轴长、离心率、圆心、顶点、准线、过点等条件。",
-            "steps": ["题干已按小问保留。", "没有足够条件时不会猜测方程或伪造图形。"],
-            "parts": [{**part, "status": "needs_information", "answer": "现有内置规则尚不能由这些条件唯一建模。", "steps": ["核对题图识别的分数、根号和正负号。", "确认曲线类型与能够唯一确定曲线的独立条件。"]} for part in base_parts],
+            "mode": "symbolic-fallback", "title": "当前内置规则尚未覆盖", "restatement": text,
+            "answer": "题目可能具有唯一答案，但当前确定性规则尚未覆盖这组条件；这不等于题目条件不足。请选择云端解题继续推导。",
+            "steps": ["题干和各小问已完整保留。", "由于尚未建立可回代核验的符号模型，内置引擎不会猜测结论，也不会擅自要求补充条件。"],
+            "parts": [{**part, "status": "partial", "answer": "当前内置规则尚未覆盖这一问，不能据此判定题目条件不足。", "steps": ["题面已保留，可交给云端 AI 继续求解。", "只有能指出缺少的独立条件并证明存在不同答案时，才会标记为‘需要补充条件’。"]} for part in base_parts],
             "scene": None, "verification": {"status": "not-verified", "message": "没有足够的结构化条件可进行符号核验。"},
             "completion": {"answered": 0, "total": len(base_parts)},
         })
@@ -2213,7 +2213,12 @@ def verify_ai_scene(result):
 
 
 def verify_ai_solution(result):
-    """Prefer independently recomputed conic features over model guesses."""
+    """Use independently recomputed completed parts as the final authority.
+
+    The language model is still used for uncovered/open reasoning, but a
+    deterministic part that has been solved and reverse-checked must replace a
+    conflicting AI headline as well as its drawing parameters.
+    """
     result = verify_ai_scene(result)
     text = str(result.get("restatement") or "")
     if not standard_conic(text):
@@ -2222,20 +2227,17 @@ def verify_ai_solution(result):
     by_index = {part.get("index"): part for part in trusted.get("parts", [])}
     corrected = False
     for part in result.get("parts", []):
-        body = str(part.get("body") or part.get("question") or "")
-        if not re.search(r"(?:求|写出|确定|计算)[^。；]{0,45}(?:焦点|顶点|准线|渐近线|离心率|圆心|半径|轴长)", body):
-            continue
         exact = by_index.get(part.get("index"))
         if not exact or exact.get("status") != "answered":
             continue
         part["answer"] = exact["answer"]
         part["steps"] = exact["steps"]
         part["status"] = "answered"
-        part["source"] = "symbolic-conic-features"
+        part["source"] = "symbolic-verified-override"
         corrected = True
     if corrected:
         result["scene_notice"] = (str(result.get("scene_notice") or "") +
-                                  " 焦点、顶点等曲线特征已由符号引擎复算，覆盖模型未核验的数值。").strip()
+                                  " 已由符号引擎独立复算并回代；可确定的小问采用验证答案，覆盖模型中不一致的摘要或数值。").strip()
         if len(result["parts"]) == 1:
             result["answer"] = result["parts"][0]["answer"]
             result["steps"] = result["parts"][0]["steps"]
