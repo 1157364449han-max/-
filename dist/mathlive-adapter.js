@@ -77,7 +77,6 @@ function connect(panel, target) {
   fieldEditing = false;
   activeField.value = window.DongMathInput?.toTex(target.value) || target.value || '';
   requestAnimationFrame(() => { syncing = false; });
-  requestAnimationFrame(() => activeField.focus());
 }
 
 function close() {
