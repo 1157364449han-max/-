@@ -344,10 +344,17 @@
       progress('solving','正在解题：识别条件、推导并核对结果…');
       const acceptResult=result=>{
         if(api.question.value.trim()!==original){api.setStatus('题目已修改，本次旧题结果未应用。请点击“解题”求解当前题目。');return;}
-        if(['cloud-ai','local-ollama'].includes(result.mode)&&!result.scene){
+        if(['cloud-ai','local-ollama'].includes(result.mode)){
           const answerContext=[original,result.strategy,...(result.parts||[]).flatMap(part=>[part.answer,...(part.steps||[])])].filter(Boolean).join('\n');
-          let localScene;try{localScene=api.solveDeterministic?.(answerContext)?.scene;}catch{}
-          if(localScene){result.scene=localScene;result.scene_notice='AI 已先完成解答；图形再由题目与已求结论共同建模，请核对标注。';}
+          let exactSolution;
+          try{exactSolution=api.solveDeterministic?.(original);}catch{}
+          if(!exactSolution?.scene){try{exactSolution=api.solveDeterministic?.(answerContext);}catch{}}
+          const exactScene=exactSolution?.scene,completion=exactSolution?.completion||{};
+          const exactComplete=Number(completion.total)>0&&Number(completion.answered)===Number(completion.total);
+          if(exactScene&&(!result.scene||exactComplete||exactScene.inferredFromConditions||exactScene.inferred_from_conditions)){
+            result.scene=exactScene;
+            result.scene_notice='AI 已先完成解答；画板再由可核验的符号模型对齐题目与答案。';
+          }
         }
         result=api.enrichSolvedScene?.(result,original)||result;
         api.showSolution(result);
