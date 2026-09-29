@@ -233,6 +233,79 @@ def ellipse_from_conditions(s: str) -> dict | None:
             "derivation": derivation, "equation": equation, "exact": {"a2": nice(a2), "b2": nice(b2)}, "inferred_from_conditions": True}
 
 
+def hyperbola_from_conditions(s: str) -> dict | None:
+    """由焦点垂弦条件精确还原中心在原点的轴对齐双曲线。"""
+    if "双曲线" not in s:
+        return None
+    horizontal = bool(re.search(r"x\^2/a\^2-y\^2/b\^2=1", s))
+    vertical = bool(re.search(r"y\^2/a\^2-x\^2/b\^2=1", s))
+    if horizontal == vertical:
+        return None
+    perpendicular = (horizontal and re.search(r"(?:平行于?y轴|垂直于?x轴)", s)) or (
+        vertical and re.search(r"(?:平行于?x轴|垂直于?y轴)", s)
+    )
+    if not perpendicular or not re.search(r"过(?:右焦点|f2)", s):
+        return None
+
+    def given_length(label: str) -> sp.Rational | None:
+        for pattern in (rf"(?:\\left)?\|{label}(?:\\right)?\|={NUM}",
+                        rf"{label}(?:的)?(?:长度|长)?(?:为|是|等于|=){NUM}"):
+            match = re.search(pattern, s, re.I)
+            if match:
+                try:
+                    return exact(match.group(1))
+                except ValueError:
+                    return None
+        return None
+
+    far_distance = given_length("f1a") or given_length("f1b")
+    chord_length = given_length("ab")
+    if far_distance is None or chord_length is None:
+        return None
+    q = sp.simplify(chord_length / 2)
+    a = sp.simplify((far_distance - q) / 2)
+    if q <= 0 or a <= 0:
+        return None
+    a2, b2 = sp.simplify(a * a), sp.simplify(a * q)
+    c2, c = sp.simplify(a2 + b2), sp.sqrt(sp.simplify(a2 + b2))
+    if sp.simplify(4 * c2 + q * q - far_distance * far_distance) != 0:
+        return None
+    equation = (f"x²/{exact_text(a2)}-y²/{exact_text(b2)}=1" if horizontal
+                else f"y²/{exact_text(a2)}-x²/{exact_text(b2)}=1")
+    a_point = [float(c if horizontal else q), float(q if horizontal else c)]
+    b_point = [float(c if horizontal else -q), float(-q if horizontal else c)]
+    chord_line = ({"kind": "vertical", "x": float(c)} if horizontal
+                  else {"kind": "slope", "m": 0, "b": float(c)})
+    chord_line.update({"id": "condition-focal-chord", "label": "AB", "source": "question",
+                       "visible": True, "equation": f"{'x' if horizontal else 'y'}={exact_text(c)}"})
+    return {
+        "type": "hyperbola", "a": float(a), "b": math.sqrt(float(b2)),
+        "orientation": "horizontal" if horizontal else "vertical", "h": 0, "k": 0,
+        "lineThrough": "focus2", "theta": 90 if horizontal else 0,
+        "equation": equation, "exact": {"a2": nice(a2), "b2": nice(b2)},
+        "points": {"A": a_point, "B": b_point}, "lines": [chord_line],
+        "objects": [
+            {"id": "condition-f1a", "kind": "construction", "op": "segment",
+             "refs": ["feature:F₁", "feature:A"], "label": "F₁A", "source": "question", "visible": True},
+            {"id": "condition-ab", "kind": "construction", "op": "segment",
+             "refs": ["feature:A", "feature:B"], "label": "AB", "source": "question", "visible": True},
+        ],
+        "derivation": [
+            f"设过右焦点的垂弦端点为 A(c,q)、B(c,-q)，则 2q=|AB|={nice(chord_length)}，所以 q={nice(q)}。",
+            "将 x=c 代入双曲线，得 q=b²/a；又 c²=a²+b²。",
+            f"由 |F₁A|²=(2c)²+q²，结合 b²=aq，可化为 |F₁A|=2a+q，因此 a=({nice(far_distance)}-{nice(q)})/2={nice(a)}。",
+            f"于是 b²=aq={nice(b2)}，c²=a²+b²={nice(c2)}。",
+        ],
+        "hyperbola_focal_perpendicular_chord": {
+            "farDistance": nice(far_distance), "chordLength": nice(chord_length),
+            "q": nice(q), "a": nice(a), "b2": nice(b2), "c2": nice(c2),
+            "eccentricity": nice(sp.simplify(c / a)),
+        },
+        "inferred_from_conditions": True, "fixed_focal_perpendicular_chord": True,
+        "dynamicLine": False, "showDynamic": False,
+    }
+
+
 def any_named_point(s: str, names: tuple[str, ...] = ("p", "m", "a", "b", "q")) -> tuple[sp.Rational, sp.Rational] | None:
     return next((point for name in names if (point := named_point_exact(s, name))), None)
 
@@ -714,6 +787,11 @@ def decorate_scene(scene: dict, s: str) -> dict:
             if through and point_label(through.group(1)) in points:
                 scene["lineThrough"] = "point:" + point_label(through.group(1))
     scene.setdefault("dynamicLineLabel", "探索直线")
+    if scene.get("fixed_focal_perpendicular_chord"):
+        # 此处的焦点垂弦方向由题设唯一固定，不应被误建模为可旋转直线。
+        scene["dynamicLine"] = False
+        scene["showDynamic"] = False
+        scene.pop("dynamicLinePart", None)
     return scene
 
 def standard_conic(text: str) -> dict | None:
@@ -803,7 +881,8 @@ def standard_conic(text: str) -> dict | None:
                 "orientation": "vertical", "h": 0, "k": 0, "lineThrough": "focus2", "theta": 42,
                 "exact": {"p": nice(abs(q_exact)/4)}, "equation": f"x²={nice(q_exact)}y"}
     # 非标准式的确定条件依次交给各自的符号求解器；它们均只接受足以唯一确定曲线的条件。
-    return ellipse_from_conditions(s) or circle_from_conditions(s) or parabola_from_conditions(s)
+    return (ellipse_from_conditions(s) or hyperbola_from_conditions(s)
+            or circle_from_conditions(s) or parabola_from_conditions(s))
 
 
 def split_problem_parts(text: str) -> list[dict]:
@@ -1736,7 +1815,17 @@ def deterministic_parts(text: str, scene: dict, base_answer: str, base_steps: li
         normal=normal_answer(scene,part) if "法线" in body else None
         foot=perpendicular_foot_answer(scene,part) if "垂足" in body else None
         locus=midpoint_locus_answer(scene,body,part.get("index")) if "轨迹" in body else None
-        if ellipse_focal_answer:
+        hyperbola_chord = scene.get("hyperbola_focal_perpendicular_chord")
+        if hyperbola_chord and "离心率" in body:
+            e = hyperbola_chord["eccentricity"]
+            answer = f"双曲线 C 的离心率为 $e={e}$。"
+            steps = [
+                *base_steps,
+                f"因此 $e=c/a=\\sqrt{{{hyperbola_chord['c2']}}}/{hyperbola_chord['a']}={e}$。",
+                f"回代检验：$|AB|={hyperbola_chord['chordLength']}$，$|F_1A|={hyperbola_chord['farDistance']}$，均与题设一致。",
+            ]
+            status = "answered"
+        elif ellipse_focal_answer:
             answer,steps=ellipse_focal_answer;status="answered"
         elif focus_chord_answer:
             answer,steps=focus_chord_answer;status="answered"

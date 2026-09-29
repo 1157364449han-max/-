@@ -335,6 +335,12 @@
         if(!accepted){progress('error','题面冲突，已停止解题。');api.setStatus('请核对 PQ/PO 后再解题。');return;}
         api.question.value=repair.corrected;original=repair.corrected.trim();api.remember();api.setStatus('已在你确认后将矛盾的“直线 PQ”修正为“直线 PO”，正在继续解题。');
       }
+      if(solveMode==='cloud'&&(runtime.config.deployment==='web'||!!runtime.config.apiBase)&&runtime.config.requiresAuth&&(!engineReady||!cloudPrimary)){
+        progress('error','云端解题尚未就绪，本次未改用内置规则。');
+        api.setStatus('你选择的是云端解题，但当前云端会话或模型尚未就绪。请先完成访问验证，并等待状态显示“已就绪”；系统不会再把内置规则的结果冒充成云端回答。');
+        void refreshEngine();
+        return;
+      }
       progress('solving','正在解题：识别条件、推导并核对结果…');
       const acceptResult=result=>{
         if(api.question.value.trim()!==original){api.setStatus('题目已修改，本次旧题结果未应用。请点击“解题”求解当前题目。');return;}
