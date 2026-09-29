@@ -59,6 +59,21 @@ class HyperbolaFocalChordConditionTests(unittest.TestCase):
         self.assertEqual(result["verification"]["status"], "locally-verified")
         self.assertEqual(result["verification"]["counts"]["answer_verified"], 1)
 
+    def test_missing_cloud_scene_is_rebuilt_from_the_verified_model(self):
+        ai_result = {
+            "mode": "cloud-ai", "title": "云端解答", "restatement": QUESTION,
+            "parts": [{"index": 0, "label": "完整题目", "body": QUESTION,
+                       "question": QUESTION, "status": "answered",
+                       "answer": "条件不足。", "steps": ["未完成。"]}],
+            "completion": {"answered": 1, "total": 1}, "scene": None,
+        }
+        result = server.verify_ai_solution(ai_result)
+        self.assertEqual(result["scene"]["exact"], {"a2": "16", "b2": "20"})
+        self.assertEqual(result["scene"]["points"]["A"], [6.0, 5.0])
+        self.assertIn("符号引擎", result["scene_notice"])
+        self.assertIn("e=3/2", result["parts"][0]["answer"])
+        self.assertEqual(result["verification"]["status"], "locally-verified")
+
 
 if __name__ == "__main__":
     unittest.main()

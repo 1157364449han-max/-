@@ -2127,6 +2127,10 @@ def trusted_scene_objects(reference: dict, candidate: dict) -> tuple[list[dict],
 def verify_ai_scene(result):
     scene = result.get("scene")
     if not scene:
+        reference = standard_conic(str(result.get("restatement") or ""))
+        if reference:
+            result["scene"] = decorate_scene(reference, normalise(str(result.get("restatement") or "")))
+            result["scene_notice"] = "智能模型未返回可用图形；画板已由内置符号引擎根据题目条件精确重建。"
         return attach_trust_report(result)
     normalise_scene_contract(scene)
     text = normalise(result["restatement"])
