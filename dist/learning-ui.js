@@ -49,8 +49,14 @@
       cloudUnavailable=show;
       const warning=find('#cloudOutage');
       warning.hidden=!show||solveMode!=='cloud';
+      renderCloudShortcut();
       if(message)find('#cloudOutageMessage').textContent=message;
       find('#cloudAuthUseLocal').hidden=!show;
+    }
+    function renderCloudShortcut(){
+      const visible=cloudUnavailable&&solveMode==='cloud';
+      find('#cloudOutageShortcut').hidden=!visible;
+      mobileNav.querySelector('[data-mobile-panel="input"]').textContent=visible?'题目 · 云端异常':'题目';
     }
     function cloudFailure(error){
       if(solveMode!=='cloud')return;
@@ -98,6 +104,7 @@
     }
     find('#useLocalSolver').addEventListener('click',useLocalSolver);
     find('#cloudAuthUseLocal').addEventListener('click',useLocalSolver);
+    find('#cloudOutageShortcut').addEventListener('click',useLocalSolver);
     find('#retryCloudConnection').addEventListener('click',()=>checkCloudConnection(true));
     window.addEventListener('offline',()=>cloudFailure({code:'network'}));
     window.addEventListener('online',()=>checkCloudConnection(true));
@@ -123,6 +130,7 @@
       const row=find('#modelSelectorRow'),select=find('#modelName'),label=find('#modelNameLabel span');
       find('#cloudConnection').hidden=solveMode!=='cloud';
       find('#cloudOutage').hidden=solveMode!=='cloud'||!cloudUnavailable;
+      renderCloudShortcut();
       if(!solveMode){summary.dataset.route='';title.textContent='尚未选择解题路径';detail.textContent='点击上方“云端解题”或“本机解题”。';row.hidden=true;return;}
       summary.dataset.route=solveMode;
       if(solveMode==='cloud'){

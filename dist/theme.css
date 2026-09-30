@@ -10,6 +10,7 @@ body { background:var(--paper); }
 .top-note { color:#c8ddd6; }
 .topbar .install-button { background:#244e46;border-color:#6c8e80;color:#f1f8f4; }
 .topbar .install-button:hover { background:#356354; }
+.topbar #cloudOutageShortcut { background:#fff0d7;border-color:#edd2a8;color:#784119; }
 .panel { border-color:var(--line);box-shadow:var(--shadow);border-radius:16px; }
 .panel-heading { background:#fffffff7;border-color:var(--line); }
 .panel-heading h1,.panel-heading h2 { color:var(--ink); }

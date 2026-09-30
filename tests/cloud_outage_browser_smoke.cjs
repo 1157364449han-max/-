@@ -55,12 +55,15 @@ module.exports=async({page,context,assert,screenshot})=>{
   }
   await page.evaluate(()=>window.dispatchEvent(new Event('offline')));
   await page.locator('#cloudOutage').waitFor({state:'visible'});
+  assert(await page.locator('#cloudOutageShortcut').isVisible(),'The cloud warning must remain reachable when the question column is hidden');
   assert.equal(await page.locator('#engineStatus').evaluate(node=>node.classList.contains('ready')),false,'An outage must not leave a green ready indicator');
   assert.equal(await page.locator('#cloudVisionChoice').isVisible(),false,'Unavailable cloud OCR must not look ready');
   await page.evaluate(()=>window.dispatchEvent(new Event('online')));
   await page.locator('#cloudOutage').waitFor({state:'hidden'});
   transport='network';await page.evaluate(()=>window.dispatchEvent(new Event('offline')));
   await page.setViewportSize({width:390,height:844});
+  await page.locator('[data-mobile-panel="board"]').click();
+  assert.match(await page.locator('[data-mobile-panel="input"]').textContent(),/云端异常/,'Other mobile panels must still indicate the outage');
   await page.locator('[data-mobile-panel="input"]').click();
   assert(await page.locator('#useLocalSolver').isVisible());
   assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));
