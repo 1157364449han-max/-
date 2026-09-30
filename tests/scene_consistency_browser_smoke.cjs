@@ -34,4 +34,17 @@ module.exports=async({page,context,assert,screenshot})=>{
   assert.match(await page.locator('.trust-summary').textContent(),/未决 1/);
   assert.equal(await page.evaluate(()=>window.DongSceneAudit.visible({parts:[2,3]},2)),true);
   assert.equal(await page.evaluate(()=>window.DongSceneAudit.visible({parts:[2,3]},1)),false);
+  await page.waitForFunction(()=>!document.querySelector('#solveButton').disabled);
+  raw={title:'故意错误的模型输出：独立复算测试',parts:[{index:0,status:'answered',answer:'$m=3$',steps:['错误地把未知分母假设成正数']}],scene:{type:'hyperbola',a:1,b:Math.sqrt(3),orientation:'horizontal',dynamicLine:false}};
+  const fs=require('node:fs'),path=require('node:path'),source=JSON.parse(fs.readFileSync(path.join(__dirname,'fixtures/sourced-exam-additions.json'),'utf8'));
+  await page.locator('#question').fill(source.items.find(q=>q.id==='2022-beijing-12').question);await page.locator('#solveButton').click();
+  await page.waitForFunction(()=>document.querySelector('#solution').textContent.includes('故意错误的模型输出'));
+  const corrected=await page.evaluate(()=>JSON.parse(localStorage.getItem('zhigeometry:last')).solution);
+  assert.match(corrected.parts[0].answer,/m=-3/);
+  assert.match(corrected.parts[0].model_answer,/m=3/,'Wrong original model answer remains separately inspectable');
+  assert.equal(corrected.scene.orientation,'vertical');
+  assert.equal(corrected.verification.counts.contradicted,0);
+  assert(corrected.verification.checks.filter(c=>c.id.startsWith('conic-parameter')).every(c=>c.status==='verified'));
+  assert.equal(await page.locator('#solution .katex-error').count(),0);
+  await screenshot('cloud-sign-error-independent-correction.png',null);
 };

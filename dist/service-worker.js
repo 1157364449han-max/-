@@ -1,8 +1,9 @@
 'use strict';
 
-const VERSION = '0.43.0';
+const VERSION = '0.43.1';
 const CACHE = `dongjiexi-app-${VERSION}`;
 const CORE = [
+  './conic-parameter.js',
   './math-input.js', './number-display.js', './tangent-solver.js', './ellipse-distance.js', './orthogonal-chord.js', './ellipse-focal-chord.js', './axis-intercept-chord.js',
   './', './index.html', './offline.html', './manifest.webmanifest', './app-version.json',
   './runtime-config.js', './runtime.js', './scene-contract.mjs', './scene-audit.js', './cloud-contract.mjs', './external-contract.mjs', './external-ai.js', './pwa.js', './theme.css', './learning-ui.css', './learning-ui.js', './classroom.css',

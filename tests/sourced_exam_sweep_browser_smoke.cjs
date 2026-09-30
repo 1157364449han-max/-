@@ -23,6 +23,14 @@ module.exports=async({page,context,assert,screenshot})=>{
       for(const [key,value] of Object.entries(item.testOracle))if(key!=='slope')parameterChecks.push({key,passed:Math.abs(result.scene[key==='a2'?'a':'b']**2-value)<1e-8});
     }
     rows.push({id:item.id,source:item.sources||additions.source,completion:result.completion,parts:result.parts.map(p=>({index:p.index,status:p.status,answer:p.answer})),verification:result.verification,parameterChecks,diagram});
+    if(item.id==='2022-beijing-12'&&!process.env.DONG_EXAM_BASELINE){
+      assert.equal(result.completion.answered,1,JSON.stringify(rows.at(-1)));
+      assert.match(result.parts[0].answer.replace(/[−–]/g,'-'),/m\s*=\s*-3/);
+      assert.equal(result.scene.orientation,'vertical');
+      assert(Math.abs(result.scene.a**2-1)<1e-8&&Math.abs(result.scene.b**2-3)<1e-8);
+      assert.equal(result.scene.showDynamic,false,'An asymptote question does not need an arbitrary secant');
+      await screenshot('sourced-2022-beijing-12.png',null);
+    }
     if(item.id==='2023-i-6'&&!process.env.DONG_EXAM_BASELINE){
       assert.equal(result.scene.showDynamic,false,'External-tangent question must not introduce an unrelated moving secant');
       assert.equal(result.scene.lines.filter(n=>n.op==='tangent').length,2);

@@ -447,7 +447,7 @@
         if(exactSolution?.parts?.length){
           const exactByIndex=new Map(exactSolution.parts.filter(part=>part.status==='answered').map(part=>[Number(part.index),part]));
           let corrected=false;
-          result.parts=(result.parts||[]).map(part=>{const exact=exactByIndex.get(Number(part.index));if(!exact)return part;corrected=true;return{...part,answer:exact.answer,steps:exact.steps,status:'answered',verification:exact.verification||{status:exactSolution.verification?.status||'generated',message:'题面独立复算，不代表已证明全部 AI 推导'},derivation:exact.derivation,source:'symbolic-verified-override'};});
+          result.parts=(result.parts||[]).map(part=>{const exact=exactByIndex.get(Number(part.index));if(!exact)return part;corrected=true;return{...part,model_answer:part.model_answer||(part.answer!==exact.answer?part.answer:undefined),answer:exact.answer,steps:exact.steps,status:'answered',verification:exact.verification||{status:exactSolution.verification?.status||'generated',message:'题面独立复算，不代表已证明全部 AI 推导'},derivation:exact.derivation,source:'symbolic-verified-override'};});
           if(corrected){
             result.completion={answered:result.parts.filter(part=>part.status==='answered').length,total:result.parts.length};
             if(result.parts.length===1){result.answer=result.parts[0].answer;result.steps=result.parts[0].steps;}

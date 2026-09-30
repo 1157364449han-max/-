@@ -1,12 +1,28 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
 const sandbox={window:{}};
-for(const file of ['construction-board.js','tangent-solver.js','scene-audit.js'])vm.runInNewContext(fs.readFileSync(path.join(__dirname,'../dist/'+file),'utf8'),sandbox);
+for(const file of ['construction-board.js','tangent-solver.js','scene-audit.js','math-input.js','number-display.js','equation-builder.js','conic-parameter.js'])vm.runInNewContext(fs.readFileSync(path.join(__dirname,'../dist/'+file),'utf8'),sandbox);
 const audit=sandbox.window.DongSceneAudit,construct=sandbox.window.DongConstruct;
 (async()=>{
   const {assemble}=await import('../dist/cloud-contract.mjs');
   const {safeConstructionScene}=await import('../dist/scene-contract.mjs');
   const {safeExternalScene}=await import('../dist/external-contract.mjs');
   let count=0;const check=f=>{f();count++;},copy=x=>JSON.parse(JSON.stringify(x));
+  const conic=sandbox.window.DongConicParameter;
+  const sourced=JSON.parse(fs.readFileSync(path.join(__dirname,'fixtures/sourced-exam-additions.json'),'utf8')).items.find(q=>q.id==='2022-beijing-12');
+  const inferred=conic.infer(sourced.question);
+  check(()=>assert.equal(inferred.parameterSolution.value,-3));
+  check(()=>assert.equal(inferred.orientation,'vertical'));
+  check(()=>assert(conic.checks(inferred.parameterSolution).every(c=>c.status==='verified')));
+  check(()=>assert.match(conic.solvePart({body:sourced.question},inferred.parameterSolution).answer,/m=-3/));
+  check(()=>assert.equal(conic.solvePart({body:'求三角形面积'},inferred.parameterSolution),null));
+  // Algebra property cases are not new example problems or answer lookup entries.
+  for(const c of [1,2,3])for(const slope of [0.5,1,2])for(const axis of ['x','y']){
+    const input=axis==='x'?`双曲线 x²/m+${c}y²=1 的渐近线 y=±${slope}x，求 m`:`双曲线 ${c}x²-y²/m=1 的渐近线 y=±${slope}x，求 m`;
+    const scene=conic.infer(input),expected=axis==='x'?-1/(c*slope**2):slope**2/c;
+    check(()=>assert(Math.abs(scene.parameterSolution.value-expected)<1e-10));
+    check(()=>assert(conic.checks(scene.parameterSolution).every(v=>v.status==='verified')));
+  }
+  for(const unsupported of ['双曲线 y²+x²/m=1，求 m','双曲线 x²/a²-y²/b²=1 的渐近线 y=±2x','双曲线 x²/x+y²=1 的渐近线 y=±2x','双曲线 y²+x²/m=1(m>0) 的渐近线 y=±2x','双曲线 y²-x²/m=1(m<0) 的渐近线 y=±2x','双曲线 y²+x²/m=1 的渐近线 y=±0x'])check(()=>assert.equal(conic.infer(unsupported),null));
   const question='已知圆 C：x²+y²=4，点 P(3,0)。过点 P 作圆的两条切线，切点分别为 A、B。（1）求切线。（2）设线段 AB 的中点为 N，求点 N 的坐标。（3）求三角形 PAB 的面积。';
   const raw={type:'circle',r:2,dynamicLine:false,points:{P:[3,0]},constructions:[
     {id:'contactA',op:'ellipse_tangent_point',refs:['feature:P','$conic'],branch:0,label:'A'},
