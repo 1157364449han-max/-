@@ -1,0 +1,9 @@
+{
+  "note": "Only regression input and test oracles. Never loaded by the production solver. Formula layout checked against the source PDF pages 2 and 4; Roman numerals converted to (1)/(2) without changing mathematical conditions.",
+  "source": "https://m.shsbnu.net/pluginfile.php/54461/mod_folder/content/0/2022%E5%B9%B4%E6%96%B0%E9%AB%98%E8%80%83%E5%8C%97%E4%BA%AC%E6%95%B0%E5%AD%A6%E9%AB%98%E8%80%83%E7%9C%9F%E9%A2%98%E6%96%87%E6%A1%A3%E7%89%88%EF%BC%88%E5%8E%9F%E5%8D%B7%EF%BC%89.pdf",
+  "items": [
+    {"id":"2022-beijing-10", "year":2022, "paper":"北京卷", "number":"10", "page":2, "question":"在△ABC中，AC=3，BC=4，∠C=90°。P为△ABC所在平面内的动点，且PC=1，则向量 PA·PB 的取值范围是？", "testOracle":"[-4,6]", "oracleKind":"SymPy dot-product formula with unit-circle range; not a stored answer in the solver"},
+    {"id":"2022-beijing-12", "year":2022, "paper":"北京卷", "number":"12", "page":2, "question":"已知双曲线 y²+x²/m=1 的渐近线方程为 y=±(√3/3)x，则 m=？", "testOracle":"-3", "oracleKind":"SymPy asymptote coefficient identity; original denominator is m, NOT 2m"},
+    {"id":"2022-beijing-19-full", "replaces":"2022-beijing-19-1", "year":2022, "paper":"北京卷", "number":"19", "page":4, "question":"已知椭圆 E：x²/a²+y²/b²=1（a>b>0）的一个顶点为 A(0,1)，焦距为 2√3。\n（1）求椭圆 E 的方程；\n（2）过点 P(-2,1) 作斜率为 k 的直线与椭圆 E 交于不同的两点 B，C，直线 AB，AC 分别与 x 轴交于点 M，N，当 |MN|=2 时，求 k 的值。", "testOracle":{"a2":4,"b2":1,"slope":-4}, "oracleKind":"Generic axis-intercept chord identity, independently derived with SymPy"}
+  ]
+}

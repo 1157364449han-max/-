@@ -50,6 +50,9 @@
       resetPreview();validQuestion();const core=await contract(),reply=find('#externalReply').value;
       const candidate=core.parseReply(reply,request);
       if(candidate.graphValid){const issues=[...core.inspectGeometry(candidate.result.scene,window.DongConstruct),...(api.checkQuestionGeometry?.(candidate.result.scene,request.question)||[])];if(issues.length){candidate.warnings.push(...issues);candidate.graphValid=false;}}
+      candidate.result.sceneAudit=window.DongSceneAudit?.inspect(candidate.result.scene,request.question,candidate.result.parts,window.DongConstruct);
+      if(candidate.result.sceneAudit?.missing.length)candidate.warnings.push('题目声明但回复尚未构造的点：'+candidate.result.sceneAudit.missing.join('、')+'。可复制补充 / 修正请求；缺失点不自动编造。');
+      if(candidate.result.sceneAudit?.missingLines.length)candidate.warnings.push('尚未找到的直线或切线：'+candidate.result.sceneAudit.missingLines.join('、')+'。请补充对应的关联构造。');
       validQuestion();preview=candidate;lastReply=reply;
       find('#externalWarnings').replaceChildren(...candidate.warnings.map(message=>{const item=document.createElement('li');item.textContent=message;return item;}));
       const display=find('#externalPreview');display.innerHTML=api.markup(candidate.result,true);display.hidden=false;api.typeset(display);

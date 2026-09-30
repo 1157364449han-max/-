@@ -2,7 +2,7 @@
   'use strict';
   const escapeText = value => String(value ?? '').replace(/[&<>"']/g, character => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[character]));
   const textBlock = value => `<div class="math-content">${escapeText(window.DongMathInput?.prepare(value)??value).replace(/\*\*([^*\n]+)\*\*/g,'<strong>$1</strong>')}</div>`;
-  const statusNames = {answered:'已生成完整作答',partial:'尚未完整解答',needs_information:'需要补充条件'};
+  const statusNames = {answered:'已生成完整作答',partial:'尚未完整解答',needs_information:'AI 认为条件不足（待核实）'};
   const verificationNames = {generated:'仅生成 · 待核验','locally-verified':'局部代数核验通过',conflict:'发现确定性冲突','fully-verified':'完整验证通过','reference-reviewed':'题库参考讲解 · 非机器证明'};
   const checkNames = {verified:'通过',contradicted:'冲突',unresolved:'未决'};
   const hasUncertainty = value => /\[(?:看不清|模糊|无法辨认|不确定)[^\]]*\]|(?:看不清|无法辨认)处|[?？]{3,}/i.test(String(value||''));
@@ -229,8 +229,10 @@
       const model=solution.problemModel;
       const modelDetails=model?`<details class="problem-model"><summary>结构化题目模型 · ${model.curve?escapeText(model.curve.kind):'曲线未确定'} · ${model.parts?.length||0} 问</summary><p>输入确认：${model.source?.confirmed?'已确认':'存在模糊字段'}；点 ${model.points?.length||0} 个；直线 ${model.lines?.length||0} 条。</p>${model.source?.ambiguities?.length?`<p class="verification-conflict">未确认：${escapeText(model.source.ambiguities.join('、'))}</p>`:''}</details>`:'';
       const checkList=(part)=>{const checks=(report.checks||[]).filter(item=>item.part==null||Number(item.part)===Number(part.index));if(!checks.length)return '';return `<details class="verification-details"><summary>查看本问机器核验（${checks.length} 项）</summary><ul>${checks.map(item=>`<li class="check-${escapeText(item.status)}"><strong>${escapeText(checkNames[item.status]||item.status)}</strong> · ${escapeText(item.label)}：${escapeText(item.detail)}${item.formula?textBlock('$'+item.formula+'$'):''}</li>`).join('')}</ul></details>`;};
-      const partMarkup=visible.map(part=>{const partTrust=part.verification||{status:'generated',message:'仅生成'};const derivation=part.derivation||{};const obligations=derivation.proof_obligations||[];return `<section class="part-body" data-part-index="${escapeText(part.index)}"><h3>${escapeText(part.label||'本问')}</h3><span class="answer-status ${['answered','partial','needs_information'].includes(part.status)?part.status:'partial'}">${escapeText(statusNames[part.status]||'请核对解答')}</span><span class="verification-status ${escapeText(partTrust.status||'generated')}">${escapeText(verificationNames[partTrust.status]||partTrust.message||'待核验')}</span><div class="answer-summary">${textBlock(part.answer)}</div><ol>${(part.steps||[]).map(step=>'<li>'+textBlock(step)+'</li>').join('')}</ol>${obligations.length?`<details class="proof-obligations"><summary>尚需完成的证明义务（${obligations.length}）</summary><ul>${obligations.map(item=>'<li>'+textBlock(item)+'</li>').join('')}</ul></details>`:''}${checkList(part)}</section>`;}).join('');
-      return `<h3>${escapeText(solution.title||'解题结果')}</h3><p>${escapeText(summary)}${solution.model?' · '+escapeText(solution.model):''}</p>${trust}${provenance}${stale}${solution.quality_notice?`<p class="verification-conflict">${escapeText(solution.quality_notice)}</p>`:''}<details><summary>查看原题</summary>${textBlock(solution.restatement)}</details>${modelDetails}${tabs}${solution.knowns?.length?`<details><summary>已知条件</summary><ul>${solution.knowns.map(value=>'<li>'+textBlock(value)+'</li>').join('')}</ul></details>`:''}${solution.strategy?`<div class="method-overview"><p><strong>解题方法</strong></p>${textBlock(solution.strategy)}</div>`:''}${partMarkup}${externalReply}${solution.assumptions?.length?`<p class="lesson-assumptions">使用的假设：${escapeText(solution.assumptions.join('；'))}</p>`:''}<div class="proof">${escapeText(report.message||'尚未核验')}${solution.scene_notice?'<p>'+escapeText(solution.scene_notice)+'</p>':''}</div>`;
+      const audit=solution.sceneAudit;
+      const diagramReport=audit?`<details class="diagram-audit"><summary>图形核对 · 缺失点 ${audit.missing?.length||0} · 缺失线 ${audit.missingLines?.length||0} · 无效构造 ${audit.invalid?.length||0}</summary><p>${escapeText(audit.note)}</p>${!all?'<button type="button" class="button secondary" data-diagram-recheck>重新核对当前图形</button>':''}${audit.missing?.length?`<p class="verification-conflict">题目声明但未找到的点：${escapeText(audit.missing.join('、'))}。请补充构造或复制修正请求。</p>`:''}${audit.missingLines?.length?`<p class="verification-conflict">尚未找到的直线或切线：${escapeText(audit.missingLines.join('、'))}。</p>`:''}${audit.invalid?.length?`<p class="verification-conflict">当前无法构造：${escapeText(audit.invalid.join('、'))}。</p>`:''}<ul>${(audit.checks||[]).filter(c=>all||window.DongSceneAudit.visible(c,active)).map(c=>`<li>${c.passed?'✓':'未通过'} ${escapeText(c.label)}：${escapeText(c.detail)}</li>`).join('')}</ul></details>`:'';
+      const partMarkup=visible.map(part=>{const partTrust=part.verification||(solution.mode==='symbolic-fallback'&&part.status==='answered'?{status:report.status||'generated',message:'内置确定性复算'}:{status:'generated',message:'仅生成'});const derivation=part.derivation||{};const obligations=derivation.proof_obligations||[];return `<section class="part-body" data-part-index="${escapeText(part.index)}"><h3>${escapeText(part.label||'本问')}</h3><span class="answer-status ${['answered','partial','needs_information'].includes(part.status)?part.status:'partial'}">${escapeText(statusNames[part.status]||'请核对解答')}</span><span class="verification-status ${escapeText(partTrust.status||'generated')}">${escapeText(verificationNames[partTrust.status]||partTrust.message||'待核验')}</span><div class="answer-summary">${textBlock(part.answer)}</div><ol>${(part.steps||[]).map(step=>'<li>'+textBlock(step)+'</li>').join('')}</ol>${obligations.length?`<details class="proof-obligations"><summary>尚需完成的证明义务（${obligations.length}）</summary><ul>${obligations.map(item=>'<li>'+textBlock(item)+'</li>').join('')}</ul></details>`:''}${part.quality_notice?`<p class="verification-conflict">${escapeText(part.quality_notice)}</p>`:''}${part.model_answer?`<details><summary>查看 AI 原始判断（未证实）</summary>${textBlock(part.model_answer)}</details>`:''}${checkList(part)}</section>`;}).join('');
+      return `<h3>${escapeText(solution.title||'解题结果')}</h3><p>${escapeText(summary)}${solution.model?' · '+escapeText(solution.model):''}</p>${trust}${provenance}${stale}${solution.quality_notice?`<p class="verification-conflict">${escapeText(solution.quality_notice)}</p>`:''}<details><summary>查看原题</summary>${textBlock(solution.restatement)}</details>${modelDetails}${tabs}${solution.knowns?.length?`<details><summary>已知条件</summary><ul>${solution.knowns.map(value=>'<li>'+textBlock(value)+'</li>').join('')}</ul></details>`:''}${solution.strategy?`<div class="method-overview"><p><strong>解题方法</strong></p>${textBlock(solution.strategy)}</div>`:''}${partMarkup}${diagramReport}${externalReply}${solution.assumptions?.length?`<p class="lesson-assumptions">使用的假设：${escapeText(solution.assumptions.join('；'))}</p>`:''}<div class="proof">${escapeText(report.message||'尚未核验')}${solution.scene_notice?'<p>'+escapeText(solution.scene_notice)+'</p>':''}</div>`;
     }
     function bindTabs(element) {
       element.querySelectorAll('[data-study-part]').forEach(button=>button.addEventListener('click',()=>{
@@ -246,6 +248,12 @@
       const panel=find('#solution');
       panel.innerHTML=`<div class="lesson-actions"><button data-lesson-action="read">展开解析</button><button data-lesson-action="copy">复制解析</button><button data-lesson-action="print">打印 / PDF</button><button data-lesson-action="save">保存本题</button></div>`+markup(solution);
       panel.hidden=false;bindTabs(panel);typeset(panel);renderChat();classroom?.decorate();
+      panel.querySelector('[data-diagram-recheck]')?.addEventListener('click',()=>{
+        if(!api.state.model||!solution.scene)return;
+        solution.sceneAudit=window.DongSceneAudit.inspect(api.sceneData(),solution.restatement,solution.parts,window.DongConstruct);
+        solution.sceneAudit.note=api.state.exploring?'当前已调整参数；这是当前图形的数值核对，不验证原题答案及一般性证明。':'已核对当前图形的数值构造，不是一般性证明。';
+        renderSolution();find('#solution .diagram-audit').open=true;api.remember();
+      });
       panel.querySelectorAll('[data-lesson-action]').forEach(button=>button.addEventListener('click',async()=>{
         try{
           if(button.dataset.lessonAction==='read'){find('#readingContent').innerHTML='<section class="solution">'+markup(solution,true)+'</section>';typeset(find('#readingContent'));find('#readingDialog').showModal();}
@@ -432,31 +440,39 @@
     function acceptSolution(result,original,{installGraph=true}={}){
       if(api.question.value.trim()!==original){api.setStatus('题目已修改，本次旧题结果未应用。请点击“解题”求解当前题目。');return false;}
       if(['cloud-ai','local-ollama','external-ai'].includes(result.mode)){
-        const answerContext=[original,result.strategy,...(result.parts||[]).flatMap(part=>[part.answer,...(part.steps||[])])].filter(Boolean).join('\n');
         let exactSolution;
         try{exactSolution=api.solveDeterministic?.(original);}catch{}
-        if(!exactSolution?.scene&&result.mode!=='external-ai'){try{exactSolution=api.solveDeterministic?.(answerContext);}catch{}}
         const exactScene=exactSolution?.scene,completion=exactSolution?.completion||{};
         const exactComplete=Number(completion.total)>0&&Number(completion.answered)===Number(completion.total);
         if(exactSolution?.parts?.length){
           const exactByIndex=new Map(exactSolution.parts.filter(part=>part.status==='answered').map(part=>[Number(part.index),part]));
           let corrected=false;
-          result.parts=(result.parts||[]).map(part=>{const exact=exactByIndex.get(Number(part.index));if(!exact)return part;corrected=true;return{...part,answer:exact.answer,steps:exact.steps,status:'answered',verification:exact.verification,derivation:exact.derivation,source:'symbolic-verified-override'};});
+          result.parts=(result.parts||[]).map(part=>{const exact=exactByIndex.get(Number(part.index));if(!exact)return part;corrected=true;return{...part,answer:exact.answer,steps:exact.steps,status:'answered',verification:exact.verification||{status:exactSolution.verification?.status||'generated',message:'题面独立复算，不代表已证明全部 AI 推导'},derivation:exact.derivation,source:'symbolic-verified-override'};});
           if(corrected){
             result.completion={answered:result.parts.filter(part=>part.status==='answered').length,total:result.parts.length};
             if(result.parts.length===1){result.answer=result.parts[0].answer;result.steps=result.parts[0].steps;}
-            if(result.mode==='external-ai'){
-              const verified=result.parts.filter(p=>p.source==='symbolic-verified-override').length;
-              result.verification={status:'locally-verified',counts:{verified,contradicted:0,unresolved:result.parts.length-verified},message:`内置引擎复算了 ${verified} 个已覆盖小问；其它推导及一般性证明仍需核验。`};
-            }
+            const verifiedParts=result.parts.filter(p=>p.source==='symbolic-verified-override').length;
+            const nativeReport=exactSolution.verification||{},checks=nativeReport.checks||[],counts=nativeReport.counts||{};
+            result.verification={status:nativeReport.status||'generated',checks,counts:{verified:counts.verified||0,contradicted:counts.contradicted||0,unresolved:(counts.unresolved||0)+result.parts.length-verifiedParts},message:`内置引擎从原题独立复算了 ${verifiedParts} 个已覆盖小问；其它推导及一般性证明仍需核验。`};
             result.quality_notice='已覆盖的小问由内置数学引擎独立复算，最终结论以该小问的核验结果为准。';
           }
         }
-        if(result.mode==='external-ai'&&result.scene&&exactComplete&&exactScene?.type===result.scene.type){
+        if(result.mode!=='external-ai'&&exactComplete&&exactScene&&!result.scene?.objects?.length&&!result.scene?.lines?.length){
+          result.scene=exactScene;
+          result.scene_notice='AI 已先完成解答；画板由原题的独立符号模型对齐题目与答案。';
+        }else if(result.scene&&(exactComplete||exactScene?.inferredFromConditions||exactScene?.inferred_from_conditions)&&exactScene?.type===result.scene.type){
           // Keep the validated reply's dependency graph while correcting primary parameters.
           for(const key of ['a','b','r','p','h','k','direction','orientation'])if(exactScene[key]!=null)result.scene[key]=exactScene[key];
+          const declared=new Set(window.DongSceneAudit.declared(original));
+          result.scene.points||={};
+          for(const [name,point] of Object.entries(exactScene.points||{}))if(declared.has(window.DongSceneAudit.canonical(name)))result.scene.points[name]=point;
+          if(exactSolution.engineExtensions?.includes('axis-intercept-chord')){
+            for(const key of ['theta','lineThrough','dynamicIntersectionLabels','showDynamic'])if(exactScene[key]!=null)result.scene[key]=exactScene[key];
+            result.scene.objects||=[];result.scene.lines||=[];
+            for(const key of ['objects','lines'])for(const node of exactScene[key]||[])if(node.source==='derived'&&!result.scene[key].some(n=>n.id===node.id||n.label===node.label))result.scene[key].push(node);
+          }
           result.scene.exact=exactScene.exact||{};
-          result.scene_notice='题面支持的主曲线参数已复算；外部回复的关联构造保留，其它结论仍需核验。';
+          result.scene_notice='题面支持的主曲线参数已复算；AI 回复的关联构造保留，其它结论仍需核验。';
         }else if(result.mode!=='external-ai'&&exactScene&&(!result.scene||exactComplete||exactScene.inferredFromConditions||exactScene.inferred_from_conditions)){
           result.scene=exactScene;
           result.scene_notice='AI 已先完成解答；画板再由可核验的符号模型对齐题目与答案。';

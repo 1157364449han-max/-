@@ -7,19 +7,20 @@ const net=require('node:net');
 const {spawn}=require('node:child_process');
 const {chromium}=require(process.env.DONG_PLAYWRIGHT_PATH||'playwright');
 const root=path.resolve(__dirname,'..');
+const sourceRoot=process.env.DONG_TEST_SOURCE_ROOT?path.resolve(process.env.DONG_TEST_SOURCE_ROOT):root;
 const output=process.env.DONG_TEST_OUTPUT||fs.mkdtempSync(path.join(os.tmpdir(),'dongjiexi-browser-'));
 fs.mkdirSync(output,{recursive:true});
 const suites=process.argv.slice(2);
 if(!suites.length)suites.push('question_bank','solve_progress_implicit','mobile_panels','orthogonal_chord','ellipse_focal_chord','hyperbola_focal_chord_condition','hyperbola_conditions','cloud_auth','cloud_outage','cloud_primary','cloud_primary_hyperbola','cloud_vision','latex_tangent','curve_edit_tangent','additive_conic_snap','focus_chord','derived_construction','one_stop_solver','desktop_layout','dependent_motion','named_points','reflected_chord','structured_input','conic_quick_tools','viewport_quick_draw','polygon_problem_sweep','ellipse_distance','parameter_selection','pwa','mobile_touch','solve_switch','photo_ocr','extreme_highlight','mathlive_input','point_hover');
 const delay=ms=>new Promise(resolve=>setTimeout(resolve,ms));
-if(process.argv.length===2)suites.unshift('external_ai','cloud_stream');
+if(process.argv.length===2)suites.unshift('scene_consistency','sourced_exam_sweep','external_ai','cloud_stream');
 async function port(){const probe=net.createServer();await new Promise((resolve,reject)=>probe.once('error',reject).listen(0,'127.0.0.1',resolve));const value=probe.address().port;await new Promise(resolve=>probe.close(resolve));return value;}
 async function run(){
   let service,browser,baseURL=process.env.DONG_TEST_BASE_URL;
   try{
     if(!baseURL){
       const value=await port();baseURL=`http://127.0.0.1:${value}`;
-      service=spawn(process.env.DONG_PYTHON||'python',['-B',path.join(root,'server.py'),'--host','127.0.0.1','--port',String(value)],{cwd:root,windowsHide:true,env:{...process.env,PYTHONUTF8:'1',PYTHONDONTWRITEBYTECODE:'1'},stdio:['ignore','ignore','pipe']});
+      service=spawn(process.env.DONG_PYTHON||'python',['-B',path.join(sourceRoot,'server.py'),'--host','127.0.0.1','--port',String(value)],{cwd:sourceRoot,windowsHide:true,env:{...process.env,PYTHONUTF8:'1',PYTHONDONTWRITEBYTECODE:'1'},stdio:['ignore','ignore','pipe']});
       let failure='';service.stderr.on('data',chunk=>failure+=chunk);service.on('error',error=>failure=error.message);
       let ready=false;
       for(let i=0;i<60;i++){try{if((await fetch(baseURL)).ok){ready=true;break;}}catch{}if(service.exitCode!==null)throw new Error(failure||'Test server exited');await delay(150);}

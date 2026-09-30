@@ -163,7 +163,7 @@
     const uid=()=>globalThis.crypto?.randomUUID?.()||'obj-'+Date.now()+'-'+Math.random().toString(36).slice(2);
     const fmt=n=>window.DongNumber?.text(n)??Number(n.toFixed(4)).toString();
     function label(prefix){const used=new Set([...api.features().map(p=>p.name),...engine.objects().map(o=>o.label),...staged.map(o=>o.label)]);let i=1;while(used.has(prefix+i))i++;return prefix+i;}
-    function visible(id){if(id==='$conic')return state.model?.showConic!==false;if(id==='$dynamic')return state.model?.showDynamic!==false&&api.visible({part:state.model.dynamicLinePart});if(id.startsWith('feature:'))return state.model?.showFeatures!==false;const o=engine.getObject(id);return o&&api.visible(o);}
+    function visible(id){if(id==='$conic')return state.model?.showConic!==false;if(id==='$dynamic')return state.model?.showDynamic!==false&&api.visible({part:state.model.dynamicLinePart,parts:state.model.dynamicLineParts});if(id.startsWith('feature:')){const p=api.features().find(p=>p.name===id.slice(8));return p&&(api.featureVisible?api.featureVisible(p):state.model?.showFeatures!==false);}const o=engine.getObject(id);return o&&api.visible(o);}
     function points(){return [...api.features().filter(p=>api.featureVisible?api.featureVisible(p):state.model?.showFeatures!==false).map(p=>({id:'feature:'+p.name,...p})),...engine.objects().filter(o=>api.visible(o)).map(o=>({id:o.id,...engine.resolve(o.id)})).filter(o=>o.type==='point')];}
     function pointAt(screen,threshold=14){return points().map(p=>({...p,d:distance(xy(p.x,p.y),screen)})).filter(p=>p.d<threshold).sort((a,b)=>a.d-b.d)[0];}
     function shapeDistance(shape,p){
@@ -235,7 +235,7 @@
         const bind=document.createElement('select');bind.setAttribute('aria-label','构造所属小问');const all=document.createElement('option');all.value='';all.textContent='所有小问显示';bind.append(all);
         for(const part of state.solution?.parts||[]){if(!part.index)continue;const option=document.createElement('option');option.value=part.index;option.textContent=part.label||`第 ${part.index} 问`;bind.append(option);}
         if(object.part!=null&&!Array.from(bind.options).some(o=>Number(o.value)===Number(object.part))){const option=document.createElement('option');option.value=object.part;option.textContent=`第 ${object.part} 问`;bind.append(option);}
-        bind.value=object.part??'';bind.onchange=()=>api.transaction(()=>{if(bind.value==='')delete object.part;else object.part=Number(bind.value);});box.append(bind);
+        bind.value=object.part??'';bind.onchange=()=>api.transaction(()=>{delete object.parts;if(bind.value==='')delete object.part;else object.part=Number(bind.value);});box.append(bind);
       }
     }
     function resetPending(){pending=[];staged=[];hover=null;pointer=null;snapPreview=null;}

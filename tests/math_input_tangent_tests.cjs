@@ -6,6 +6,7 @@ assert.equal(toPlain(String.raw`椭圆 $\frac{x^{2}}{9}+\frac{y^2}{4}=1$`),'椭�
 assert.equal(toPlain(String.raw`\frac{(x-1)^2}{9}+\frac{(y+2)^2}{4}=1`),'(x-1)^2/9+(y+2)^2/4=1');
 assert.equal(toPlain(String.raw`P\left(\frac{3}{2},\sqrt{4}\right)`),'P(3/2,2)');
 assert.equal(toPlain(String.raw`\frac{1}{\frac{2}{3}}`),'1/(2/3)');
+assert(Math.abs(sandbox.window.DongEquationBuilder.scalar(toPlain(String.raw`2\sqrt3`))-2*Math.sqrt(3))<1e-12);
 assert.match(prepare(String.raw`已知\frac{x^2}{9}=1。`),/\$.*\$/);
 assert.equal(prepare('$x^2=1$'),'$x^2=1$');
 const block='$$\n'+String.raw`\frac{x^2}{9}+\frac{y^2}{4}=1`+'\n$$';

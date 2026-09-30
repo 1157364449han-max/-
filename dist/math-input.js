@@ -23,6 +23,7 @@
         if(/frac/.test(match[1])){let j=a.end;while(/\s/.test(s[j]||'')&&j<s.length)j++;const b=group(s,j);if(!b)continue;end=b.end;const simple=t=>/^[+-]?\d+(?:\.\d+)?$/.test(t)||/^[a-z](?:\^\{?\d+\}?)?$/i.test(t);replacement=`${simple(a.body)?a.body:'('+a.body+')'}/${simple(b.body)?b.body:'('+b.body+')'}`;}
         else if(match[1]==='sqrt')replacement=/^\d+(?:\.\d+)?$/.test(a.body)?String(Math.sqrt(Number(a.body))):`sqrt(${a.body})`;
         else replacement=a.body;
+        if(match[1]==='sqrt'&&/[0-9)π]$/.test(s.slice(0,match.index)))replacement='*'+replacement;
         s=s.slice(0,match.index)+replacement+s.slice(end);changed=true;break;
       }
       if(!changed)break;

@@ -44,6 +44,18 @@ class ReleaseBuildTests(unittest.TestCase):
                 public_https(address)
         self.assertEqual(public_https('https://api.example.com/v1/'), 'https://api.example.com/v1')
 
+    def test_complete_public_regression_tools_are_packaged(self):
+        with tempfile.TemporaryDirectory(prefix='dongjiexi-package-tests-') as directory:
+            output = Path(directory) / 'release'
+            report = build_release(ROOT, output)
+            archive = output / 'site/downloads' / ('dongjiexi-v' + report['version'] + '.zip')
+            with zipfile.ZipFile(archive) as package:
+                names = set(package.namelist())
+                for required in ['deploy/phone/configure-inference.py', 'tests/fixtures/sourced-exam-additions.json',
+                                 'dist/scene-contract.mjs', 'dist/scene-audit.js', 'dist/axis-intercept-chord.js']:
+                    self.assertIn('董解析/' + required, names)
+                self.assertFalse(any('wrangler.local' in name or name.endswith('.env') for name in names))
+
     def test_refuses_to_overwrite_existing_output(self):
         with tempfile.TemporaryDirectory(prefix='dongjiexi-build-') as directory:
             output = Path(directory)

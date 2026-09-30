@@ -52,7 +52,7 @@
       if(!state.model)return [];
       const list=[],m=state.model,p=state.p,vertical=m.orientation==='vertical';
       if(m.showFeatures!==false){
-        for(const [name,coords] of Object.entries(m.points||{}))if(!m.pointBindings?.[name])list.push({type:'point',name,point:{x:coords[0],y:coords[1]},label:`点 ${name}`});
+        for(const [name,coords] of Object.entries(m.points||{}))if(!m.pointBindings?.[name]&&visible({parts:m.pointParts?.[name]}))list.push({type:'point',name,point:{x:coords[0],y:coords[1]},label:`点 ${name}`});
       }
       for(const obj of m.objects||[]){if(!visible(obj))continue;
         if(obj.kind==='point')list.push({type:'userPoint',obj,point:{x:obj.x,y:obj.y},label:`点 ${obj.label}`});
@@ -77,7 +77,7 @@
         }else if(m.type==='circle')list.push({type:'radius',point:{x:p.h+p.r,y:p.k},label:'拖动圆周手柄调整半径'});
         else list.push({type:'focus',point:vertical?{x:p.h,y:p.k+(p.direction||1)*p.p}:{x:p.h+(p.direction||1)*p.p,y:p.k},label:'拖动焦点调整开口与焦距'});
       }
-      if(m.showDynamic!==false&&visible({part:m.dynamicLinePart})) {
+      if(m.showDynamic!==false&&visible({part:m.dynamicLinePart,parts:m.dynamicLineParts})) {
         const origin=api.lineOrigin(),rad=p.theta*Math.PI/180;
         const d=(state.view.xmax-state.view.xmin)/state.cssW*110;
         list.push({type:'dynamic',point:{x:origin.x+d*Math.cos(rad),y:origin.y+d*Math.sin(rad)},label:'拖动橙色手柄旋转动直线'});
@@ -106,7 +106,7 @@
         if(segmentDistance(p,xy(ends.a.x,ends.a.y),xy(ends.b.x,ends.b.y),line.infinite!==false)<threshold)
           return {type:'line',line,label:`拖动平移 ${line.label||'直线'}；选中后可拖动旋转手柄`};
       }
-      if(m.showDynamic!==false&&visible({part:m.dynamicLinePart})){
+      if(m.showDynamic!==false&&visible({part:m.dynamicLinePart,parts:m.dynamicLineParts})){
         const o=api.lineOrigin(),rad=state.p.theta*Math.PI/180,a=xy(o.x,o.y),b=xy(o.x+Math.cos(rad),o.y+Math.sin(rad));
         if(segmentDistance(p,a,b,true)<threshold)return {type:'dynamic',label:'旋转动直线，保持通过题设定点'};
       }

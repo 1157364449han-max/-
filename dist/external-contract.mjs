@@ -1,5 +1,6 @@
 /* Offline, data-only import of replies from a user's own AI. No inference or fetch. */
-import {SOLVE_SYSTEM, assemble, safeScene, splitParts} from './cloud-contract.mjs';
+import {SOLVE_SYSTEM, assemble, splitParts} from './cloud-contract.mjs';
+import {safeConstructionScene} from './scene-contract.mjs';
 
 export const SCHEMA = 'dongjiexi-external-v1';
 export const MAX_REPLY = 150000;
@@ -49,71 +50,9 @@ function extractReply(source) {
 }
 
 export function safeExternalScene(raw) {
-  const warnings=[];
-  if(raw==null)return {scene:null,warnings:['回复未提供结构化图形；可复制补充作图请求。'],valid:false};
-  const scene=safeScene({...raw,points:{},curvePoints:[],lines:[]});
-  if(!scene)return {scene:null,warnings:['主曲线类型或参数无效，本次不替换画板。'],valid:false};
-  let valid=true;
-  const warn=message=>{warnings.push(message);valid=false;};
-  const scope=n=>Number.isInteger(n)&&n>0&&n<10000?{part:n}:{};
-  const labels=new Set(scene.dynamicLine?['A','B']:[]), ids=new Set(), nodes=[];
-  const pointOps=new Set(['point_on','midpoint','reflect_center','reflect_axis','foot','ellipse_tangent_point','intersection']);
-  const reserve=(node)=>{
-    if(!id(node.id)||ids.has(node.id)){warn('对象标识无效或重复：'+text(node.id,48));return false;}
-    ids.add(node.id);return true;
-  };
-  if(raw.points&&(!Array.isArray(raw.points)&&typeof raw.points==='object')){
-    if(Object.keys(raw.points).length>50)warn('固定点超过 50 个。');
-    for(const [key,p] of Object.entries(raw.points).slice(0,50)){
-      if(!name(key)||!Array.isArray(p)||p.length!==2||!p.every(finite)){warn('点 '+text(key,40)+' 的名称或坐标无效。');continue;}
-      if(scene.dynamicLine&&['A','B'].includes(key)){warn('动线交点 '+key+' 不应导入为固定坐标。');continue;}
-      scene.points[key]=p.slice();labels.add(key);
-    }
-  }else if(raw.points!=null)warn('points 必须是点名到坐标的对象。');
-  if(raw.curvePoints!=null&&!Array.isArray(raw.curvePoints))warn('curvePoints 必须为数组。');
-  if(Array.isArray(raw.curvePoints)&&raw.curvePoints.length>12)warn('曲线上动点超过 12 个。');
-  if(Array.isArray(raw.curvePoints))for(const [i,p] of raw.curvePoints.slice(0,12).entries()){
-    if(!p||!name(p.name)||labels.has(p.name)){warn('曲线上动点名称无效或重复。');continue;}
-    labels.add(p.name);const node={id:'external-moving-'+i,kind:'construction',op:'point_on',refs:['$conic'],t:finite(p.t)?p.t:.9,label:p.name,visible:true,...scope(p.part)};
-    reserve(node);nodes.push(node);
-  }
-  const moving = new Map(nodes.map(n=>[n.label,n.id]));
-  const known = key => Object.hasOwn(scene.points,key)||moving.has(key)||(scene.dynamicLine&&['A','B'].includes(key));
-  if(raw.lines!=null&&!Array.isArray(raw.lines))warn('lines 必须为数组。');
-  if(Array.isArray(raw.lines)&&raw.lines.length>50)warn('直线超过 50 条。');
-  for(const [i,line] of (Array.isArray(raw.lines)?raw.lines:[]).slice(0,50).entries()){
-    if(!line||typeof line!=='object'){warn('直线数据无效。');continue;}
-    const clean={id:line.id??'external-line-'+i,label:text(line.label,40)||'直线',visible:true,...scope(line.part)};
-    if(line.kind==='slope'&&finite(line.m)&&finite(line.b))Object.assign(clean,{kind:'slope',m:line.m,b:line.b});
-    else if(line.kind==='vertical'&&finite(line.x))Object.assign(clean,{kind:'vertical',x:line.x});
-    else if(line.kind==='through_points'&&known(line.a)&&known(line.b)&&line.a!==line.b){
-      Object.assign(clean,{kind:'construction',op:line.infinite===false?'segment':'line',refs:[moving.get(line.a)||'feature:'+line.a,moving.get(line.b)||'feature:'+line.b]});
-    }else{warn('直线 '+clean.label+' 缺少有效参数或引用点。');continue;}
-    if(reserve(clean)){if(clean.kind==='construction')nodes.push(clean);else scene.lines.push(clean);}
-  }
-  if(raw.constructions!=null&&!Array.isArray(raw.constructions))warn('constructions 必须为数组。');
-  if(Array.isArray(raw.constructions)&&raw.constructions.length>60)warn('关联构造超过 60 个。');
-  for(const c of (Array.isArray(raw.constructions)?raw.constructions:[]).slice(0,60)){
-    if(!c||!Object.hasOwn(arity,c.op)||!Array.isArray(c.refs)||c.refs.length!==arity[c.op]||c.refs.some(ref=>typeof ref!=='string'||ref.length>70)){
-      warn('存在不支持的构造，已拒绝：'+text(c?.op,40));continue;
-    }
-    const node={id:c.id,kind:'construction',op:c.op,refs:c.refs.slice(),label:text(c.label,40)||c.id,visible:true,...scope(c.part)};
-    if(c.op==='point_on'){if(!finite(c.t)){warn('曲线上点缺少有效 t 参数。');continue;}node.t=c.t;node.branch=c.branch===-1?-1:1;}
-    if(c.op==='line_angle'){if(!finite(c.angle)){warn('过点直线缺少角度。');continue;}node.angle=c.angle;}
-    if(c.op==='reflect_axis'){if(!['x','y'].includes(c.axis)||!finite(c.axisValue??0)){warn('对称轴参数无效。');continue;}node.axis=c.axis;node.axisValue=c.axisValue??0;}
-    if(['intersection','ellipse_tangent_point'].includes(c.op)){if(![0,1].includes(c.branch??0)){warn('交点分支必须为 0 或 1。');continue;}node.branch=c.branch??0;}
-    if(pointOps.has(c.op)&&labels.has(node.label)){warn('点名重复：'+node.label+'，请为不同点使用不同名称。');continue;}
-    if(reserve(node)){nodes.push(node);if(pointOps.has(c.op))labels.add(node.label);}
-  }
-  if(raw.objects!=null)warn('objects 不是外部回复允许的字段，请用 constructions 描述关联构造。');
-  const refKnown=ref=>ids.has(ref)||ref==='$conic'||ref==='$dynamic'&&scene.dynamicLine||ref.startsWith('feature:')&&known(ref.slice(8));
-  for(const node of nodes)for(const ref of node.refs)if(!refKnown(ref))warn(node.label+' 引用了不存在的对象：'+ref);
-  const byId=new Map(nodes.map(n=>[n.id,n])),done=new Set(),active=new Set();
-  const visit=key=>{if(active.has(key)){warn('构造存在循环依赖：'+key);return;}if(done.has(key))return;active.add(key);for(const ref of byId.get(key)?.refs||[])if(byId.has(ref))visit(ref);active.delete(key);done.add(key);};
-  for(const key of byId.keys())visit(key);
-  scene.objects=nodes;scene.provenance={externalReply:true};
-  if(!scene.dynamicLine)scene.showDynamic=false;
-  return {scene,warnings:[...new Set(warnings)],valid};
+  const graph=safeConstructionScene(raw);
+  if(graph.scene)graph.scene.provenance={...graph.scene.provenance,externalReply:true};
+  return graph;
 }
 
 export function parseReply(source, request) {
@@ -160,7 +99,7 @@ export function inspectGeometry(scene, construct) {
     origin=scene.orientation==='vertical'?{x:h,y:k+d}:{x:h+d,y:k};
   }
   const angle=scene.theta*Math.PI/180,dynamic={type:'line',o:origin,d:{x:Math.cos(angle),y:Math.sin(angle)}};
-  if(scene.dynamicLine)construct.intersect(dynamic,{type:'conic',q:curve.q}).slice(0,2).forEach((p,i)=>features.push({...p,name:['A','B'][i]}));
+  if(scene.dynamicLine)construct.intersect(dynamic,{type:'conic',q:curve.q}).slice(0,2).forEach((p,i)=>features.push({...p,name:(scene.dynamicIntersectionLabels||['A','B'])[i]}));
   const engine=construct.createEngine({model:()=>scene,features:()=>features,coeffs:()=>curve.q,origin:()=>origin,angle:()=>scene.theta,conicPoint:curve.pointAt,conicProject:curve.project});
   for(const node of [...scene.lines,...scene.objects]){
     try{
