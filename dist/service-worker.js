@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '0.43.2';
+const VERSION = '0.43.3';
 const CACHE = `dongjiexi-app-${VERSION}`;
 const CORE = [
   './scene-merge.js',

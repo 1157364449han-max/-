@@ -1,11 +1,12 @@
 module.exports=async({page,context,assert})=>{
   await context.route('**/runtime-config.js',r=>r.fulfill({contentType:'application/javascript',body:'window.DONGJIEXI_CONFIG={deployment:"web",apiEnabled:true,requiresAuth:false};'}));
   await context.route('**/api/health',r=>r.fulfill({json:{app:'董解析',capabilities:{transport:'sse'},engine:{available:true,installed:true,remote:true,vision:false,models:['test-cloud']},default_model:'test-cloud'}}));
-  let jobs=0,streams=0,fail=false;
+  let jobs=0,streams=0,fail=false,padding=0,oversized=false;
   await context.route('**/api/jobs',r=>{jobs++;return r.fulfill({status:500,json:{error:'Stream mode must not submit polling jobs'}});});
   await context.route('**/api/stream',r=>{
     streams++;const raw={title:'边缘流式解题测试',parts:[{index:0,answer:'$e=\\frac{\\sqrt{3}}2$',steps:['由 $c^2=4-1=3$ 求离心率。'],status:'answered'}],scene:{type:'ellipse',a:2,b:1,h:0,k:0,dynamicLine:false,points:{},lines:[]}};
-    const body='data: '+JSON.stringify({choices:[{delta:{content:JSON.stringify(raw)}}]})+'\r\n\r\n'+(fail?'':'data: '+JSON.stringify({choices:[{delta:{},finish_reason:'stop'}]})+'\n\ndata: [DONE]\n\n');
+    const overhead=('data: '+JSON.stringify({choices:[],provider_metadata:'x'.repeat(1900)})+'\n\n').repeat(padding);
+    const body=overhead+'data: '+JSON.stringify({choices:[{delta:{content:oversized?'x'.repeat(100001):JSON.stringify(raw)}}]})+'\r\n\r\n'+(fail?'':'data: '+JSON.stringify({choices:[{delta:{},finish_reason:'stop'}]})+'\n\ndata: [DONE]\n\n');
     return r.fulfill({contentType:'text/event-stream',body});
   });
   await page.evaluate(()=>localStorage.setItem('dongjiexi:solve-mode:v1','cloud'));await page.reload({waitUntil:'domcontentloaded'});
@@ -27,4 +28,15 @@ module.exports=async({page,context,assert})=>{
   assert.equal(corrected.type,'circle','题干的圆不能被错误的 AI 椭圆数据覆盖');
   assert.equal(corrected.lines.filter(line=>line.role==='external_tangent').length,2,'未命名坐标外点也生成两条切线');
   assert.match(await page.locator('#solution').textContent(),/sin/);
+  await page.waitForFunction(()=>!document.querySelector('#solveButton').disabled);
+  padding=900;await page.locator('#solveButton').click();
+  await page.waitForFunction(()=>document.querySelector('#solveProgress').dataset.state==='complete');
+  assert.match(await page.locator('#solution').textContent(),/sin/,'Valid SSE with more than 1.5 MB of metadata still reaches the verified answer');
+  await page.waitForFunction(()=>!document.querySelector('#solveButton').disabled);
+  padding=4400;await page.locator('#solveButton').click();
+  await page.waitForFunction(()=>document.querySelector('#solveProgress').textContent.includes('云端响应过长'));
+  await page.waitForFunction(()=>!document.querySelector('#solveButton').disabled);
+  padding=0;oversized=true;await page.locator('#solveButton').click();
+  await page.waitForFunction(()=>document.querySelector('#solveProgress').dataset.state==='error');
+  assert.match(await page.locator('#solution').textContent(),/sin/,'Rejected oversized responses preserve the previous complete answer');
 };

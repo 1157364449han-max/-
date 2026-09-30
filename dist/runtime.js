@@ -2,7 +2,7 @@
   'use strict';
   const raw = window.DONGJIEXI_CONFIG || {};
   const config = Object.freeze({
-    version: String(raw.version || '0.43.2'),
+    version: String(raw.version || '0.43.3'),
     deployment: raw.deployment === 'web' ? 'web' : 'desktop',
     apiBase: String(raw.apiBase || '').trim().replace(/\/+$/, ''),
     apiEnabled: raw.apiEnabled !== false,
@@ -133,7 +133,9 @@
       };
       while(true){
         const {value,done}=await reader.read();if(done)break;
-        wireBytes+=value.byteLength;if(wireBytes>1500000)throw failure('invalid_response','云端响应过长，请分问解答。');
+        // Per-token SSE metadata can outweigh the answer. Bound wire overhead separately;
+        // retain the 100000-character answer/event caps and the request deadline below.
+        wireBytes+=value.byteLength;if(wireBytes>8*1024*1024)throw failure('invalid_response','云端响应过长，请分问解答。');
         pending+=decoder.decode(value,{stream:true});let match;
         while((match=/\r?\n\r?\n/.exec(pending))){event(pending.slice(0,match.index));pending=pending.slice(match.index+match[0].length);}
         if(pending.length>100000)throw failure('invalid_response','云端响应片段过长。');
