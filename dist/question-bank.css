@@ -10,6 +10,10 @@
 #bankList{display:grid;align-content:start;gap:8px;max-height:55dvh;overflow:auto;padding-right:6px}
 #bankList button{display:grid;gap:6px;text-align:left;background:#f6f8fc;color:inherit;border:1px solid #dae3ef;border-radius:10px;padding:12px;font:inherit;cursor:pointer}
 #bankList button[aria-pressed=true]{border-color:#2969cf;background:#ecf4ff}#bankList span,#bankList small{font-size:12px;color:#5d6b7c}
+#bankList .bank-topic-summary{color:#334f73;line-height:1.6;font-size:13px}
+.bank-knowledge{padding:12px 15px;background:#f0f6ff;border-radius:10px;margin:14px 0}.bank-knowledge h4{margin:0 0 8px;font-size:15px}.bank-knowledge ul{margin:0;padding-left:18px;line-height:1.8}.bank-knowledge li+li{margin-top:5px}
+.top-actions #openQuestionBank{white-space:nowrap;flex-shrink:0}
+@media(max-width:760px){.topbar{flex-wrap:wrap;gap:10px}.top-actions{flex-wrap:wrap}.top-actions #openQuestionBank{padding:8px 12px;font-size:13px}}
 #bankDetail{min-width:0}.bank-question{white-space:pre-wrap;line-height:1.9;overflow-wrap:anywhere;font-size:16px}
 .bank-tags{font-size:13px;color:#3666a3}.bank-actions{display:flex;flex-wrap:wrap;gap:9px;margin:18px 0}
 #bankDetail details{border-top:1px solid #e0e7ef;padding:12px 0}#bankDetail summary{cursor:pointer;font-weight:600}

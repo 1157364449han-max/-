@@ -23,6 +23,10 @@ class QuestionBankTests(unittest.TestCase):
                 self.assertTrue(item['scope'])
                 self.assertTrue(item['parts'])
                 self.assertTrue(item['pitfall'])
+                self.assertGreaterEqual(len(item['knowledge']), 2)
+                for topic in item['knowledge']:
+                    self.assertTrue(topic['name'])
+                    self.assertGreater(len(topic['description']), 12)
                 for source in item['sources']:
                     self.assertEqual(urlsplit(source['url']).scheme, 'https')
                     self.assertTrue(urlsplit(source['url']).hostname)

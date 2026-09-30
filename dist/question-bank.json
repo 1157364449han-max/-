@@ -5,7 +5,7 @@
   "rights": "题面权利归原命题单位；来源链接供核对。讲解由董解析重新推导，不搬运第三方答案册。",
   "items": [
     {
-      "id": "2022-beijing-3", "kind": "gaokao", "year": 2022, "paper": "北京卷", "number": "3", "scope": "题干（省略选项）", "title": "圆的对称轴", "curve": "圆", "tags": ["圆心", "对称性"], "level": "基础",
+      "id": "2022-beijing-3", "kind": "gaokao", "year": 2022, "paper": "北京卷", "number": "3", "scope": "题干（省略选项）", "title": "圆的对称轴", "curve": "圆", "tags": ["圆心", "对称性"], "knowledge": [{"name":"圆心与标准式","description":"从圆的标准方程识别圆心，建立参数与坐标的关系。"},{"name":"圆的对称轴","description":"利用每条对称轴都经过圆心，将几何条件转成等式。"}], "level": "基础",
       "question": "若直线 $2x+y-1=0$ 是圆 $(x-a)^2+y^2=1$ 的一条对称轴，求 $a$。",
       "sources": [{"title": "2022 北京卷题面转写", "url": "https://1cunzhang.com/index.php?id=5804&p=article"}],
       "pitfall": "圆的每条对称轴都经过圆心，不能把对称轴当作切线。",
@@ -13,7 +13,7 @@
       "scene": {"type": "circle", "r": 1, "h": 0.5, "showDynamic": false, "points": {"O": [0.5,0]}, "lines": [{"id": "axis", "label": "对称轴", "a": 2, "b": 1, "c": -1}]}
     },
     {
-      "id": "2022-ii-21-1", "kind": "gaokao", "year": 2022, "paper": "新高考全国Ⅱ卷", "number": "21（1）", "scope": "第（1）问节选", "title": "焦点与渐近线确定双曲线", "curve": "双曲线", "tags": ["标准方程", "渐近线"], "level": "基础",
+      "id": "2022-ii-21-1", "kind": "gaokao", "year": 2022, "paper": "新高考全国Ⅱ卷", "number": "21（1）", "scope": "第（1）问节选", "title": "焦点与渐近线确定双曲线", "curve": "双曲线", "tags": ["标准方程", "渐近线"], "knowledge": [{"name":"焦点与渐近线","description":"把焦点坐标、渐近线斜率分别转成半焦距和半轴比例。"},{"name":"双曲线标准方程","description":"联立半轴与半焦距的关系，确定标准方程。"}], "level": "基础",
       "question": "已知双曲线 $C:\\dfrac{x^2}{a^2}-\\dfrac{y^2}{b^2}=1\\ (a>0,b>0)$ 的右焦点为 $F(2,0)$，渐近线方程为 $y=\\pm x$。求 $C$ 的方程。（选取原题第（1）问。）",
       "sources": [{"title": "2022 新高考全国Ⅱ卷原题整理", "url": "https://zy.21cnjy.com/12414515"}],
       "pitfall": "双曲线满足 c²=a²+b²；不要套用椭圆的减法。",
@@ -21,7 +21,7 @@
       "scene": {"type": "hyperbola", "a": 1.4142135623730951, "b": 1.4142135623730951, "showDynamic": false, "points": {"F": [2,0]}, "lines": [{"id": "asym1", "label": "y=x", "a": 1, "b": -1, "c": 0}, {"id": "asym2", "label": "y=-x", "a": 1, "b": 1, "c": 0}]}
     },
     {
-      "id": "2022-beijing-19-1", "kind": "gaokao", "year": 2022, "paper": "北京卷", "number": "19（Ⅰ）", "scope": "第（Ⅰ）问节选", "title": "顶点与焦距确定椭圆", "curve": "椭圆", "tags": ["标准方程", "焦距"], "level": "基础",
+      "id": "2022-beijing-19-1", "kind": "gaokao", "year": 2022, "paper": "北京卷", "number": "19（Ⅰ）", "scope": "第（Ⅰ）问节选", "title": "顶点与焦距确定椭圆", "curve": "椭圆", "tags": ["标准方程", "焦距"], "knowledge": [{"name":"顶点与焦距","description":"区分短轴顶点、半焦距和两焦点之间的距离。"},{"name":"椭圆标准方程","description":"由短半轴与半焦距求长半轴，建立曲线模型。"}], "level": "基础",
       "question": "已知椭圆 $E:\\dfrac{x^2}{a^2}+\\dfrac{y^2}{b^2}=1\\ (a>b>0)$ 的一个顶点为 $A(0,1)$，焦距为 $2\\sqrt3$。求椭圆 $E$ 的方程。（选取原题第（Ⅰ）问。）",
       "sources": [{"title": "2022 北京卷原卷 PDF", "url": "https://m.shsbnu.net/pluginfile.php/54461/mod_folder/content/0/2022%E5%B9%B4%E6%96%B0%E9%AB%98%E8%80%83%E5%8C%97%E4%BA%AC%E6%95%B0%E5%AD%A6%E9%AB%98%E8%80%83%E7%9C%9F%E9%A2%98%E6%96%87%E6%A1%A3%E7%89%88%EF%BC%88%E5%8E%9F%E5%8D%B7%EF%BC%89.pdf"}],
       "pitfall": "焦距是 2c，不是 c。部分转载的纯文本漏掉根号，必须核对原卷。",
@@ -29,7 +29,7 @@
       "scene": {"type": "ellipse", "a": 2, "b": 1, "showDynamic": false, "points": {"A": [0,1]}}
     },
     {
-      "id": "2023-i-6", "kind": "gaokao", "year": 2023, "paper": "新课标全国Ⅰ卷", "number": "6", "scope": "完整题目", "title": "圆外两切线的夹角", "curve": "圆", "tags": ["切线", "三角函数"], "level": "中等",
+      "id": "2023-i-6", "kind": "gaokao", "year": 2023, "paper": "新课标全国Ⅰ卷", "number": "6", "scope": "完整题目", "title": "圆外两切线的夹角", "curve": "圆", "tags": ["切线", "三角函数"], "knowledge": [{"name":"圆的切线","description":"利用切点处半径与切线垂直，把切线问题转成直角三角形。"},{"name":"夹角与正弦","description":"区分两射线夹角与两直线夹角，运用倍角公式求正弦值。"}], "level": "中等",
       "question": "过点 $(0,-2)$ 与圆 $x^2+y^2-4x-1=0$ 相切的两条直线的夹角为 $\\alpha$，则 $\\sin\\alpha=$（ ）\nA. $1$　B. $\\dfrac{\\sqrt{15}}4$　C. $\\dfrac{\\sqrt{10}}4$　D. $\\dfrac{\\sqrt6}4$",
       "sources": [{"title": "学校公开的真题与辨析资料", "url": "https://www.nhsm.org/xyxw/xygg/202512/W020251229618520711114.pdf"}],
       "pitfall": "两直线的夹角通常取锐角；不要直接把较大的 ∠APB 当成直线夹角，二者正弦相同。",
@@ -37,7 +37,7 @@
       "scene": {"type": "circle", "h": 2, "r": 2.23606797749979, "showDynamic": false, "points": {"P": [0,-2]}, "lines": [{"id": "tangent1", "label": "切线 PA", "a": -7.872983346207417, "b": -1, "c": -2}, {"id": "tangent2", "label": "切线 PB", "a": -0.127016653792583, "b": -1, "c": -2}]}
     },
     {
-      "id": "2023-i-22", "kind": "gaokao", "year": 2023, "paper": "新课标全国Ⅰ卷", "number": "22", "scope": "完整题目", "title": "抛物线轨迹与矩形周长", "curve": "抛物线", "tags": ["轨迹", "矩形", "最值", "严格不等式"], "level": "综合",
+      "id": "2023-i-22", "kind": "gaokao", "year": 2023, "paper": "新课标全国Ⅰ卷", "number": "22", "scope": "完整题目", "title": "抛物线轨迹与矩形周长", "curve": "抛物线", "tags": ["轨迹", "矩形", "最值", "严格不等式"], "knowledge": [{"name":"轨迹与抛物线定义","description":"把到定点、到直线等距写成坐标等式，并检查平方是否增根。"},{"name":"矩形与向量垂直","description":"将相邻边垂直化为数量积条件，建立顶点坐标之间的关系。"},{"name":"最值与严格不等式","description":"用放缩和导数建立周长下界，再检查等号是否能同时成立。"}], "level": "综合",
       "question": "在直角坐标系 $xOy$ 中，点 $P$ 到 $x$ 轴的距离等于点 $P$ 到点 $\\left(0,\\dfrac12\\right)$ 的距离，记动点 $P$ 的轨迹为 $W$。\n（1）求 $W$ 的方程；\n（2）已知矩形 $ABCD$ 有三个顶点在 $W$ 上，证明：矩形 $ABCD$ 的周长大于 $3\\sqrt3$。",
       "sources": [{"title": "2023 新课标Ⅰ卷第22题题面", "url": "https://gaokaowiki.com/math/%E7%9C%9F%E9%A2%98/%E6%B5%99%E6%B1%9F/2023/q22/"}, {"title": "原题交叉核对", "url": "https://persvadisto.github.io/2023/06/07/2023%E6%96%B0%E9%AB%98%E8%80%83%E4%B8%80%E5%8D%B7%E6%95%B0%E5%AD%A6%E5%8E%8B%E8%BD%B4%E9%A2%98/"}],
       "pitfall": "准线是 y=0，顶点不在原点；证明大于时必须排除等号。",
@@ -46,7 +46,7 @@
       "sceneNote": "画板展示满足条件的一个矩形，周长为 4√2；不是最优构型，也不是以图代证。"
     },
     {
-      "id": "2024-ii-19", "kind": "gaokao", "year": 2024, "paper": "新课标全国Ⅱ卷", "number": "19", "scope": "完整题目", "title": "双曲线迭代与面积定值", "curve": "双曲线", "tags": ["动点", "对称", "数列", "面积定值"], "level": "综合",
+      "id": "2024-ii-19", "kind": "gaokao", "year": 2024, "paper": "新课标全国Ⅱ卷", "number": "19", "scope": "完整题目", "title": "双曲线迭代与面积定值", "curve": "双曲线", "tags": ["动点", "对称", "数列", "面积定值"], "knowledge": [{"name":"直线与双曲线联立","description":"借助韦达定理计算另一交点，再正确处理轴对称坐标。"},{"name":"数列递推","description":"选取横纵坐标的差，识别几何迭代中的等比结构。"},{"name":"三角形面积定值","description":"将相邻三点的坐标代入面积公式，解释为何结果不随序号变化。"}], "level": "综合",
       "question": "已知双曲线 $C:x^2-y^2=m\\ (m>0)$，点 $P_1(5,4)$ 在 $C$ 上，$k$ 为常数，$0<k<1$。按如下方式依次构造点 $P_n\\ (n=2,3,\\ldots)$：过 $P_{n-1}$ 作斜率为 $k$ 的直线与 $C$ 的左支交于 $Q_{n-1}$，令 $P_n$ 为 $Q_{n-1}$ 关于 $y$ 轴的对称点。记 $P_n=(x_n,y_n)$。\n（1）若 $k=\\dfrac12$，求 $x_2,y_2$；\n（2）证明 $\\{x_n-y_n\\}$ 是公比为 $\\dfrac{1+k}{1-k}$ 的等比数列；\n（3）设 $S_n$ 为 $\\triangle P_nP_{n+1}P_{n+2}$ 的面积，证明对任意正整数 $n$，$S_n=S_{n+1}$。",
       "sources": [{"title": "2024 全国Ⅱ卷第19题题面转写", "url": "https://www.cnblogs.com/Eufisky/p/18242506"}, {"title": "教育在线考试评析（确认卷别与题号）", "url": "https://gaokao.eol.cn/news/202406/t20240607_2615164.shtml"}],
       "pitfall": "Q 在左支，P 是 Q 关于 y 轴的反射；有转载将第（1）问的正负号写反。",
@@ -55,7 +55,7 @@
       "sceneNote": "图示 k=1/2 的前三次构造与三角形，不表示所有 k 的动态图；一般情形由代数证明。"
     },
     {
-      "id": "2025-beijing-3", "kind": "gaokao", "year": 2025, "paper": "北京卷", "number": "3", "scope": "完整题目", "title": "双曲线离心率", "curve": "双曲线", "tags": ["标准方程", "离心率"], "level": "基础",
+      "id": "2025-beijing-3", "kind": "gaokao", "year": 2025, "paper": "北京卷", "number": "3", "scope": "完整题目", "title": "双曲线离心率", "curve": "双曲线", "tags": ["标准方程", "离心率"], "knowledge": [{"name":"方程标准化","description":"先把右端化为 1，再识别长实半轴与虚半轴。"},{"name":"双曲线离心率","description":"正确运用半轴、半焦距之间的关系求离心率。"}], "level": "基础",
       "question": "双曲线 $x^2-4y^2=4$ 的离心率为（ ）\nA. $\\dfrac{\\sqrt3}2$　B. $\\dfrac{\\sqrt5}2$　C. $\\dfrac54$　D. $\\sqrt5$",
       "sources": [{"title": "2025 北京卷真题整理", "url": "https://gaokaohub.com/q/math/2025.html"}],
       "pitfall": "先化标准式，系数 4 不是 b²。",
@@ -63,7 +63,7 @@
       "scene": {"type": "hyperbola", "a": 2, "b": 1, "showDynamic": false}
     },
     {
-      "id": "2025-beijing-11", "kind": "gaokao", "year": 2025, "paper": "北京卷", "number": "11", "scope": "完整题目", "title": "抛物线的焦参数", "curve": "抛物线", "tags": ["标准方程", "焦点"], "level": "基础",
+      "id": "2025-beijing-11", "kind": "gaokao", "year": 2025, "paper": "北京卷", "number": "11", "scope": "完整题目", "title": "抛物线的焦参数", "curve": "抛物线", "tags": ["标准方程", "焦点"], "knowledge": [{"name":"抛物线焦点","description":"根据标准方程识别焦点坐标和顶点到焦点的距离。"},{"name":"参数约定","description":"区分方程中的系数与实际焦距，避免混淆不同教材的记号。"}], "level": "基础",
       "question": "抛物线 $y^2=2px\\ (p>0)$ 的顶点到焦点的距离为 $3$，则 $p=$______。",
       "sources": [{"title": "2025 北京卷真题整理", "url": "https://gaokaohub.com/q/math/2025.html"}],
       "pitfall": "题目中的 2px 与画板内部的 4fx 使用不同参数约定；焦距都是 p/2=3。",
@@ -71,7 +71,7 @@
       "scene": {"type": "parabola", "p": 3, "showDynamic": false, "points": {"F": [3,0]}}
     },
     {
-      "id": "2025-beijing-19-1", "kind": "gaokao", "year": 2025, "paper": "北京卷", "number": "19（1）", "scope": "第（1）问节选", "title": "椭圆定义与离心率", "curve": "椭圆", "tags": ["标准方程", "离心率", "椭圆定义"], "level": "基础",
+      "id": "2025-beijing-19-1", "kind": "gaokao", "year": 2025, "paper": "北京卷", "number": "19（1）", "scope": "第（1）问节选", "title": "椭圆定义与离心率", "curve": "椭圆", "tags": ["标准方程", "离心率", "椭圆定义"], "knowledge": [{"name":"椭圆定义","description":"由到两焦点的距离之和确定长轴长。"},{"name":"离心率与半轴","description":"把离心率转成半焦距，再确定短半轴和标准方程。"}], "level": "基础",
       "question": "已知椭圆 $E:\\dfrac{x^2}{a^2}+\\dfrac{y^2}{b^2}=1\\ (a>b>0)$ 的离心率为 $\\dfrac{\\sqrt2}2$，椭圆上的点到两焦点的距离之和为 $4$。求椭圆方程。（选取原题第（1）问。）",
       "sources": [{"title": "2025 北京卷第19题题面", "url": "https://gaokaohub.com/q/math/2025.html"}],
       "pitfall": "距离之和为 2a，不是 a；离心率取平方后再求 b²。",
@@ -79,7 +79,7 @@
       "scene": {"type": "ellipse", "a": 2, "b": 1.4142135623730951, "showDynamic": false}
     },
     {
-      "id": "2026-i-18", "kind": "gaokao", "year": 2026, "paper": "新高考全国Ⅰ卷", "number": "18", "scope": "完整题目", "title": "椭圆焦点弦与夹角最值", "curve": "椭圆", "tags": ["焦点弦", "中心对称", "面积比", "最值"], "level": "综合", "solver": "ellipse-focal-chord",
+      "id": "2026-i-18", "kind": "gaokao", "year": 2026, "paper": "新高考全国Ⅰ卷", "number": "18", "scope": "完整题目", "title": "椭圆焦点弦与夹角最值", "curve": "椭圆", "tags": ["焦点弦", "中心对称", "面积比", "最值"], "knowledge": [{"name":"焦点弦与中心对称","description":"根据椭圆对称性建立第三点与原交点的关系。"},{"name":"面积比与分点","description":"把三角形面积比例转成同一直线上的线段比例。"},{"name":"夹角最值","description":"运用联立、韦达定理和基本不等式，并检查取等时的直线是否合法。"}], "level": "综合", "solver": "ellipse-focal-chord",
       "question": "已知椭圆 $C:\\dfrac{x^2}{a^2}+\\dfrac{y^2}{b^2}=1\\ (a>b>0)$ 的左焦点为 $F(-1,0)$，离心率为 $\\dfrac{1}{2}$。\n（1）求 $C$ 的方程；\n（2）设 $O$ 为坐标原点，过 $F$ 且斜率大于 $0$ 的动直线 $l$ 与 $C$ 交于 $P,Q$ 两点，其中 $Q$ 在第三象限，直线 $PO$ 与 $C$ 的另一个交点为 $R$。\n（i）若 $\\triangle PQR$ 的面积是 $\\triangle PFO$ 的面积的 3 倍，求 $l$ 的方程；\n（ii）求 $\\tan\\angle PQR$ 的最小值。",
       "sources": [{"title": "2026 全国Ⅰ卷题面整理 PDF", "url": "https://paper-airplane.oss-cn-beijing.aliyuncs.com/2026/06/12/151844b85e5dc4-6283-45d1-b6d1-e4423a897f46.pdf"}, {"title": "第18题题面交叉核对", "url": "https://liangshibao.com/tiku/gaokao-math-2026-i/subjective-18"}],
       "pitfall": "原题为 PO 的另一交点，不是 PQ 的第三个交点；正斜率与 Q 的象限必须同时保留。",
@@ -87,7 +87,7 @@
       "sceneNote": "复用焦点弦精确解题器，P、Q、R 和两三角形随直线联动；参考解析与自由 AI 解题分开标识。"
     },
     {
-      "id": "classic-parabola-orthogonal", "kind": "classic", "year": null, "paper": "公开经典习题", "number": "抛物线·垂直弦", "scope": "完整题目", "title": "韦达定理证明垂直", "curve": "抛物线", "tags": ["韦达定理", "向量", "垂直"], "level": "中等",
+      "id": "classic-parabola-orthogonal", "kind": "classic", "year": null, "paper": "公开经典习题", "number": "抛物线·垂直弦", "scope": "完整题目", "title": "韦达定理证明垂直", "curve": "抛物线", "tags": ["韦达定理", "向量", "垂直"], "knowledge": [{"name":"韦达定理","description":"不逐个计算交点，直接获取坐标之和、积等对称量。"},{"name":"向量数量积","description":"用数量积为零证明两线段垂直，避免依赖斜率存在。"}], "level": "中等",
       "question": "直线 $y=x-2$ 与抛物线 $y^2=2x$ 相交于 $A,B$ 两点。求证：$OA\\perp OB$，其中 $O$ 为坐标原点。",
       "sources": [{"title": "公开习题题面", "url": "https://qb.zuoyebang.com/xfe-question/question/89afbafb8056b0d25afcd98433a13f08.html"}],
       "pitfall": "证明垂直可用数量积为零，不必先求出两个带根号的交点，也不必依赖斜率存在。",
@@ -95,7 +95,7 @@
       "scene": {"type": "parabola", "p": 0.5, "showDynamic": false, "points": {"O": [0,0], "A": [5.23606797749979,3.23606797749979], "B": [0.7639320225002102,-1.2360679774997898]}, "lines": [{"id": "chord", "label": "AB", "a": 1, "b": -1, "c": -2}, {"id": "oa", "label": "OA", "a": 3.23606797749979, "b": -5.23606797749979, "c": 0}, {"id": "ob", "label": "OB", "a": -1.2360679774997898, "b": -0.7639320225002102, "c": 0}], "polygons": [{"id": "triangle-oab", "label": "△OAB", "labels": ["O","A","B"]}]}
     },
     {
-      "id": "classic-parabola-focal-length", "kind": "classic", "year": null, "paper": "公开教材配套习题", "number": "抛物线·焦点弦", "scope": "题干（省略选项）", "title": "焦点弦长与定义", "curve": "抛物线", "tags": ["焦点弦", "弦长", "抛物线定义"], "level": "基础",
+      "id": "classic-parabola-focal-length", "kind": "classic", "year": null, "paper": "公开教材配套习题", "number": "抛物线·焦点弦", "scope": "题干（省略选项）", "title": "焦点弦长与定义", "curve": "抛物线", "tags": ["焦点弦", "弦长", "抛物线定义"], "knowledge": [{"name":"抛物线定义","description":"将点到焦点的距离转为点到准线的距离。"},{"name":"焦点弦长","description":"利用焦点位于弦内，将两条焦半径相加求弦长。"}], "level": "基础",
       "question": "过抛物线 $y^2=4x$ 的焦点作直线，交抛物线于 $A(x_1,y_1),B(x_2,y_2)$ 两点。如果 $x_1+x_2=6$，求 $|AB|$。",
       "sources": [{"title": "苏教版抛物线几何性质配套习题", "url": "https://www.renjiaoshe.com/sujiaogaozhongshuxue/xuanxiu1/492757.html"}],
       "pitfall": "焦点在弦的两端之间，弦长为 AF+BF；准线不是 y 轴。",

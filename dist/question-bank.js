@@ -7,7 +7,7 @@
       (!filters.year || String(item.year) === String(filters.year)) &&
       (!filters.curve || item.curve === filters.curve) &&
       (!filters.topic || item.tags.includes(filters.topic)) &&
-      (!query || [item.title, item.paper, item.number, item.question, ...item.tags].join(' ').toLocaleLowerCase().includes(query)));
+      (!query || [item.title, item.paper, item.number, item.question, ...item.tags, ...(item.knowledge||[]).map(topic=>topic.description)].join(' ').toLocaleLowerCase().includes(query)));
   }
   function sceneFor(item) {
     if (!item.scene) return null;
@@ -51,14 +51,12 @@
   }
   function attach(api) {
     const find = selector => document.querySelector(selector);
-    const button = document.createElement('button');
-    button.id = 'openQuestionBank'; button.className = 'button secondary'; button.textContent = '真题与经典题';
-    find('#openNotebook').before(button);
+    const button = find('#openQuestionBank');
     const dialog = document.createElement('dialog'); dialog.id = 'questionBankDialog'; dialog.className = 'question-bank-dialog';
     dialog.setAttribute('aria-labelledby', 'questionBankTitle');
-    dialog.innerHTML = '<header><div><h2 id="questionBankTitle">真题与经典题</h2><p class="help" id="bankCoverage">正在读取题库…</p></div><button id="closeQuestionBank" class="button secondary" type="button">关闭</button></header>' +
+    dialog.innerHTML = '<header><div><h2 id="questionBankTitle">高考真题题库</h2><p class="help" id="bankCoverage">正在读取题库…</p></div><button id="closeQuestionBank" class="button secondary" type="button">关闭</button></header>' +
       '<div class="bank-filters"><label>找题<input id="bankSearch" type="search" placeholder="题号、知识点、关键字"></label><label>题库<select id="bankKind"><option value="">全部</option><option value="gaokao">近五年高考真题</option><option value="classic">经典例题</option></select></label><label>年份<select id="bankYear"><option value="">全部年份</option></select></label><label>曲线<select id="bankCurve"><option value="">全部曲线</option><option>椭圆</option><option>双曲线</option><option>抛物线</option><option>圆</option></select></label><label>考点<select id="bankTopic"><option value="">全部考点</option></select></label></div>' +
-      '<p id="bankResultCount" role="status" aria-live="polite"></p><div class="bank-layout"><nav id="bankList" aria-label="题目列表"></nav><section id="bankDetail" aria-label="题目详情"><p>选择一道题开始。</p></section></div>';
+      '<p class="help">先看考点与学习目标，再选择题目；此处不会提前展示答案。</p><p id="bankResultCount" role="status" aria-live="polite"></p><div class="bank-layout"><nav id="bankList" aria-label="题目列表"></nav><section id="bankDetail" aria-label="题目详情"><p>选择一道题开始。</p></section></div>';
     document.body.append(dialog);
     let data = null, selected = null, loading = null;
     const typeLabel = item => item.year ? `${item.year} · ${item.paper} · 第 ${item.number} 题` : item.paper;
@@ -69,7 +67,14 @@
       find('#bankList').querySelectorAll('button').forEach(node => node.setAttribute('aria-pressed', String(node.dataset.bankId === item.id)));
       const detail = find('#bankDetail'); detail.replaceChildren();
       detail.append(textElement('h3', item.title), textElement('p', typeLabel(item) + ' · ' + item.scope, 'help'),
-        textElement('p', item.level + ' · ' + item.tags.join(' / '), 'bank-tags'), textElement('div', item.question, 'bank-question math-content'));
+        textElement('p', item.level + ' · ' + item.tags.join(' / '), 'bank-tags'));
+      const knowledge = document.createElement('section'); knowledge.className = 'bank-knowledge';
+      knowledge.append(textElement('h4', '本题考查什么'));
+      const topics = document.createElement('ul');
+      for (const topic of item.knowledge || []) {
+        const row = document.createElement('li'); row.append(textElement('strong', topic.name + '：'), document.createTextNode(topic.description)); topics.append(row);
+      }
+      knowledge.append(topics); detail.append(knowledge, textElement('div', item.question, 'bank-question math-content'));
       const sources = document.createElement('details'), summary = textElement('summary', '题目出处与整理说明');
       sources.append(summary, textElement('p', data.rights, 'help'));
       for (const source of item.sources) {
@@ -99,11 +104,13 @@
     function render() {
       if (!data) return;
       const items = select(data.items, {query: find('#bankSearch').value, kind: find('#bankKind').value, year: find('#bankYear').value, curve: find('#bankCurve').value, topic: find('#bankTopic').value});
+      find('#questionBankTitle').textContent = find('#bankKind').value === 'classic' ? '经典例题' : find('#bankKind').value === 'gaokao' ? '高考真题题库' : '真题与经典题';
       find('#bankResultCount').textContent = `找到 ${items.length} / ${data.items.length} 道题 · 每题保留来源与收录范围`;
       const list = find('#bankList'); list.replaceChildren();
       for (const item of items) {
         const row = document.createElement('button'); row.type = 'button'; row.dataset.bankId = item.id;
         row.append(textElement('strong', item.title), textElement('span', typeLabel(item)), textElement('small', item.scope + ' · ' + item.curve + ' · ' + item.level));
+        row.append(textElement('span', (item.knowledge || []).map(topic => topic.name + '：' + topic.description).join('；'), 'bank-topic-summary'));
         row.addEventListener('click', () => display(item)); list.append(row);
       }
       if (items.length) display(items.find(item => item.id === selected?.id) || items[0]);
@@ -124,7 +131,7 @@
     }
     button.addEventListener('click', async () => {
       if (!dialog.open) dialog.showModal();
-      try {await load(); render();} catch (error) {find('#bankCoverage').textContent = error.message;}
+      try {await load(); find('#bankKind').value='gaokao';render();} catch (error) {find('#bankCoverage').textContent = error.message;}
     });
     find('#closeQuestionBank').addEventListener('click', () => dialog.close());
     for (const id of ['bankSearch', 'bankKind', 'bankYear', 'bankCurve', 'bankTopic']) find('#' + id).addEventListener(id === 'bankSearch' ? 'input' : 'change', render);

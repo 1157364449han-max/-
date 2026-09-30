@@ -485,10 +485,10 @@
         api.setStatus('在线解题授权成功，本次浏览器会话内有效。');
         await refreshEngine();
         setTimeout(()=>{if(cloudDialog.open)cloudDialog.close();},500);
-      }catch(error){cloudFeedback.dataset.state='error';cloudFeedback.textContent=error.message||'连接失败，请检查口令和网络。';setCloudConnection('failed',runtime.hasSession()?'云端：服务连接失败':'云端：口令错误或会话失效');report(error);input.focus();input.select();}
+      }catch(error){cloudFeedback.dataset.state='error';cloudFeedback.textContent=error.message||'连接失败，请检查网络或服务状态。';const label=error.code==='auth_rejected'?'云端：口令错误':error.code==='session_expired'?'云端：会话失效':error.code==='rate_limited'?'云端：尝试过于频繁':error.code==='empty_key'?'云端：请输入口令':runtime.hasSession()?'云端：已授权，但服务连接失败':'云端：服务连接失败，口令尚未验证';setCloudConnection('failed',label);report(error);input.focus();input.select();}
       finally{find('#cloudLogin').disabled=false;}
     });
-    find('#cloudAccessKey').addEventListener('keydown',event=>{if(event.key==='Enter')find('#cloudLogin').click();});
+    find('#cloudAccessKey').addEventListener('keydown',event=>{if(event.key==='Enter'&&!event.isComposing)find('#cloudLogin').click();});
     find('#openCloudAuth').addEventListener('click',()=>openCloudAuthDialog());
     find('#openCloudAuthInSetup').addEventListener('click',()=>openCloudAuthDialog());
     find('#closeCloudAuth').addEventListener('click',()=>cloudDialog.close());

@@ -1,6 +1,12 @@
 module.exports=async({page,context,assert,screenshot})=>{
   await page.locator('#openQuestionBank').click();
   await page.locator('#bankList [data-bank-id="2023-i-6"]').waitFor();
+  assert(await page.locator('#openQuestionBank').evaluate(node=>!!node.closest('.topbar')),'题库应是始终可见的独立入口');
+  assert.equal(await page.locator('#bankKind').inputValue(),'gaokao');
+  assert.equal(await page.locator('#bankList button').count(),10);
+  assert.match(await page.locator('#bankList').innerText(),/对称轴.*经过圆心/s);
+  assert.equal(await page.locator('#bankDetail .bank-knowledge li').count(),2);
+  await page.locator('#bankKind').selectOption('');
   assert.equal(await page.locator('#bankList button').count(),12);
   assert.match(await page.locator('#bankCoverage').innerText(),/非全量/);
   for(const year of ['2022','2023','2024','2025','2026']){
@@ -13,6 +19,7 @@ module.exports=async({page,context,assert,screenshot})=>{
   assert.match(await page.locator('#bankDetail').innerText(),/没有符合/);
   await page.locator('#bankSearch').fill('');
   await page.locator('#bankList [data-bank-id="2023-i-6"]').click();
+  assert.match(await page.locator('.bank-knowledge').innerText(),/切点处半径与切线垂直/);
   await page.locator('#bankDetail .katex').first().waitFor();
   assert.equal(await page.locator('#bankDetail .katex-error').count(),0);
   await page.locator('[data-bank-action="practice"]').click();
@@ -42,6 +49,7 @@ module.exports=async({page,context,assert,screenshot})=>{
   assert(saved.some(row=>row.solution?.lessonSource?.id==='2023-i-6'&&row.solution.study.counts['1']===1));
   await page.locator('#notebookDialog [data-close-dialog]').click();
   await page.locator('#openQuestionBank').click();
+  await page.locator('#bankKind').selectOption('');
   await page.locator('#bankYear').selectOption('2023');
   await page.locator('#bankList [data-bank-id="2023-i-22"]').click();
   await page.locator('[data-bank-action="teach"]').click();
@@ -51,6 +59,8 @@ module.exports=async({page,context,assert,screenshot})=>{
   assert.match(await page.locator('#layers').innerText(),/矩形 ABCD/);
   await page.locator('#exitClassroom').click();
   await page.setViewportSize({width:390,height:844});
+  await page.locator('[data-mobile-panel="board"]').click();
+  assert(await page.locator('#openQuestionBank').isVisible(),'手机图像栏目中也应能直接打开题库');
   await page.locator('#openQuestionBank').click();
   await screenshot('question-bank-mobile.png','#questionBankDialog');
   assert(await page.locator('#questionBankDialog').evaluate(node=>node.scrollWidth<=node.clientWidth+2),'手机题库不横向溢出');
@@ -60,6 +70,7 @@ module.exports=async({page,context,assert,screenshot})=>{
   for(const item of entries){
     // Real sources supply the input corpus; UI contracts remain independent of cloud billing.
     await page.locator('#openQuestionBank').click();
+    await page.locator('#bankKind').selectOption('');
     await page.locator('#bankYear').selectOption('');
     await page.locator('#bankList [data-bank-id="'+item.id+'"]').click();
     await page.locator('[data-bank-action="full"]').click();

@@ -52,6 +52,7 @@ assert.throws(() => disabled.window.DongRuntime.apiUrl('/api/health'), /尚未�
 
 let requested = '';
 const enabled = {
+  AbortController, setTimeout, clearTimeout,
   window: {DONGJIEXI_CONFIG: {version: app.version, deployment: 'web', apiBase: 'https://api.example.test/', apiEnabled: true, requiresAuth: false}},
   sessionStorage: {getItem:()=>null,removeItem(){},setItem(){}},
   fetch: async url => { requested = url; return {ok: true, headers: {get: () => 'application/json'}, json: async () => ({ok: true})}; }

@@ -2,7 +2,7 @@
   'use strict';
   const raw = window.DONGJIEXI_CONFIG || {};
   const config = Object.freeze({
-    version: String(raw.version || '0.41.0'),
+    version: String(raw.version || '0.41.1'),
     deployment: raw.deployment === 'web' ? 'web' : 'desktop',
     apiBase: String(raw.apiBase || '').trim().replace(/\/+$/, ''),
     apiEnabled: raw.apiEnabled !== false,
@@ -15,11 +15,16 @@
     try {
       const value = JSON.parse(sessionStorage.getItem(sessionKey) || 'null');
       if (!value?.token || Number(value.expiresAt || 0) <= Date.now() + 5000) return null;
+      if (value.apiBase != null && value.apiBase !== config.apiBase) return null;
       return value;
     } catch { return null; }
   }
 
   function clearSession() { try { sessionStorage.removeItem(sessionKey); } catch {} }
+
+  function failure(code, message, status = 0) {
+    const error = new Error(message); error.code = code; error.status = status; return error;
+  }
 
   function apiUrl(path) {
     if (!config.apiEnabled) {
@@ -40,12 +45,24 @@
       body: JSON.stringify(body)
     };
     init.headers = {...(init.headers || {}), ...(session ? {Authorization: `Bearer ${session.token}`} : {})};
-    const response = await fetch(apiUrl(path), {...init, ...options});
+    const url = apiUrl(path);
+    let response;
+    const controller = options.signal ? null : new AbortController();
+    const timer = controller ? setTimeout(() => controller.abort(), 20000) : null;
+    try { response = await fetch(url, {...init, ...options, signal: options.signal || controller.signal}); }
+    catch (error) {
+      if (controller?.signal.aborted) throw failure('timeout', '云端连接超时，请稍后重试；访问口令尚未完成验证。');
+      if (error.name === 'AbortError') throw error;
+      throw failure('network', '无法连接云端服务，请检查网络，或由管理员检查服务地址。这不表示访问口令错误。');
+    }
+    finally { if (timer) clearTimeout(timer); }
     const type = response.headers.get('content-type') || '';
     const data = type.includes('application/json') ? await response.json() : null;
     if (response.status === 401) clearSession();
     if (!response.ok) {
-      throw new Error(data?.error || `解题服务暂不可用（HTTP ${response.status}）。`);
+      const code = response.status === 401 ? (path === '/api/session' ? 'auth_rejected' : 'session_expired') :
+        response.status === 429 ? 'rate_limited' : 'service_unavailable';
+      throw failure(code, data?.error || `云端服务暂不可用（HTTP ${response.status}），请稍后重试；这不表示访问口令错误。`, response.status);
     }
     if (!data) throw new Error('解题服务返回了无法识别的数据。');
     return data;
@@ -53,9 +70,12 @@
 
   async function authenticate(accessKey) {
     if (!config.requiresAuth) return {authenticated: true};
-    const data = await request('/api/session', {access_key: String(accessKey || '')});
+    const phrase = String(accessKey || '').normalize('NFC').trim();
+    if (!phrase) throw failure('empty_key', '请输入访问口令。');
+    const data = await request('/api/session', {access_key: phrase});
+    if (typeof data.token !== 'string' || !data.token.trim()) throw failure('invalid_response', '云端返回的授权信息不完整，请联系管理员；这不表示口令错误。');
     const expiresAt = Date.now() + Math.max(60, Number(data.expires_in || 0)) * 1000;
-    sessionStorage.setItem(sessionKey, JSON.stringify({token: data.token, expiresAt}));
+    sessionStorage.setItem(sessionKey, JSON.stringify({token: data.token, expiresAt, apiBase: config.apiBase}));
     return data;
   }
 
