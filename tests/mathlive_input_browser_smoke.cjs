@@ -7,7 +7,12 @@ module.exports=async({page,assert})=>{
   await radius.focus();
   await page.locator('#addConicDialog [data-open-math-keyboard]').click();
   await page.locator('#mathLiveField').waitFor({state:'visible'});
-  await page.locator('#mathLiveField').evaluate(field=>{field.dispatchEvent(new InputEvent('beforeinput',{bubbles:true,inputType:'insertText',data:'5/2'}));field.value='\\frac{5}{2}';field.dispatchEvent(new Event('input',{bubbles:true}));});
+  await page.locator('#mathLiveField').evaluate(field=>{
+    // Reconnect and type in the same task, before requestAnimationFrame can run.
+    window.DongMathLive.connect(document.querySelector('#mathKeyboard'),document.querySelector('#addConicFields [data-equation-param="r"]'));
+    field.dispatchEvent(new InputEvent('beforeinput',{bubbles:true,inputType:'insertText',data:'5/2'}));
+    field.value='\\frac{5}{2}';field.dispatchEvent(new Event('input',{bubbles:true}));
+  });
   assert.equal(await radius.inputValue(),'\\frac{5}{2}','MathLive content must write back to the active parameter field');
   assert.match(await page.locator('#mathKeyboard').innerText(),/微积分与矩阵/,'Fallback keyboard must include the advanced symbol group');
   await page.locator('#mathKeyboard [data-key-command="close"]').click();

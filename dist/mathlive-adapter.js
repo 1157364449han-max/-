@@ -11,8 +11,8 @@ let fieldEditing = false;
 document.addEventListener('input', event => {
   if (syncing || event.target !== activeTarget || !activeField) return;
   syncing = true;
-  activeField.value = window.DongMathInput?.toTex(activeTarget.value) || activeTarget.value || '';
-  requestAnimationFrame(() => { syncing = false; });
+  try { activeField.setValue(window.DongMathInput?.toTex(activeTarget.value) || activeTarget.value || '', {silenceNotifications: true}); }
+  finally { syncing = false; }
 });
 
 function targetSupportsFormulaEditor(target) {
@@ -75,8 +75,9 @@ function connect(panel, target) {
   }
   syncing = true;
   fieldEditing = false;
-  activeField.value = window.DongMathInput?.toTex(target.value) || target.value || '';
-  requestAnimationFrame(() => { syncing = false; });
+  // Do not lock editing until the next paint: the user's first keystroke can arrive sooner.
+  try { activeField.setValue(window.DongMathInput?.toTex(target.value) || target.value || '', {silenceNotifications: true}); }
+  finally { syncing = false; }
 }
 
 function close() {
