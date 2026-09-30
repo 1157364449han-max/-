@@ -47,4 +47,16 @@ module.exports=async({page,context,assert,screenshot})=>{
   assert(corrected.verification.checks.filter(c=>c.id.startsWith('conic-parameter')).every(c=>c.status==='verified'));
   assert.equal(await page.locator('#solution .katex-error').count(),0);
   await screenshot('cloud-sign-error-independent-correction.png',null);
+  await page.waitForFunction(()=>!document.querySelector('#solveButton').disabled);
+  const interceptQuestion=source.items.find(q=>q.id==='2022-beijing-19-full').question;
+  raw={title:'正确答案依赖图合并回归',parts:[{index:1,status:'answered',answer:'方程',steps:['测试']},{index:2,status:'answered',answer:'错误的 k=1',steps:['测试']}],scene:{type:'ellipse',a:2,b:1,dynamicLine:true,dynamicIntersectionLabels:['B','C'],lineThrough:'point:P',points:{A:[0,1],P:[-2,1]},lines:[{kind:'slope',m:-4,b:-7,label:'l',part:2}]}};
+  await page.locator('#question').fill(interceptQuestion);await page.locator('#solveButton').click();
+  await page.waitForFunction(()=>document.querySelector('#solution').textContent.includes('正确答案依赖图合并回归'));
+  const projection=await page.evaluate(()=>JSON.parse(localStorage.getItem('zhigeometry:last')).solution);
+  assert.match(projection.parts[1].answer,/-4/);
+  assert.equal(projection.sceneAudit.invalid.length,0,JSON.stringify(projection.sceneAudit));
+  assert(projection.scene.lines.some(n=>n.id==='projection-axis-2'&&n.visible===false),'Hidden dependency must be merged even without a derived source tag');
+  assert.equal(projection.scene.objects.filter(n=>['M','N'].includes(n.label)).length,2);
+  await page.getByRole('button',{name:'第（2）问',exact:true}).click();
+  await screenshot('cloud-projection-complete-dependency-merge.png',null);
 };

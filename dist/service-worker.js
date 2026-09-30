@@ -1,8 +1,9 @@
 'use strict';
 
-const VERSION = '0.43.1';
+const VERSION = '0.43.2';
 const CACHE = `dongjiexi-app-${VERSION}`;
 const CORE = [
+  './scene-merge.js',
   './conic-parameter.js',
   './math-input.js', './number-display.js', './tangent-solver.js', './ellipse-distance.js', './orthogonal-chord.js', './ellipse-focal-chord.js', './axis-intercept-chord.js',
   './', './index.html', './offline.html', './manifest.webmanifest', './app-version.json',

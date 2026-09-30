@@ -468,8 +468,7 @@
           for(const [name,point] of Object.entries(exactScene.points||{}))if(declared.has(window.DongSceneAudit.canonical(name)))result.scene.points[name]=point;
           if(exactSolution.engineExtensions?.includes('axis-intercept-chord')){
             for(const key of ['theta','lineThrough','dynamicIntersectionLabels','showDynamic'])if(exactScene[key]!=null)result.scene[key]=exactScene[key];
-            result.scene.objects||=[];result.scene.lines||=[];
-            for(const key of ['objects','lines'])for(const node of exactScene[key]||[])if(node.source==='derived'&&!result.scene[key].some(n=>n.id===node.id||n.label===node.label))result.scene[key].push(node);
+            window.DongSceneMerge.mergeDerived(result.scene,exactScene);
           }
           result.scene.exact=exactScene.exact||{};
           result.scene_notice='题面支持的主曲线参数已复算；AI 回复的关联构造保留，其它结论仍需核验。';

@@ -1,6 +1,6 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
 const sandbox={window:{}};
-for(const file of ['construction-board.js','tangent-solver.js','scene-audit.js','math-input.js','number-display.js','equation-builder.js','conic-parameter.js'])vm.runInNewContext(fs.readFileSync(path.join(__dirname,'../dist/'+file),'utf8'),sandbox);
+for(const file of ['construction-board.js','tangent-solver.js','scene-audit.js','scene-merge.js','math-input.js','number-display.js','equation-builder.js','conic-parameter.js'])vm.runInNewContext(fs.readFileSync(path.join(__dirname,'../dist/'+file),'utf8'),sandbox);
 const audit=sandbox.window.DongSceneAudit,construct=sandbox.window.DongConstruct;
 (async()=>{
   const {assemble}=await import('../dist/cloud-contract.mjs');
@@ -8,6 +8,17 @@ const audit=sandbox.window.DongSceneAudit,construct=sandbox.window.DongConstruct
   const {safeExternalScene}=await import('../dist/external-contract.mjs');
   let count=0;const check=f=>{f();count++;},copy=x=>JSON.parse(JSON.stringify(x));
   const conic=sandbox.window.DongConicParameter;
+  const target={objects:[{id:'ai-M',op:'midpoint',label:'M',refs:['feature:A','feature:B']},{id:'ai-extra',op:'segment',label:'AM',refs:['feature:A','ai-M']}],lines:[{id:'axis-clash',kind:'slope',m:1,b:3,label:'hiddenAxis'}]};
+  const exact={objects:[{id:'verifiedM',op:'intersection',label:'M',refs:['verifiedAB','native-axis'],source:'derived'},{id:'verifiedAB',op:'line',label:'AB',refs:['feature:A','feature:B'],source:'derived'}],lines:[{id:'native-axis',kind:'slope',m:0,b:0,label:'hiddenAxis',visible:false}]};
+  check(()=>assert.equal(sandbox.window.DongSceneMerge.mergeDerived(target,exact),3));
+  check(()=>assert.deepEqual(Array.from(target.objects.find(n=>n.label==='M').refs),['verifiedAB','axis-clash']));
+  check(()=>assert.equal(target.objects.find(n=>n.label==='M').id,'ai-M','Preserve existing ID used by additional model objects'));
+  check(()=>assert.deepEqual(Array.from(target.objects.find(n=>n.id==='ai-extra').refs),['feature:A','ai-M']));
+  check(()=>assert.equal(target.lines.find(n=>n.id==='axis-clash').m,0));
+  check(()=>assert.equal(target.lines.find(n=>n.id==='axis-clash').visible,false));
+  check(()=>assert.equal(target.objects.filter(n=>n.label==='M').length,1));
+  check(()=>assert.equal(sandbox.window.DongSceneMerge.mergeDerived(target,exact),3));
+  check(()=>assert.equal(target.objects.length,3,'Repeated merge does not duplicate objects'));
   const sourced=JSON.parse(fs.readFileSync(path.join(__dirname,'fixtures/sourced-exam-additions.json'),'utf8')).items.find(q=>q.id==='2022-beijing-12');
   const inferred=conic.infer(sourced.question);
   check(()=>assert.equal(inferred.parameterSolution.value,-3));
