@@ -12,17 +12,19 @@ services:
       - key: DONGJIEXI_INFERENCE_PROVIDER
         value: chat-completions
       - key: DONGJIEXI_MODEL_API_BASE
-        value: https://dashscope.aliyuncs.com/compatible-mode/v1
+        value: https://api.deepseek.com
       - key: DONGJIEXI_MODEL_ID
-        value: qwen3.5-plus
+        value: deepseek-flash
+      - key: DONGJIEXI_ALLOWED_MODELS
+        value: deepseek-flash,deepseek-v4-pro
       - key: DONGJIEXI_MODEL_JSON_MODE
-        value: prompt-only
+        value: json_object
       - key: DONGJIEXI_MODEL_API_KEY
         sync: false
       - key: DONGJIEXI_ACCESS_KEY
-        generateValue: true
+        sync: false
       - key: DONGJIEXI_ALLOWED_ORIGINS
-        value: https://1157364449han-max.github.io
+        value: https://dongjiexi.github.io
       - key: DONGJIEXI_MAX_CONCURRENT
         value: "2"
       - key: DONGJIEXI_JOBS_PER_10_MINUTES

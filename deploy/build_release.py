@@ -32,6 +32,9 @@ APP_FILES = {
     'deploy/phone/launch-download-deepseek-fast.sh',
     'deploy/phone/runtime-config.js',
     'deploy/phone/rotate-model-key.py',
+    'deploy/phone/service-supervisor.py', 'deploy/phone/monitor-phone-endpoint.sh',
+    'deploy/phone/launch-tunnel.sh',
+    'deploy/phone/launch-endpoint-monitor.sh', 'deploy/phone/sync-phone-endpoint.sh',
 }
 
 

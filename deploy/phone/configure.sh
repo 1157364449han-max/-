@@ -21,7 +21,7 @@ umask 077
   echo 'DONGJIEXI_MODEL_JSON_MODE=prompt-only'
   echo 'DONGJIEXI_ALLOWED_MODELS=deepseek-r1-llama-8b'
   echo "DONGJIEXI_ACCESS_KEY=$access_key"
-  echo 'DONGJIEXI_ALLOWED_ORIGINS=https://1157364449han-max.github.io'
+  echo 'DONGJIEXI_ALLOWED_ORIGINS=https://dongjiexi.github.io'
   echo 'DONGJIEXI_MAX_CONCURRENT=1'
   echo 'DONGJIEXI_JOBS_PER_10_MINUTES=6'
 } > "$env_file"

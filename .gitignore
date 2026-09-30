@@ -7,6 +7,10 @@ node_modules/
 .env.*
 !*.env.example
 deploy/cloud.env
+private.env
+private.env.backup.*
+cloudflared.token
+cloud-endpoint.txt
 *.log
 *.zip
 _release/

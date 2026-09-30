@@ -2,7 +2,7 @@
   'use strict';
   const raw = window.DONGJIEXI_CONFIG || {};
   const config = Object.freeze({
-    version: String(raw.version || '0.41.2'),
+    version: String(raw.version || '0.41.3'),
     deployment: raw.deployment === 'web' ? 'web' : 'desktop',
     apiBase: String(raw.apiBase || '').trim().replace(/\/+$/, ''),
     apiEnabled: raw.apiEnabled !== false,

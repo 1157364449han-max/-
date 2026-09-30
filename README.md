@@ -10,7 +10,9 @@
 
 面向高中生与教师的中文解析几何工作台。题目、分步解答、动态画板、参数、图层与课堂展示使用同一套场景数据。
 
-当前版本：**0.41.2**。仓库中的部署状态以 [Actions](https://github.com/1157364449han-max/-/actions) 的实际结果为准，上传源码不代表网页已经上线。
+当前版本：**0.41.3**。仓库中的部署状态以 [Actions](https://github.com/dongjiexi/-/actions) 的实际结果为准，上传源码不代表网页已经上线。
+
+0.41.3 将网站和更新通道迁移到 https://dongjiexi.github.io/-/。云端网关增加服务与公网双重健康检查、连续故障恢复和退避重试，只在确认公网可用后同步地址。临时隧道仍不是长期稳定部署；正式入口需要固定域名与持久隧道或独立云主机。
 
 ## 使用能力与边界
 
@@ -26,7 +28,7 @@
 
 0.34.0 增加椭圆上动点到对称轴上定点的距离最值推导：消元为闭区间二次函数，比较端点和顶点，给出取值位置并同步标记、定位。支持平移、横纵轴交换与改换点名；暂不将此方法用于任意轴外定点或受限弧。全角数学符号和“定点 A 的坐标为……”可直接识别。
 
-0.27.0 云端部署蓝图切换为阿里云百炼北京地域 `qwen3.5-plus`，避免 Google AI Studio 的地区限制。先在百炼创建北京地域 API Key，并确认“免费额度用完即停”；再从 [Deploy to Render](https://render.com/deploy?repo=https://github.com/1157364449han-max/-) 创建服务，API Key 只填 Render Secret，绝不提交仓库。公开站在真实服务验收前仍仅使用浏览器本地 OCR。
+0.27.0 云端部署蓝图切换为阿里云百炼北京地域 `qwen3.5-plus`，避免 Google AI Studio 的地区限制。先在百炼创建北京地域 API Key，并确认“免费额度用完即停”；再从 [Deploy to Render](https://render.com/deploy?repo=https://github.com/dongjiexi/-) 创建服务，API Key 只填 Render Secret，绝不提交仓库。公开站在真实服务验收前仍仅使用浏览器本地 OCR。
 
 0.26.0 改进本地 OCR 的方向纠正、图像增强复核及置信度提示。增加云端视觉识题接口：仅在独立云服务就绪、用户主动勾选后上传题图，识别结果仍须核对。
 
@@ -69,7 +71,7 @@ node tests/pwa_contract_tests.cjs
 npm install --no-save --no-package-lock playwright@1.62.1
 npx playwright install --with-deps chromium
 node tests/run_browser_smoke.cjs
-python deploy/build_release.py --output _release --site-base https://1157364449han-max.github.io/-
+python deploy/build_release.py --output _release --site-base https://dongjiexi.github.io/-
 ```
 
 `_release/site/` 是静态网站；默认不向本机或任何未配置云服务发送解题请求。Pages 需要仓库具备相应托管资格且已启用 GitHub Actions 来源。发布后 PWA 提示刷新，同次发布生成桌面更新包；设备更新版本不等于个人题本自动跨设备同步，题本目前通过导入导出迁移。

@@ -4,4 +4,4 @@ export PREFIX=/data/data/com.termux/files/usr
 export PATH="$PREFIX/bin:/system/bin"
 termux-wake-lock
 bash "$HOME/dongjiexi/launch-endpoint-monitor.sh"
-exec "$HOME/dongjiexi/start.sh" >> "$HOME/dongjiexi/app.log" 2>&1
+bash "$HOME/dongjiexi/launch-detached.sh"
