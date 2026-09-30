@@ -1,0 +1,23 @@
+const assert=require('node:assert/strict');
+const fs=require('node:fs');
+const path=require('node:path');
+const bank=require('../dist/question-bank.js');
+const data=JSON.parse(fs.readFileSync(path.join(__dirname,'../dist/question-bank.json'),'utf8'));
+assert.equal(bank.select(data.items,{year:2024})[0].id,'2024-ii-19');
+assert.equal(bank.select(data.items,{kind:'classic'}).length,2);
+assert.equal(bank.select(data.items,{query:'不会匹配的文字'}).length,0);
+assert.equal(bank.select(data.items,{curve:'圆',topic:'切线'}).length,1);
+for(const item of data.items){
+  if(item.solver)continue;
+  const record=bank.lesson(item,'practice');
+  assert.equal(record.solution.study.mode,'step');
+  assert.deepEqual(record.solution.study.counts,{});
+  assert.deepEqual(record.solution.study.answers,{});
+  assert.equal(record.solution.mode,'reference-lesson');
+  assert.equal(record.solution.verification.status,'reference-reviewed');
+  assert.equal(record.solution.lessonSource.id,item.id);
+  assert(record.scene);
+  for(const line of record.scene.lines)assert(['slope','vertical'].includes(line.kind));
+}
+assert.throws(()=>bank.lesson(data.items.find(i=>i.solver),'full',()=>null),/联动图形/);
+console.log('PASS sourced bank filtering, honest reference labels, hidden practice answers and native line conversion');

@@ -1,12 +1,13 @@
 'use strict';
 
-const VERSION = '0.40.4';
+const VERSION = '0.41.0';
 const CACHE = `dongjiexi-app-${VERSION}`;
 const CORE = [
   './math-input.js', './number-display.js', './tangent-solver.js', './ellipse-distance.js', './orthogonal-chord.js', './ellipse-focal-chord.js',
   './', './index.html', './offline.html', './manifest.webmanifest', './app-version.json',
   './runtime-config.js', './runtime.js', './pwa.js', './learning-ui.css', './learning-ui.js', './classroom.css',
   './classroom.js', './construction-board.js', './drag-board.js', './equation-builder.js', './math-keyboard.js', './mathlive-adapter.js', './geogebra-bridge.js',
+  './question-bank.js', './question-bank.css', './question-bank.json',
   './releases.json', './icons/icon.svg', './icons/maskable.svg',
   './vendor/katex/katex.min.css', './vendor/katex/katex.min.js',
   './vendor/katex/contrib/auto-render.min.js',

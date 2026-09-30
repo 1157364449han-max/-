@@ -1,0 +1,17 @@
+.question-bank-dialog{width:min(1080px,94vw);max-height:90dvh;padding:22px;border:1px solid #d9e1ee;border-radius:18px;color:#213047;overflow:auto;background:#fff}
+.question-bank-dialog::backdrop{background:rgba(21,35,55,.45)}
+.question-bank-dialog header{display:flex;align-items:flex-start;justify-content:space-between;gap:14px}
+.question-bank-dialog header>button{flex-shrink:0;white-space:nowrap}
+.question-bank-dialog h2{margin:0 0 8px;font-size:22px}.question-bank-dialog h3{margin-top:0}
+.bank-filters{display:grid;grid-template-columns:2fr repeat(4,1fr);gap:10px;margin:16px 0}
+.bank-filters label{display:grid;gap:6px;font-size:13px;font-weight:600;min-width:0}
+.bank-filters input,.bank-filters select{width:100%;min-width:0;padding:9px;border:1px solid #cdd8e7;border-radius:9px;background:#fff;font:inherit;box-sizing:border-box}
+.bank-layout{display:grid;grid-template-columns:minmax(230px,30%) minmax(0,1fr);gap:20px}
+#bankList{display:grid;align-content:start;gap:8px;max-height:55dvh;overflow:auto;padding-right:6px}
+#bankList button{display:grid;gap:6px;text-align:left;background:#f6f8fc;color:inherit;border:1px solid #dae3ef;border-radius:10px;padding:12px;font:inherit;cursor:pointer}
+#bankList button[aria-pressed=true]{border-color:#2969cf;background:#ecf4ff}#bankList span,#bankList small{font-size:12px;color:#5d6b7c}
+#bankDetail{min-width:0}.bank-question{white-space:pre-wrap;line-height:1.9;overflow-wrap:anywhere;font-size:16px}
+.bank-tags{font-size:13px;color:#3666a3}.bank-actions{display:flex;flex-wrap:wrap;gap:9px;margin:18px 0}
+#bankDetail details{border-top:1px solid #e0e7ef;padding:12px 0}#bankDetail summary{cursor:pointer;font-weight:600}
+#bankDetail a{color:#2369bd;overflow-wrap:anywhere}.reference-source{padding:10px;background:#eef5ff;border-radius:8px;margin:12px 0}.reference-source p{margin:6px 0}
+@media(max-width:760px){.question-bank-dialog{padding:15px;width:calc(100vw - 26px);box-sizing:border-box;max-height:92dvh}.bank-filters{grid-template-columns:1fr 1fr}.bank-filters label:first-child{grid-column:1/-1}.bank-layout{grid-template-columns:1fr}#bankList{max-height:24dvh}.bank-actions{flex-direction:column}.bank-actions button{width:100%}.bank-question{font-size:15px}}

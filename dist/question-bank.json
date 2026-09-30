@@ -1,0 +1,107 @@
+{
+  "schema": "dongjiexi-question-bank/v1",
+  "updated": "2026-09-30",
+  "coverage": "2022—2026 年精选，非全量试卷。小问节选与省略选项均单独标记。",
+  "rights": "题面权利归原命题单位；来源链接供核对。讲解由董解析重新推导，不搬运第三方答案册。",
+  "items": [
+    {
+      "id": "2022-beijing-3", "kind": "gaokao", "year": 2022, "paper": "北京卷", "number": "3", "scope": "题干（省略选项）", "title": "圆的对称轴", "curve": "圆", "tags": ["圆心", "对称性"], "level": "基础",
+      "question": "若直线 $2x+y-1=0$ 是圆 $(x-a)^2+y^2=1$ 的一条对称轴，求 $a$。",
+      "sources": [{"title": "2022 北京卷题面转写", "url": "https://1cunzhang.com/index.php?id=5804&p=article"}],
+      "pitfall": "圆的每条对称轴都经过圆心，不能把对称轴当作切线。",
+      "parts": [{"index": 1, "label": "求参数", "answer": "$a=\\dfrac12$。", "steps": ["先读标准式，圆心是 $(a,0)$，半径为 $1$。", "圆的对称轴经过圆心，因此 $2a+0-1=0$。", "解得 $a=\\dfrac12$；把圆心代回直线，等式成立。"]}],
+      "scene": {"type": "circle", "r": 1, "h": 0.5, "showDynamic": false, "points": {"O": [0.5,0]}, "lines": [{"id": "axis", "label": "对称轴", "a": 2, "b": 1, "c": -1}]}
+    },
+    {
+      "id": "2022-ii-21-1", "kind": "gaokao", "year": 2022, "paper": "新高考全国Ⅱ卷", "number": "21（1）", "scope": "第（1）问节选", "title": "焦点与渐近线确定双曲线", "curve": "双曲线", "tags": ["标准方程", "渐近线"], "level": "基础",
+      "question": "已知双曲线 $C:\\dfrac{x^2}{a^2}-\\dfrac{y^2}{b^2}=1\\ (a>0,b>0)$ 的右焦点为 $F(2,0)$，渐近线方程为 $y=\\pm x$。求 $C$ 的方程。（选取原题第（1）问。）",
+      "sources": [{"title": "2022 新高考全国Ⅱ卷原题整理", "url": "https://zy.21cnjy.com/12414515"}],
+      "pitfall": "双曲线满足 c²=a²+b²；不要套用椭圆的减法。",
+      "parts": [{"index": 1, "label": "标准方程", "answer": "$\\dfrac{x^2}{2}-\\dfrac{y^2}{2}=1$。", "steps": ["焦点给出 $c=2$；渐近线斜率给出 $\\dfrac ba=1$，即 $b=a$。", "由 $c^2=a^2+b^2$，得 $4=2a^2$。", "所以 $a^2=b^2=2$，方程为 $\\dfrac{x^2}{2}-\\dfrac{y^2}{2}=1$。"]}],
+      "scene": {"type": "hyperbola", "a": 1.4142135623730951, "b": 1.4142135623730951, "showDynamic": false, "points": {"F": [2,0]}, "lines": [{"id": "asym1", "label": "y=x", "a": 1, "b": -1, "c": 0}, {"id": "asym2", "label": "y=-x", "a": 1, "b": 1, "c": 0}]}
+    },
+    {
+      "id": "2022-beijing-19-1", "kind": "gaokao", "year": 2022, "paper": "北京卷", "number": "19（Ⅰ）", "scope": "第（Ⅰ）问节选", "title": "顶点与焦距确定椭圆", "curve": "椭圆", "tags": ["标准方程", "焦距"], "level": "基础",
+      "question": "已知椭圆 $E:\\dfrac{x^2}{a^2}+\\dfrac{y^2}{b^2}=1\\ (a>b>0)$ 的一个顶点为 $A(0,1)$，焦距为 $2\\sqrt3$。求椭圆 $E$ 的方程。（选取原题第（Ⅰ）问。）",
+      "sources": [{"title": "2022 北京卷原卷 PDF", "url": "https://m.shsbnu.net/pluginfile.php/54461/mod_folder/content/0/2022%E5%B9%B4%E6%96%B0%E9%AB%98%E8%80%83%E5%8C%97%E4%BA%AC%E6%95%B0%E5%AD%A6%E9%AB%98%E8%80%83%E7%9C%9F%E9%A2%98%E6%96%87%E6%A1%A3%E7%89%88%EF%BC%88%E5%8E%9F%E5%8D%B7%EF%BC%89.pdf"}],
+      "pitfall": "焦距是 2c，不是 c。部分转载的纯文本漏掉根号，必须核对原卷。",
+      "parts": [{"index": 1, "label": "标准方程", "answer": "$\\dfrac{x^2}{4}+y^2=1$。", "steps": ["短轴顶点 $A(0,1)$ 给出 $b=1$。", "焦距 $2c=2\\sqrt3$，所以 $c^2=3$。", "椭圆满足 $a^2=b^2+c^2=4$，故 $\\dfrac{x^2}{4}+y^2=1$。"]}],
+      "scene": {"type": "ellipse", "a": 2, "b": 1, "showDynamic": false, "points": {"A": [0,1]}}
+    },
+    {
+      "id": "2023-i-6", "kind": "gaokao", "year": 2023, "paper": "新课标全国Ⅰ卷", "number": "6", "scope": "完整题目", "title": "圆外两切线的夹角", "curve": "圆", "tags": ["切线", "三角函数"], "level": "中等",
+      "question": "过点 $(0,-2)$ 与圆 $x^2+y^2-4x-1=0$ 相切的两条直线的夹角为 $\\alpha$，则 $\\sin\\alpha=$（ ）\nA. $1$　B. $\\dfrac{\\sqrt{15}}4$　C. $\\dfrac{\\sqrt{10}}4$　D. $\\dfrac{\\sqrt6}4$",
+      "sources": [{"title": "学校公开的真题与辨析资料", "url": "https://www.nhsm.org/xyxw/xygg/202512/W020251229618520711114.pdf"}],
+      "pitfall": "两直线的夹角通常取锐角；不要直接把较大的 ∠APB 当成直线夹角，二者正弦相同。",
+      "parts": [{"index": 1, "label": "切线夹角", "answer": "选 B，$\\sin\\alpha=\\dfrac{\\sqrt{15}}4$。", "steps": ["配方为 $(x-2)^2+y^2=5$；记圆心 $O(2,0)$，外点 $P(0,-2)$。", "半径 $r=\\sqrt5$，$OP=2\\sqrt2$。切点记为 $A,B$，半径与切线垂直。", "设 $\\theta=\\angle APO$，则 $\\sin\\theta=\\dfrac{\\sqrt{10}}4$，$\\cos\\theta=\\dfrac{\\sqrt6}4$。", "射线 $PA,PB$ 的夹角为 $2\\theta$，而两直线夹角取其补角；所以 $\\sin\\alpha=\\sin(2\\theta)=2\\sin\\theta\\cos\\theta=\\dfrac{\\sqrt{15}}4$。"]}],
+      "scene": {"type": "circle", "h": 2, "r": 2.23606797749979, "showDynamic": false, "points": {"P": [0,-2]}, "lines": [{"id": "tangent1", "label": "切线 PA", "a": -7.872983346207417, "b": -1, "c": -2}, {"id": "tangent2", "label": "切线 PB", "a": -0.127016653792583, "b": -1, "c": -2}]}
+    },
+    {
+      "id": "2023-i-22", "kind": "gaokao", "year": 2023, "paper": "新课标全国Ⅰ卷", "number": "22", "scope": "完整题目", "title": "抛物线轨迹与矩形周长", "curve": "抛物线", "tags": ["轨迹", "矩形", "最值", "严格不等式"], "level": "综合",
+      "question": "在直角坐标系 $xOy$ 中，点 $P$ 到 $x$ 轴的距离等于点 $P$ 到点 $\\left(0,\\dfrac12\\right)$ 的距离，记动点 $P$ 的轨迹为 $W$。\n（1）求 $W$ 的方程；\n（2）已知矩形 $ABCD$ 有三个顶点在 $W$ 上，证明：矩形 $ABCD$ 的周长大于 $3\\sqrt3$。",
+      "sources": [{"title": "2023 新课标Ⅰ卷第22题题面", "url": "https://gaokaowiki.com/math/%E7%9C%9F%E9%A2%98/%E6%B5%99%E6%B1%9F/2023/q22/"}, {"title": "原题交叉核对", "url": "https://persvadisto.github.io/2023/06/07/2023%E6%96%B0%E9%AB%98%E8%80%83%E4%B8%80%E5%8D%B7%E6%95%B0%E5%AD%A6%E5%8E%8B%E8%BD%B4%E9%A2%98/"}],
+      "pitfall": "准线是 y=0，顶点不在原点；证明大于时必须排除等号。",
+      "parts": [{"index": 1, "label": "（1）轨迹方程", "answer": "$W:y=x^2+\\dfrac14$。", "steps": ["设 $P(x,y)$，题设是 $|y|=\\sqrt{x^2+(y-\\frac12)^2}$。", "平方整理得 $y=x^2+\\dfrac14$。反代两边均非负且相等，因此没有增根。"]}, {"index": 2, "label": "（2）周长证明", "answer": "矩形周长 $L>3\\sqrt3$。", "steps": ["不妨将三个在曲线上的连续顶点记为 $A(a,a^2+\\frac14),B(b,b^2+\\frac14),C(c,c^2+\\frac14)$。由 $AB\\perp BC$ 且顶点互异，得 $(a+b)(b+c)=-1$。", "交换 $A,C$ 后可设 $t=|b+c|\\in(0,1]$。于是 $|AB|+|BC|=|b-a|\\sqrt{1+t^{-2}}+|c-b|\\sqrt{1+t^2}$。", "因为 $t^{-2}\\ge t^2$，再用三角不等式，得 $|AB|+|BC|\\ge(|b-a|+|c-b|)\\sqrt{1+t^2}\\ge|c-a|\\sqrt{1+t^2}=\\dfrac{(1+t^2)^{3/2}}t$。", "令 $f(t)=\\dfrac{(1+t^2)^{3/2}}t$，则 $f'(t)=\\dfrac{\\sqrt{1+t^2}(2t^2-1)}{t^2}$；在 $t=1/\\sqrt2$ 取最小值 $3\\sqrt3/2$。", "首个放缩取等要求 $t=1$，而 $f$ 取最小要求 $t=1/\\sqrt2$，不可能同时成立。因此 $L=2(|AB|+|BC|)>3\\sqrt3$。"]}],
+      "scene": {"type": "parabola", "orientation": "vertical", "p": 0.25, "k": 0.25, "showDynamic": false, "points": {"A": [-1,1.25], "B": [0,0.25], "C": [1,1.25], "D": [0,2.25]}, "polygons": [{"id": "rectangle", "label": "矩形 ABCD", "labels": ["A","B","C","D"], "part": 2}]},
+      "sceneNote": "画板展示满足条件的一个矩形，周长为 4√2；不是最优构型，也不是以图代证。"
+    },
+    {
+      "id": "2024-ii-19", "kind": "gaokao", "year": 2024, "paper": "新课标全国Ⅱ卷", "number": "19", "scope": "完整题目", "title": "双曲线迭代与面积定值", "curve": "双曲线", "tags": ["动点", "对称", "数列", "面积定值"], "level": "综合",
+      "question": "已知双曲线 $C:x^2-y^2=m\\ (m>0)$，点 $P_1(5,4)$ 在 $C$ 上，$k$ 为常数，$0<k<1$。按如下方式依次构造点 $P_n\\ (n=2,3,\\ldots)$：过 $P_{n-1}$ 作斜率为 $k$ 的直线与 $C$ 的左支交于 $Q_{n-1}$，令 $P_n$ 为 $Q_{n-1}$ 关于 $y$ 轴的对称点。记 $P_n=(x_n,y_n)$。\n（1）若 $k=\\dfrac12$，求 $x_2,y_2$；\n（2）证明 $\\{x_n-y_n\\}$ 是公比为 $\\dfrac{1+k}{1-k}$ 的等比数列；\n（3）设 $S_n$ 为 $\\triangle P_nP_{n+1}P_{n+2}$ 的面积，证明对任意正整数 $n$，$S_n=S_{n+1}$。",
+      "sources": [{"title": "2024 全国Ⅱ卷第19题题面转写", "url": "https://www.cnblogs.com/Eufisky/p/18242506"}, {"title": "教育在线考试评析（确认卷别与题号）", "url": "https://gaokao.eol.cn/news/202406/t20240607_2615164.shtml"}],
+      "pitfall": "Q 在左支，P 是 Q 关于 y 轴的反射；有转载将第（1）问的正负号写反。",
+      "parts": [{"index": 1, "label": "（1）求 P₂", "answer": "$P_2=(3,0)$。", "steps": ["由 $P_1(5,4)$ 得 $m=25-16=9$。", "当 $k=1/2$，直线为 $y=x/2+3/2$。联立得 $(x+3)(x-5)=0$。", "左支点为 $Q_1(-3,0)$；反射后 $P_2(3,0)$。"]}, {"index": 2, "label": "（2）等比数列", "answer": "$x_n-y_n=\\left(\\dfrac{1+k}{1-k}\\right)^{n-1}$。", "steps": ["直线写为 $y=kx+y_{n-1}-kx_{n-1}$。联立双曲线并利用两交点横坐标之和，得到 $x_n=\\dfrac{(1+k^2)x_{n-1}-2ky_{n-1}}{1-k^2}$。", "因 $Q_{n-1}=(-x_n,y_n)$ 在该直线上，得 $y_n=\\dfrac{-2kx_{n-1}+(1+k^2)y_{n-1}}{1-k^2}$。", "两式相减，得 $x_n-y_n=\\dfrac{1+k}{1-k}(x_{n-1}-y_{n-1})$，且 $x_1-y_1=1$。"]}, {"index": 3, "label": "（3）面积定值", "answer": "$S_{n+1}=S_n$，对所有正整数 $n$ 成立。", "steps": ["高中坐标证法：令 $r=\\dfrac{1+k}{1-k}>1$，由第（2）问与 $(x_n-y_n)(x_n+y_n)=9$，得 $x_n=\\dfrac{r^{n-1}+9r^{1-n}}2,y_n=\\dfrac{9r^{1-n}-r^{n-1}}2$。", "将坐标代入三角形面积公式 $S_n=\\dfrac12|(x_{n+1}-x_n)(y_{n+2}-y_n)-(x_{n+2}-x_n)(y_{n+1}-y_n)|$，整理得 $S_n=\\dfrac{9(r-1)^3(r+1)}{4r^2}$，与 n 无关。", "拓展理解（线性变换）：令 $T=\\dfrac1{1-k^2}\\begin{pmatrix}1+k^2&-2k\\\\-2k&1+k^2\\end{pmatrix}$。上一问说明 $P_{n+1}=TP_n$。", "计算 $\\det T=\\dfrac{(1+k^2)^2-4k^2}{(1-k^2)^2}=1$。", "三角形下一项的两条边向量正好是上一项边向量乘以 $T$。面积为两边向量行列式绝对值的一半，故 $S_{n+1}=|\\det T|S_n=S_n$。"]}],
+      "scene": {"type": "hyperbola", "a": 3, "b": 3, "showDynamic": false, "points": {"P₁": [5,4], "Q₁": [-3,0], "P₂": [3,0], "Q₂": [-5,-4], "P₃": [5,-4]}, "lines": [{"id": "first-chord", "label": "P₁Q₁", "a": 0.5, "b": -1, "c": 1.5}], "polygons": [{"id": "iterated-triangle", "label": "△P₁P₂P₃", "labels": ["P₁","P₂","P₃"], "part": 3}]},
+      "sceneNote": "图示 k=1/2 的前三次构造与三角形，不表示所有 k 的动态图；一般情形由代数证明。"
+    },
+    {
+      "id": "2025-beijing-3", "kind": "gaokao", "year": 2025, "paper": "北京卷", "number": "3", "scope": "完整题目", "title": "双曲线离心率", "curve": "双曲线", "tags": ["标准方程", "离心率"], "level": "基础",
+      "question": "双曲线 $x^2-4y^2=4$ 的离心率为（ ）\nA. $\\dfrac{\\sqrt3}2$　B. $\\dfrac{\\sqrt5}2$　C. $\\dfrac54$　D. $\\sqrt5$",
+      "sources": [{"title": "2025 北京卷真题整理", "url": "https://gaokaohub.com/q/math/2025.html"}],
+      "pitfall": "先化标准式，系数 4 不是 b²。",
+      "parts": [{"index": 1, "label": "求离心率", "answer": "选 B，$e=\\dfrac{\\sqrt5}2$。", "steps": ["两边除以 $4$，得 $x^2/4-y^2=1$，因此 $a^2=4,b^2=1$。", "$c^2=a^2+b^2=5$，故 $e=c/a=\\sqrt5/2$。"]}],
+      "scene": {"type": "hyperbola", "a": 2, "b": 1, "showDynamic": false}
+    },
+    {
+      "id": "2025-beijing-11", "kind": "gaokao", "year": 2025, "paper": "北京卷", "number": "11", "scope": "完整题目", "title": "抛物线的焦参数", "curve": "抛物线", "tags": ["标准方程", "焦点"], "level": "基础",
+      "question": "抛物线 $y^2=2px\\ (p>0)$ 的顶点到焦点的距离为 $3$，则 $p=$______。",
+      "sources": [{"title": "2025 北京卷真题整理", "url": "https://gaokaohub.com/q/math/2025.html"}],
+      "pitfall": "题目中的 2px 与画板内部的 4fx 使用不同参数约定；焦距都是 p/2=3。",
+      "parts": [{"index": 1, "label": "求参数", "answer": "$p=6$；抛物线方程 $y^2=12x$。", "steps": ["对 $y^2=2px$，焦点为 $(p/2,0)$，顶点为 $(0,0)$。", "由 $p/2=3$ 得 $p=6$，代入得到 $y^2=12x$。"]}],
+      "scene": {"type": "parabola", "p": 3, "showDynamic": false, "points": {"F": [3,0]}}
+    },
+    {
+      "id": "2025-beijing-19-1", "kind": "gaokao", "year": 2025, "paper": "北京卷", "number": "19（1）", "scope": "第（1）问节选", "title": "椭圆定义与离心率", "curve": "椭圆", "tags": ["标准方程", "离心率", "椭圆定义"], "level": "基础",
+      "question": "已知椭圆 $E:\\dfrac{x^2}{a^2}+\\dfrac{y^2}{b^2}=1\\ (a>b>0)$ 的离心率为 $\\dfrac{\\sqrt2}2$，椭圆上的点到两焦点的距离之和为 $4$。求椭圆方程。（选取原题第（1）问。）",
+      "sources": [{"title": "2025 北京卷第19题题面", "url": "https://gaokaohub.com/q/math/2025.html"}],
+      "pitfall": "距离之和为 2a，不是 a；离心率取平方后再求 b²。",
+      "parts": [{"index": 1, "label": "标准方程", "answer": "$\\dfrac{x^2}{4}+\\dfrac{y^2}{2}=1$。", "steps": ["椭圆定义给出 $2a=4$，因此 $a=2$。", "$c=ae=\\sqrt2$，再由 $b^2=a^2-c^2=2$。", "所以椭圆方程为 $\\dfrac{x^2}{4}+\\dfrac{y^2}{2}=1$。"]}],
+      "scene": {"type": "ellipse", "a": 2, "b": 1.4142135623730951, "showDynamic": false}
+    },
+    {
+      "id": "2026-i-18", "kind": "gaokao", "year": 2026, "paper": "新高考全国Ⅰ卷", "number": "18", "scope": "完整题目", "title": "椭圆焦点弦与夹角最值", "curve": "椭圆", "tags": ["焦点弦", "中心对称", "面积比", "最值"], "level": "综合", "solver": "ellipse-focal-chord",
+      "question": "已知椭圆 $C:\\dfrac{x^2}{a^2}+\\dfrac{y^2}{b^2}=1\\ (a>b>0)$ 的左焦点为 $F(-1,0)$，离心率为 $\\dfrac{1}{2}$。\n（1）求 $C$ 的方程；\n（2）设 $O$ 为坐标原点，过 $F$ 且斜率大于 $0$ 的动直线 $l$ 与 $C$ 交于 $P,Q$ 两点，其中 $Q$ 在第三象限，直线 $PO$ 与 $C$ 的另一个交点为 $R$。\n（i）若 $\\triangle PQR$ 的面积是 $\\triangle PFO$ 的面积的 3 倍，求 $l$ 的方程；\n（ii）求 $\\tan\\angle PQR$ 的最小值。",
+      "sources": [{"title": "2026 全国Ⅰ卷题面整理 PDF", "url": "https://paper-airplane.oss-cn-beijing.aliyuncs.com/2026/06/12/151844b85e5dc4-6283-45d1-b6d1-e4423a897f46.pdf"}, {"title": "第18题题面交叉核对", "url": "https://liangshibao.com/tiku/gaokao-math-2026-i/subjective-18"}],
+      "pitfall": "原题为 PO 的另一交点，不是 PQ 的第三个交点；正斜率与 Q 的象限必须同时保留。",
+      "parts": [{"index": 1, "label": "（1）标准方程", "answer": "$x^2/4+y^2/3=1$。", "steps": ["由 $c=1,e=c/a=1/2$ 得 $a=2$，$b^2=3$。"]}, {"index": 201, "label": "（2）（i）直线方程", "answer": "$l:y=\\dfrac{\\sqrt5}2(x+1)$。", "steps": ["中心对称给出 $R=-P$，面积关系化为 $PF=2FQ$。", "用焦半径与分点关系，解得 $x_P=1/2,x_Q=-7/4$，由象限确定纵坐标，求得正斜率 $\\sqrt5/2$。"]}, {"index": 202, "label": "（2）（ii）夹角最值", "answer": "$\\min\\tan\\angle PQR=4\\sqrt3$。", "steps": ["设直线斜率为 $t>0$，联立椭圆并用韦达定理。", "由两边向量的叉积与数量积，得 $\\tan\\angle PQR=4t+3/t$。", "基本不等式给出 $4t+3/t\\ge4\\sqrt3$，当且仅当 $t=\\sqrt3/2$ 取等。"]}],
+      "sceneNote": "复用焦点弦精确解题器，P、Q、R 和两三角形随直线联动；参考解析与自由 AI 解题分开标识。"
+    },
+    {
+      "id": "classic-parabola-orthogonal", "kind": "classic", "year": null, "paper": "公开经典习题", "number": "抛物线·垂直弦", "scope": "完整题目", "title": "韦达定理证明垂直", "curve": "抛物线", "tags": ["韦达定理", "向量", "垂直"], "level": "中等",
+      "question": "直线 $y=x-2$ 与抛物线 $y^2=2x$ 相交于 $A,B$ 两点。求证：$OA\\perp OB$，其中 $O$ 为坐标原点。",
+      "sources": [{"title": "公开习题题面", "url": "https://qb.zuoyebang.com/xfe-question/question/89afbafb8056b0d25afcd98433a13f08.html"}],
+      "pitfall": "证明垂直可用数量积为零，不必先求出两个带根号的交点，也不必依赖斜率存在。",
+      "parts": [{"index": 1, "label": "证明垂直", "answer": "$\\overrightarrow{OA}\\cdot\\overrightarrow{OB}=0$，所以 $OA\\perp OB$。", "steps": ["由 $x=y+2$ 代入抛物线，得 $y^2-2y-4=0$。", "韦达定理给出 $y_1+y_2=2,y_1y_2=-4$。", "$x_1x_2=(y_1+2)(y_2+2)=-4+4+4=4$。", "因此 $x_1x_2+y_1y_2=0$，两向量均非零，垂直得证。"]}],
+      "scene": {"type": "parabola", "p": 0.5, "showDynamic": false, "points": {"O": [0,0], "A": [5.23606797749979,3.23606797749979], "B": [0.7639320225002102,-1.2360679774997898]}, "lines": [{"id": "chord", "label": "AB", "a": 1, "b": -1, "c": -2}, {"id": "oa", "label": "OA", "a": 3.23606797749979, "b": -5.23606797749979, "c": 0}, {"id": "ob", "label": "OB", "a": -1.2360679774997898, "b": -0.7639320225002102, "c": 0}], "polygons": [{"id": "triangle-oab", "label": "△OAB", "labels": ["O","A","B"]}]}
+    },
+    {
+      "id": "classic-parabola-focal-length", "kind": "classic", "year": null, "paper": "公开教材配套习题", "number": "抛物线·焦点弦", "scope": "题干（省略选项）", "title": "焦点弦长与定义", "curve": "抛物线", "tags": ["焦点弦", "弦长", "抛物线定义"], "level": "基础",
+      "question": "过抛物线 $y^2=4x$ 的焦点作直线，交抛物线于 $A(x_1,y_1),B(x_2,y_2)$ 两点。如果 $x_1+x_2=6$，求 $|AB|$。",
+      "sources": [{"title": "苏教版抛物线几何性质配套习题", "url": "https://www.renjiaoshe.com/sujiaogaozhongshuxue/xuanxiu1/492757.html"}],
+      "pitfall": "焦点在弦的两端之间，弦长为 AF+BF；准线不是 y 轴。",
+      "parts": [{"index": 1, "label": "焦点弦长", "answer": "$|AB|=8$。", "steps": ["抛物线焦点为 $F(1,0)$，准线为 $x=-1$。", "按抛物线定义，$|AF|=x_1+1,|BF|=x_2+1$。", "焦点处于弦内，故 $|AB|=|AF|+|BF|=x_1+x_2+2=8$。"]}],
+      "scene": {"type": "parabola", "p": 1, "showDynamic": false, "points": {"F": [1,0], "A": [5.82842712474619,4.82842712474619], "B": [0.1715728752538097,-0.8284271247461903]}, "lines": [{"id": "focal-chord", "label": "AB", "a": 1, "b": -1, "c": -1}]},
+      "sceneNote": "图示满足条件的正斜率弦 y=x−1，反射弦同样满足题设。"
+    }
+  ]
+}

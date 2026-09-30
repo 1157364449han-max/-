@@ -1,0 +1,70 @@
+module.exports=async({page,context,assert,screenshot})=>{
+  await page.locator('#openQuestionBank').click();
+  await page.locator('#bankList [data-bank-id="2023-i-6"]').waitFor();
+  assert.equal(await page.locator('#bankList button').count(),12);
+  assert.match(await page.locator('#bankCoverage').innerText(),/非全量/);
+  for(const year of ['2022','2023','2024','2025','2026']){
+    await page.locator('#bankYear').selectOption(year);
+    assert((await page.locator('#bankList button').count())>0);
+    assert.match(await page.locator('#bankList').innerText(),new RegExp(year));
+  }
+  await page.locator('#bankYear').selectOption('');
+  await page.locator('#bankSearch').fill('不会匹配的文字');
+  assert.match(await page.locator('#bankDetail').innerText(),/没有符合/);
+  await page.locator('#bankSearch').fill('');
+  await page.locator('#bankList [data-bank-id="2023-i-6"]').click();
+  await page.locator('#bankDetail .katex').first().waitFor();
+  assert.equal(await page.locator('#bankDetail .katex-error').count(),0);
+  await page.locator('[data-bank-action="practice"]').click();
+  assert.match(await page.locator('#question').inputValue(),/两条直线的夹角/);
+  assert.equal(await page.locator('#learningStyle').inputValue(),'step');
+  assert.equal(await page.locator('#solution .part-body ol>li:visible').count(),0);
+  assert.equal(await page.locator('#solution .answer-summary:visible').count(),0);
+  const scene=JSON.parse(await page.locator('#sceneJson').inputValue());
+  assert.equal(scene.lines.filter(line=>line.kind==='slope').length,2);
+  assert(scene.points.A&&scene.points.B,'切点和两条切线必须都有');
+  await page.locator('.step-navigation button').first().click();
+  assert.equal(await page.locator('#solution .part-body ol>li:visible').count(),1);
+  await page.evaluate(()=>{window.print=()=>{window.__bankPrinted=true;};});
+  await page.locator('#printWorksheet').click();
+  assert(await page.evaluate(()=>window.__bankPrinted));
+  assert((await page.locator('#printLesson .katex').count())>0,'练习页的公式必须排版');
+  assert.match(await page.locator('#printLesson').innerText(),/2023.*新课标全国Ⅰ卷.*完整题目/);
+  await page.locator('#saveLesson').click();
+  await page.locator('#openQuestionBank').click();
+  await page.locator('#bankYear').selectOption('2026');
+  await page.locator('[data-bank-action="full"]').click();
+  assert.match(await page.locator('#solution').innerText(),/非 AI 现场生成/);
+  const focal=JSON.parse(await page.locator('#sceneJson').inputValue());
+  assert(focal.ellipseFocusChord,'真实焦点弦题必须复用联动图形');
+  await page.locator('#openNotebook').click();
+  const saved=await page.evaluate(()=>JSON.parse(localStorage.getItem('dongjiexi:notebook:v1')));
+  assert(saved.some(row=>row.solution?.lessonSource?.id==='2023-i-6'&&row.solution.study.counts['1']===1));
+  await page.locator('#notebookDialog [data-close-dialog]').click();
+  await page.locator('#openQuestionBank').click();
+  await page.locator('#bankYear').selectOption('2023');
+  await page.locator('#bankList [data-bank-id="2023-i-22"]').click();
+  await page.locator('[data-bank-action="teach"]').click();
+  assert(await page.locator('body').evaluate(node=>node.classList.contains('classroom-mode')));
+  await page.locator('#classroomPart').selectOption('2');
+  await page.locator('#nextStep').click();
+  assert.match(await page.locator('#layers').innerText(),/矩形 ABCD/);
+  await page.locator('#exitClassroom').click();
+  await page.setViewportSize({width:390,height:844});
+  await page.locator('#openQuestionBank').click();
+  await screenshot('question-bank-mobile.png','#questionBankDialog');
+  assert(await page.locator('#questionBankDialog').evaluate(node=>node.scrollWidth<=node.clientWidth+2),'手机题库不横向溢出');
+  await page.locator('#closeQuestionBank').click();
+  await page.setViewportSize({width:1600,height:1050});
+  const entries=await page.evaluate(async()=>{const response=await fetch('question-bank.json');return(await response.json()).items;});
+  for(const item of entries){
+    // Real sources supply the input corpus; UI contracts remain independent of cloud billing.
+    await page.locator('#openQuestionBank').click();
+    await page.locator('#bankYear').selectOption('');
+    await page.locator('#bankList [data-bank-id="'+item.id+'"]').click();
+    await page.locator('[data-bank-action="full"]').click();
+    assert.equal(await page.locator('#solution .katex-error').count(),0,item.id+' LaTeX errors');
+    assert.match(await page.locator('#solution').textContent(),/题库参考/);
+  }
+  assert(!await page.locator('#cloudAuthHelp').textContent().then(value=>value.includes('它不是 DeepSeek')));
+};
