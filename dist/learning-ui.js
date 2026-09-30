@@ -44,10 +44,43 @@
     let solveMode = ['cloud','local'].includes(localStorage.getItem(modeKey)) ? localStorage.getItem(modeKey) : null;
     const modePanel = find('#solveModePanel'), modeToggle = find('#solveModeToggle');
     const cloudDialog=find('#cloudAuthDialog'),cloudFeedback=find('#cloudAuthFeedback');
+    let cloudCheckPending=false, lastCloudCheck=0, cloudUnavailable=false;
+    function showCloudFallback(show,message=''){
+      cloudUnavailable=show;
+      const warning=find('#cloudOutage');
+      warning.hidden=!show||solveMode!=='cloud';
+      if(message)find('#cloudOutageMessage').textContent=message;
+      find('#cloudAuthUseLocal').hidden=!show;
+    }
+    function cloudFailure(error){
+      if(solveMode!=='cloud')return;
+      if(['auth_rejected','session_expired'].includes(error.code)){showCloudFallback(false);return;}
+      if(['network','timeout','service_unavailable','invalid_response','rate_limited'].includes(error.code)){
+        const message=error.code==='rate_limited'?'云端当前请求较多，建议稍后重试或改用本机解题。':navigator.onLine===false?'当前设备已离线，无法连接云端。推荐改用本机解题。':'云端暂时无法连接，可能是网络或服务中断。推荐改用本机解题。';
+        const firstFailure=!cloudUnavailable;
+        engineReady=false;showCloudFallback(true,message);
+        find('#engineStatus').classList.remove('ready');find('#engineStatus').textContent='云端增强暂不可用 · 可改用本机内置解题';
+        find('#cloudVisionChoice').hidden=true;renderEngineRoute();
+        if(firstFailure)api.setStatus(message,true);
+        setCloudConnection('failed',error.code==='rate_limited'?'云端：请求过于频繁':runtime.hasSession()?'云端：已授权，但服务连接失败':'云端：服务连接失败，口令尚未验证');
+      }
+    }
+    async function checkCloudConnection(force=false){
+      if(solveMode!=='cloud'||!runtime.config.apiEnabled||processing||cloudCheckPending||document.hidden||(!force&&Date.now()-lastCloudCheck<45000))return;
+      cloudCheckPending=true;lastCloudCheck=Date.now();
+      try{
+        if(navigator.onLine===false)throw Object.assign(new Error('设备已离线'),{code:'network'});
+        const result=await runtime.probeCloud();
+        if(solveMode!=='cloud')return;
+        if(result.needsAuth&&!runtime.hasSession()){showCloudFallback(false);await refreshEngine();setCloudConnection('disconnected','云端：服务可达，请输入访问口令');}
+        else await refreshEngine();
+      }catch(error){cloudFailure(error);}
+      finally{cloudCheckPending=false;}
+    }
     function setCloudConnection(state,message){
       const panel=find('#cloudConnection'),text=find('#cloudConnectionText');
       panel.hidden=solveMode!=='cloud';panel.dataset.state=state;text.textContent=message;
-      find('#openCloudAuth').textContent=runtime.config.requiresAuth&&(state==='disconnected'||state==='failed')?'输入口令':'连接设置';
+      find('#openCloudAuth').textContent=runtime.config.requiresAuth&&!runtime.hasSession()&&(state==='disconnected'||state==='failed')?'输入口令':'连接设置';
     }
     function openCloudAuthDialog(message=''){
       if(!runtime.config.apiEnabled){api.setStatus('在线版尚未配置云端解题服务。',true);return;}
@@ -58,6 +91,18 @@
     }
     function showModes(show) { modePanel.hidden=!show;modeToggle.setAttribute('aria-expanded',String(show)); }
     function selectMode(mode) { if(processing){api.setStatus('当前解题仍在运行；可先停止，再切换解题方式。');return;}solveMode=mode;localStorage.setItem(modeKey,mode);modePanel.querySelectorAll('[data-solve-mode]').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.solveMode===mode)));showModes(false);renderEngineRoute();api.setStatus((mode==='cloud'?'云端':'本机')+'解题已选定；点击“解题”开始。');void refreshEngine();if(mode==='cloud'&&runtime.config.requiresAuth&&!runtime.hasSession())openCloudAuthDialog(); }
+    function useLocalSolver(){
+      if(processing){api.setStatus('请先停止当前解题任务，再切换本机解题。');return;}
+      cloudDialog.close();selectMode('local');
+      api.setStatus('已改用本机解题，题目和图稿已保留。网页版使用内置精确引擎；未覆盖的复杂题需要电脑本机版和已下载模型。');
+    }
+    find('#useLocalSolver').addEventListener('click',useLocalSolver);
+    find('#cloudAuthUseLocal').addEventListener('click',useLocalSolver);
+    find('#retryCloudConnection').addEventListener('click',()=>checkCloudConnection(true));
+    window.addEventListener('offline',()=>cloudFailure({code:'network'}));
+    window.addEventListener('online',()=>checkCloudConnection(true));
+    document.addEventListener('visibilitychange',()=>{if(!document.hidden)void checkCloudConnection(true);});
+    setInterval(()=>checkCloudConnection(),45000);
     modePanel.querySelectorAll('[data-solve-mode]').forEach(button=>button.addEventListener('click',()=>selectMode(button.dataset.solveMode)));
     modeToggle.addEventListener('click',()=>showModes(modePanel.hidden));
     modePanel.querySelectorAll('[data-solve-mode]').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.solveMode===solveMode)));
@@ -77,6 +122,7 @@
       const summary=find('#engineRouteSummary'),title=find('#engineRouteTitle'),detail=find('#engineRouteDetail');
       const row=find('#modelSelectorRow'),select=find('#modelName'),label=find('#modelNameLabel span');
       find('#cloudConnection').hidden=solveMode!=='cloud';
+      find('#cloudOutage').hidden=solveMode!=='cloud'||!cloudUnavailable;
       if(!solveMode){summary.dataset.route='';title.textContent='尚未选择解题路径';detail.textContent='点击上方“云端解题”或“本机解题”。';row.hidden=true;return;}
       summary.dataset.route=solveMode;
       if(solveMode==='cloud'){
@@ -194,6 +240,7 @@
       find('#solveButton').textContent=value?'正在处理…':'解题';
     }
     async function refreshEngine(start=false) {
+      const requestedMode=solveMode;
       const remote=runtime.config.deployment==='web'||!!runtime.config.apiBase;
       const notice=find('#deploymentNotice');
       notice.hidden=false;
@@ -225,12 +272,14 @@
         find('#pullModel').hidden=true;
         find('#solveButton').disabled=processing;
         find('#engineRefresh').disabled=true;
-        renderEngineRoute();if(start)openCloudAuthDialog('当前没有有效会话，请重新输入访问口令。');return;
+        renderEngineRoute();if(start)openCloudAuthDialog('当前没有有效会话，请重新输入访问口令。');void checkCloudConnection();return;
       }
       try{
         if(remote&&solveMode==='cloud')setCloudConnection('checking','云端：正在检测连接…');
         if(start&&!remote)await request('/api/ai/start',{});
         const data=await request('/api/health');
+        if(solveMode!==requestedMode)return;
+        if(!data.engine||typeof data.engine!=='object')throw Object.assign(new Error('云端健康信息不完整，请联系管理员。'),{code:'invalid_response'});
         cloudPrimary=data.engine.remote===true;
         visionAvailable=data.engine.vision!==false;
         find('#cloudVisionChoice').hidden=!(remote&&visionAvailable&&data.engine.available);
@@ -245,13 +294,17 @@
         select.value=choices.includes(chosen)?chosen:(names[0]||choices[0]);
         const selectedReady=data.engine.available&&names.includes(select.value);
         engineReady=selectedReady;
+        if(remote&&solveMode==='cloud'){
+          if(cloudUnavailable&&selectedReady)api.setStatus('云端连接已恢复，模型已就绪。点击“解题”开始，当前题稿保持不变。');
+          showCloudFallback(!selectedReady,selectedReady?'':'云端服务已连接，但当前模型暂不可用。推荐改用本机解题，或稍后重试。');
+        }
         if(remote&&solveMode==='cloud')setCloudConnection('connected',selectedReady?'云端：连接成功 · 模型已就绪':'云端：已连接 · 模型暂不可用');
         find('#engineStatus').classList.toggle('ready',selectedReady);
         find('#engineStatus').textContent=selectedReady?(remote?'内置解题 + 在线智能增强已就绪':'内置解题 + 可选本机智能增强已就绪'):data.engine.available?(remote?'内置解题可用 · 在线增强模型未选择':'内置解题可用 · 可选择已安装模型增强'):data.engine.installed?'内置解题可用 · 智能增强组件可选':remote?'内置解题可用 · 在线增强暂不可用':'内置解题已就绪 · 无需安装额外模型';
         find('#pullModel').hidden=remote||cloudPrimary||selectedReady;
         find('#engineSetup').hidden=false;
         renderEngineRoute();
-      }catch(error){engineReady=false;if(remote&&solveMode==='cloud')setCloudConnection('failed',runtime.config.requiresAuth&&!runtime.hasSession()?'云端：授权已失效':'云端：连接失败');find('#cloudVisionChoice').hidden=true;find('#engineStatus').classList.remove('ready');find('#engineStatus').textContent=remote?'内置浏览器解题可用；在线增强暂不可用。':'无法连接本机服务；浏览器内置解题仍可使用。';find('#solveButton').disabled=processing;renderEngineRoute();if(start)report(error);}
+      }catch(error){if(solveMode!==requestedMode)return;engineReady=false;if(remote&&solveMode==='cloud')setCloudConnection('failed',runtime.config.requiresAuth&&!runtime.hasSession()?'云端：授权已失效':'云端：连接失败');cloudFailure(error);find('#cloudVisionChoice').hidden=true;find('#engineStatus').classList.remove('ready');find('#engineStatus').textContent=remote?'内置浏览器解题可用；在线增强暂不可用。':'无法连接本机服务；浏览器内置解题仍可使用。';find('#solveButton').disabled=processing;renderEngineRoute();if(start)report(error);}
     }
     async function runJob(body,done) {
       if(activeJob)return;
@@ -270,7 +323,7 @@
         if(current.status==='failed')throw new Error(current.error||'解题任务未完成。');
         if(current.status==='cancelled'){if(body.kind==='solve')progress('error','本次解题已停止。');api.setStatus('任务已停止，已有题目和解析仍保留。');return;}
         await done(current.result);
-      }catch(error){if(body.kind==='solve')progress('error','解题未完成：'+(error.message||String(error)));report(error);}
+      }catch(error){if(body.kind==='solve')progress('error','解题未完成：'+(error.message||String(error)));cloudFailure(error);report(error);}
       finally{activeJob=null;busy(false);refreshEngine();}
     }
     function snapshot() {
@@ -481,11 +534,12 @@
         await runtime.request('/api/health');
         input.value='';
         for(const id of ['solveButton','recognizeButton','engineRefresh'])find('#'+id).disabled=false;
-        cloudFeedback.dataset.state='success';cloudFeedback.textContent='连接成功。云端解题已可使用。';setCloudConnection('connected','云端：连接成功 · 正在读取模型');
+        cloudFeedback.dataset.state='success';cloudFeedback.textContent='授权成功，正在确认云端模型状态。';setCloudConnection('connected','云端：连接成功 · 正在读取模型');
         api.setStatus('在线解题授权成功，本次浏览器会话内有效。');
         await refreshEngine();
-        setTimeout(()=>{if(cloudDialog.open)cloudDialog.close();},500);
-      }catch(error){cloudFeedback.dataset.state='error';cloudFeedback.textContent=error.message||'连接失败，请检查网络或服务状态。';const label=error.code==='auth_rejected'?'云端：口令错误':error.code==='session_expired'?'云端：会话失效':error.code==='rate_limited'?'云端：尝试过于频繁':error.code==='empty_key'?'云端：请输入口令':runtime.hasSession()?'云端：已授权，但服务连接失败':'云端：服务连接失败，口令尚未验证';setCloudConnection('failed',label);report(error);input.focus();input.select();}
+        cloudFeedback.dataset.state=engineReady?'success':'error';cloudFeedback.textContent=engineReady?'连接成功。云端模型已就绪。':'授权成功，但云端模型暂不可用。可以改用本机解题。';
+        if(engineReady)setTimeout(()=>{if(cloudDialog.open)cloudDialog.close();},500);
+      }catch(error){cloudFeedback.dataset.state='error';cloudFeedback.textContent=error.message||'连接失败，请检查网络或服务状态。';const label=error.code==='auth_rejected'?'云端：口令错误':error.code==='session_expired'?'云端：会话失效':error.code==='rate_limited'?'云端：尝试过于频繁':error.code==='empty_key'?'云端：请输入口令':runtime.hasSession()?'云端：已授权，但服务连接失败':'云端：服务连接失败，口令尚未验证';setCloudConnection('failed',label);cloudFailure(error);report(error);input.focus();input.select();}
       finally{find('#cloudLogin').disabled=false;}
     });
     find('#cloudAccessKey').addEventListener('keydown',event=>{if(event.key==='Enter'&&!event.isComposing)find('#cloudLogin').click();});

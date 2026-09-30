@@ -2,7 +2,7 @@
   'use strict';
   const raw = window.DONGJIEXI_CONFIG || {};
   const config = Object.freeze({
-    version: String(raw.version || '0.41.1'),
+    version: String(raw.version || '0.41.2'),
     deployment: raw.deployment === 'web' ? 'web' : 'desktop',
     apiBase: String(raw.apiBase || '').trim().replace(/\/+$/, ''),
     apiEnabled: raw.apiEnabled !== false,
@@ -51,7 +51,7 @@
     const timer = controller ? setTimeout(() => controller.abort(), 20000) : null;
     try { response = await fetch(url, {...init, ...options, signal: options.signal || controller.signal}); }
     catch (error) {
-      if (controller?.signal.aborted) throw failure('timeout', '云端连接超时，请稍后重试；访问口令尚未完成验证。');
+      if (controller?.signal.aborted) throw failure('timeout', path === '/api/session' ? '云端连接超时，访问口令尚未完成验证。' : '云端连接超时，请稍后重试或改用本机解题。');
       if (error.name === 'AbortError') throw error;
       throw failure('network', '无法连接云端服务，请检查网络，或由管理员检查服务地址。这不表示访问口令错误。');
     }
@@ -64,8 +64,29 @@
         response.status === 429 ? 'rate_limited' : 'service_unavailable';
       throw failure(code, data?.error || `云端服务暂不可用（HTTP ${response.status}），请稍后重试；这不表示访问口令错误。`, response.status);
     }
-    if (!data) throw new Error('解题服务返回了无法识别的数据。');
+    if (!data) throw failure('invalid_response', '解题服务返回了无法识别的数据。');
     return data;
+  }
+
+  // Only this read-only endpoint is public. A probe never creates or replaces a session.
+  async function probeCloud() {
+    const url = apiUrl('/api/health'), session = readSession();
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 7000);
+    try {
+      const response = await fetch(url, {method: 'GET', cache: 'no-store', credentials: 'omit',
+        headers: session ? {Authorization: `Bearer ${session.token}`} : {}, signal: controller.signal});
+      if (response.status === 401) return {reachable: true, needsAuth: true};
+      if (!response.ok) throw failure(response.status === 429 ? 'rate_limited' : 'service_unavailable', `云端服务暂不可用（HTTP ${response.status}）。`, response.status);
+      const data = (response.headers.get('content-type') || '').includes('application/json') ? await response.json() : null;
+      if (!data || !['董解析', '智几何'].includes(data.app) || !data.engine || typeof data.engine !== 'object')
+        throw failure('invalid_response', '服务地址未返回董解析健康信息，请联系管理员。');
+      return {reachable: true, needsAuth: config.requiresAuth && !session, data};
+    } catch (error) {
+      if (controller.signal.aborted) throw failure('timeout', '云端连接超时，请稍后重试或改用本机解题。');
+      if (error.code) throw error;
+      throw failure('network', '无法连接云端服务。这不表示访问口令错误。');
+    } finally { clearTimeout(timer); }
   }
 
   async function authenticate(accessKey) {
@@ -79,5 +100,5 @@
     return data;
   }
 
-  window.DongRuntime = Object.freeze({config, apiUrl, request, authenticate, clearSession, hasSession: () => !!readSession()});
+  window.DongRuntime = Object.freeze({config, apiUrl, request, probeCloud, authenticate, clearSession, hasSession: () => !!readSession()});
 })();

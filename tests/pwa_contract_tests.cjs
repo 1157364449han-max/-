@@ -31,6 +31,8 @@ assert.match(html, /id="draftRecovery"/, 'index must expose draft recovery UI');
 assert.match(learningSource, /dongjiexi:draft:v1/, 'learning UI must persist an edit draft');
 assert.match(worker, /pathname\.includes\('\/api\/'\)/, 'service worker must bypass API traffic');
 assert.match(worker, /'\.\/runtime-config\.js'/, 'runtime config must be part of the first offline app shell');
+assert.match(worker, /'\.\/theme\.css'/, 'the unified theme must work offline');
+assert.ok(html.includes(`theme.css?v=${app.version}`), 'the theme must follow the same update version');
 assert.match(worker, /'\.\/equation-builder\.js'/, 'structured equation templates must work offline');
 assert.match(worker, /'\.\/math-keyboard\.js'/, 'math keyboard must work offline');
 assert.match(worker, /'\.\/mathlive-adapter\.js'/, 'MathLive adapter must work offline');

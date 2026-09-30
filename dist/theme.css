@@ -1,0 +1,55 @@
+/* Scholarly teal theme. Geometry layout and touch controls keep their existing behavior. */
+:root {
+  --ink:#183334; --ink-2:#28494b; --paper:#f3f5f2; --panel:#fff;
+  --line:#dce5df; --muted:#617774; --teal:#087b70; --teal-soft:#e9f5ef;
+  --accent:#087b70; --shadow:0 4px 18px rgba(28,61,51,.055);
+}
+body { background:var(--paper); }
+.topbar { background:#153c38; border-bottom:1px solid #2e5147; }
+.brand-mark { color:#f3d99f;background:#ffffff0b;border-color:#ffffff30;border-radius:11px; }
+.top-note { color:#c8ddd6; }
+.topbar .install-button { background:#244e46;border-color:#6c8e80;color:#f1f8f4; }
+.topbar .install-button:hover { background:#356354; }
+.panel { border-color:var(--line);box-shadow:var(--shadow);border-radius:16px; }
+.panel-heading { background:#fffffff7;border-color:var(--line); }
+.panel-heading h1,.panel-heading h2 { color:var(--ink); }
+.panel-heading p { color:var(--muted); }
+.step-badge { background:#e9f2ed;color:#24564a;border:1px solid #d3e4db;border-radius:9px; }
+.button { border-radius:9px; }
+.button.primary { background:var(--teal);color:#fff;box-shadow:0 3px 8px #087b7019; }
+.button.primary:hover { background:#07655c; }
+.button.secondary { color:#31554b;background:#f1f5f2;border-color:#d6e2da; }
+.button.secondary:hover { background:#e7efe9; }
+.workflow-strip { background:#f9fbf8;border-color:var(--line); }
+textarea,input:not([type=range]):not([type=checkbox]),select { border-color:#cbdcd1; }
+#question { border-color:#bed5c8;background:#fcfefb;line-height:1.8; }
+.starter-details,details.tool-section { border-color:var(--line);background:#fafcf9; }
+.inspector-switch { background:#fff; }
+.inspector-switch button[aria-pressed=true],.mobile-panel-nav button[aria-pressed=true] { background:var(--teal);border-color:var(--teal);color:#fff; }
+.answer-summary { background:#edf7f0;border:1px solid #d5e9dc;border-radius:10px; }
+.study-dialog,.cloud-auth-dialog,.release-dialog { border-color:#cedfd4;box-shadow:0 24px 70px #123b352b;border-radius:18px; }
+dialog::backdrop { background:#14322eb0;backdrop-filter:blur(3px); }
+.cloud-connection { border-color:#d6e3db;background:#f5f9f6; }
+.cloud-connection[data-state=connected] { color:#176044;background:#edf8f0;border-color:#b9dcc7; }
+.cloud-connection[data-state=failed] { color:#853d2e;background:#fff5ee;border-color:#ecd0b9; }
+.cloud-outage { margin:.65rem 0;padding:.85rem;border:1px solid #ead1b5;border-radius:12px;background:#fff8ed;color:#714c25;font-size:.82rem; }
+.cloud-outage[hidden] { display:none; }
+.cloud-outage strong { font-size:.9rem; }
+.cloud-outage p { margin:.35rem 0;line-height:1.65; }
+.cloud-outage .fallback-scope { color:#756655;font-size:.75rem; }
+.outage-actions { display:flex;flex-wrap:wrap;gap:.45rem;margin-top:.6rem; }
+.outage-actions .button { min-height:40px;padding:.4rem .6rem;font-size:.8rem; }
+.outage-actions .button:disabled { opacity:.6;cursor:wait; }
+.solve-mode-option[aria-pressed=true],.solve-mode-option:hover { border-color:#6fa894;background:#eef7f0; }
+.question-bank-dialog { border-color:var(--line); }
+button:focus-visible,a:focus-visible,summary:focus-visible { outline:3px solid #43a38b;outline-offset:3px; }
+@media (max-width:760px) {
+  .topbar { gap:.5rem; }
+  .top-actions { flex-wrap:wrap;justify-content:flex-end; }
+  .cloud-connection { align-items:flex-start; }
+  .cloud-connection-text { line-height:1.55; }
+  .outage-actions .button { min-height:44px; }
+  .cloud-auth-dialog .dialog-actions { display:flex;flex-wrap:wrap;gap:.5rem; }
+  .cloud-auth-dialog .dialog-actions .button { min-height:44px;flex:1; }
+}
+@media (prefers-reduced-motion:reduce) { dialog::backdrop { backdrop-filter:none; } }

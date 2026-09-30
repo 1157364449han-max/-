@@ -13,9 +13,9 @@
   <link rel="apple-touch-icon" href="icons/icon.svg">
   <link rel="stylesheet" href="vendor/katex/katex.min.css">
   <link rel="stylesheet" href="vendor/mathlive/mathlive-fonts.css">
-  <link rel="stylesheet" href="learning-ui.css?v=0.41.1">
-  <link rel="stylesheet" href="classroom.css?v=0.41.1">
-  <link rel="stylesheet" href="question-bank.css?v=0.41.1">
+  <link rel="stylesheet" href="learning-ui.css?v=0.41.2">
+  <link rel="stylesheet" href="classroom.css?v=0.41.2">
+  <link rel="stylesheet" href="question-bank.css?v=0.41.2">
   <style>
     :root { --ink:#0c1b33; --ink-2:#1a3152; --paper:#f6f8fb; --panel:#ffffff; --line:#d7e0eb; --muted:#64748b; --teal:#0f9f99; --teal-soft:#e1f7f4; --amber:#f2a33c; --amber-soft:#fff2d9; --red:#df5b62; --blue:#3f78d8; --shadow:0 10px 30px rgba(12,27,51,.09); }
     * { box-sizing:border-box; }
@@ -392,11 +392,12 @@
     }
     @media (max-width:460px) { .condition-grid,.condition-list { grid-template-columns:1fr; }.condition-grid .wide { grid-column:auto; } }
   </style>
+  <link rel="stylesheet" href="theme.css?v=0.41.2">
 </head>
 <body>
   <main class="app">
     <header class="topbar">
-      <div class="brand"><span class="brand-mark">董</span><span class="brand-name">董解析</span><button class="version-button" id="versionButton" title="查看版本、更新记录和能力边界">v0.41.1 · 更新记录</button></div>
+      <div class="brand"><span class="brand-mark">董</span><span class="brand-name">董解析</span><button class="version-button" id="versionButton" title="查看版本、更新记录和能力边界">v0.41.2 · 更新记录</button></div>
       <div class="top-actions"><span class="top-note">内置符号解题 · 动态几何 · 可选智能增强 · 我的题本</span><button id="openQuestionBank" class="button secondary" type="button" aria-haspopup="dialog">高考真题题库</button><button id="pwaInstall" class="install-button" hidden>安装到设备</button></div>
     </header>
     <section id="pwaBanner" class="pwa-banner" hidden role="status"><span id="pwaMessage"></span><button id="pwaUpdate" hidden>立即更新</button><button id="pwaDismiss">稍后</button></section>
@@ -421,6 +422,7 @@
           <button class="button secondary" id="parseButton">仅快速建图</button>
         </div>
         <div id="cloudConnection" class="cloud-connection" data-state="disconnected" role="status" aria-live="polite" hidden><span id="cloudConnectionText" class="cloud-connection-text">云端：尚未连接</span><button id="openCloudAuth" class="connection-action" type="button">输入口令</button></div>
+        <section id="cloudOutage" class="cloud-outage" aria-label="云端服务提醒" role="status" aria-live="polite" hidden><strong>云端暂不可用</strong><p id="cloudOutageMessage">云端暂时无法连接，推荐改用本机解题。</p><p class="fallback-scope">题目和图稿会保留。网页本机模式使用内置引擎；未覆盖的复杂题需要电脑本机版与已下载模型。</p><div class="outage-actions"><button id="useLocalSolver" class="button primary" type="button">改用本机解题</button><button id="retryCloudConnection" class="button secondary" type="button">重新检测</button></div></section>
         <div id="solveModePanel" class="solve-mode-panel" hidden><p class="help">选择一次后会记住；点 ▾ 可随时切换。</p><button type="button" class="solve-mode-option" data-solve-mode="cloud"><strong>云端解题</strong><span>调用在线服务中的 AI 模型，模型名称会标注“云端”；无需在当前设备下载。</span></button><button type="button" class="solve-mode-option" data-solve-mode="local"><strong>本机解题</strong><span>先用当前浏览器的内置精确引擎；电脑本机版还可下载标注“本机”的 AI 模型增强。</span></button><div id="engineRouteSummary" class="engine-route-summary" role="status" aria-live="polite"><strong id="engineRouteTitle">尚未选择解题路径</strong><span id="engineRouteDetail">点击上方“云端解题”或“本机解题”。</span></div><details id="engineSetup"><summary>当前解题引擎与连接</summary><div><p class="help">模型所属位置会明确标注；生成的推导与作图仍需核验。</p><div class="model-row" id="cloudAuth" hidden><button class="button secondary" id="openCloudAuthInSetup" type="button">输入或更换云端访问口令</button></div><div class="model-row model-selector-row" id="modelSelectorRow"><label id="modelNameLabel" class="model-field" for="modelName"><span>AI 模型</span><select id="modelName" aria-label="AI 模型"><option>等待检测模型</option></select></label><button class="button secondary" id="engineRefresh">检测连接</button></div><div class="learning-settings"><label for="solveDepth">推导模式</label><select id="solveDepth"><option value="normal">快速解题</option><option value="deep">深入推导（较慢）</option></select></div><button id="pullModel" class="button secondary">下载所选本机模型</button></div></details></div>
         <div class="input-utilities" aria-label="题目导入工具">
           <label class="file-button" for="textFile">导入文字<input id="textFile" type="file" accept=".txt,text/plain"></label>
@@ -559,7 +561,7 @@
     </section>
     <footer class="footer">董解析 · 画板与已缓存题稿可离线使用；AI 解题需要本机引擎或已配置的在线服务。按 Esc 返回拖动，保存图稿可继续编辑。</footer>
   </main>
-  <dialog id="cloudAuthDialog" class="cloud-auth-dialog" aria-labelledby="cloudAuthTitle" aria-describedby="cloudAuthHelp"><header><h2 id="cloudAuthTitle">连接云端解题</h2><button id="closeCloudAuth" class="button secondary" type="button">关闭</button></header><p id="cloudAuthHelp" class="help">请输入董解析的网页访问口令。</p><label for="cloudAccessKey">云端访问口令</label><div class="cloud-secret-row"><input id="cloudAccessKey" class="secret-text" type="text" inputmode="text" lang="zh-CN" enterkeyhint="go" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="支持中文、字母和数字" aria-label="云端访问口令"><button id="toggleCloudSecret" class="button secondary" type="button" aria-pressed="false">显示</button></div><div id="cloudAuthFeedback" class="cloud-auth-feedback" data-state="idle" role="status" aria-live="assertive">输入口令后点击“验证并连接”。</div><div class="dialog-actions"><button id="cloudLogin" class="button primary" type="button">验证并连接</button></div></dialog>
+  <dialog id="cloudAuthDialog" class="cloud-auth-dialog" aria-labelledby="cloudAuthTitle" aria-describedby="cloudAuthHelp"><header><h2 id="cloudAuthTitle">连接云端解题</h2><button id="closeCloudAuth" class="button secondary" type="button">关闭</button></header><p id="cloudAuthHelp" class="help">请输入董解析的网页访问口令。</p><label for="cloudAccessKey">云端访问口令</label><div class="cloud-secret-row"><input id="cloudAccessKey" class="secret-text" type="text" inputmode="text" lang="zh-CN" enterkeyhint="go" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="支持中文、字母和数字" aria-label="云端访问口令"><button id="toggleCloudSecret" class="button secondary" type="button" aria-pressed="false">显示</button></div><div id="cloudAuthFeedback" class="cloud-auth-feedback" data-state="idle" role="status" aria-live="assertive">输入口令后点击“验证并连接”。</div><div class="dialog-actions"><button id="cloudLogin" class="button primary" type="button">验证并连接</button><button id="cloudAuthUseLocal" class="button secondary" type="button" hidden>改用本机解题</button></div></dialog>
   <dialog id="recognitionDialog" class="study-dialog" aria-labelledby="recognitionTitle" aria-describedby="recognitionHelp"><header><h2 id="recognitionTitle">核对识别到的题目</h2><button data-close-dialog class="button secondary">取消</button></header><p id="recognitionHelp">图片在本机浏览器识别。请核对公式、分数、正负号与小问编号；图片 OCR 不能保证数学符号准确。</p><textarea id="recognizedText" aria-label="识别出的题目"></textarea><button id="confirmRecognition" class="button primary">使用核对后的题目</button></dialog>
   <dialog id="scenePreviewDialog" class="study-dialog" aria-labelledby="scenePreviewTitle" aria-describedby="scenePreviewHelp"><header><h2 id="scenePreviewTitle">识别预览与确认</h2><button id="cancelScenePreview" class="button secondary">返回修改题目</button></header><p id="scenePreviewHelp">请先核对系统提取的曲线、中心、方向和动直线条件。确认后才会建立图形，避免错误条件被静默画出。</p><div id="scenePreviewSummary" class="scene-preview-summary" role="status" aria-live="polite"></div><section class="condition-editor" aria-labelledby="conditionEditorTitle"><h3 id="conditionEditorTitle">用常见条件修正识别结果</h3><button class="parameter-keyboard math-keyboard-trigger" type="button" data-open-math-keyboard data-math-scope="#scenePreviewDialog" data-math-target="#previewH">⌨ 当前条件输入数学表达式</button><div class="condition-grid"><label>曲线类型<select id="previewType"><option value="ellipse">椭圆</option><option value="hyperbola">双曲线</option><option value="circle">圆</option><option value="parabola">抛物线</option></select></label><label>方向<select id="previewOrientation"><option value="horizontal">水平</option><option value="vertical">竖直</option></select></label><label>中心 / 顶点 x<input id="previewH" type="text" inputmode="decimal"></label><label>中心 / 顶点 y<input id="previewK" type="text" inputmode="decimal"></label><label data-preview-param="a">半轴 a<input id="previewA" type="text" inputmode="decimal"></label><label data-preview-param="b">半轴 b<input id="previewB" type="text" inputmode="decimal"></label><label data-preview-param="r">半径 r<input id="previewR" type="text" inputmode="decimal"></label><label data-preview-param="p">焦参数 p<input id="previewP" type="text" inputmode="decimal"></label><label class="wide">动直线经过<select id="previewLineThrough"><option value="center">中心 / 圆心</option><option value="focus1">左焦点</option><option value="focus2">右焦点</option><option value="vertex">顶点</option><option value="point">题设点</option></select></label><label class="wide" id="previewThroughPointWrap">选择题设点<select id="previewThroughPoint"></select></label></div><div class="condition-list"><label>题设点（每行：名称, x, y）<textarea id="previewPoints" placeholder="P, 1, 2"></textarea></label><label>题设直线（每行：名称: 方程）<textarea id="previewLines" placeholder="l: y=2x+1&#10;m: x=3"></textarea></label></div><p id="previewFieldError" class="field-error" role="alert"></p></section><details><summary>高级：检查或编辑完整模型</summary><div><textarea id="scenePreviewJson" aria-label="待确认的图形模型" spellcheck="false"></textarea></div></details><div class="dialog-actions"><button id="confirmScenePreview" class="button primary">确认并绘图</button></div></dialog>
   <dialog id="notebookDialog" class="study-dialog" aria-labelledby="notebookTitle" aria-describedby="notebookHelp"><header><h2 id="notebookTitle">我的题本</h2><button data-close-dialog class="button secondary">关闭</button></header><input id="notebookSearch" placeholder="搜索题目或标题" aria-label="搜索题本"><div class="actions"><button id="exportLesson" class="button secondary">导出当前题稿</button><label class="file-button">导入题稿<input id="importLesson" type="file" accept=".json,application/json"></label></div><p class="help" id="notebookHelp">题稿包含原题、解析、图形和追问。保存在当前浏览器；换设备前可导出。</p><div id="notebookList"></div></dialog>
@@ -580,23 +582,23 @@
   </dialog>
 
   <script src="runtime-config.js"></script>
-  <script src="runtime.js?v=0.41.1"></script>
+  <script src="runtime.js?v=0.41.2"></script>
   <script src="vendor/katex/katex.min.js"></script>
   <script src="vendor/katex/contrib/auto-render.min.js"></script>
-  <script src="math-input.js?v=0.41.1"></script>
-  <script src="number-display.js?v=0.41.1"></script>
-  <script src="tangent-solver.js?v=0.41.1"></script>
-  <script src="ellipse-distance.js?v=0.41.1"></script>
-  <script src="orthogonal-chord.js?v=0.41.1"></script>
-  <script src="ellipse-focal-chord.js?v=0.41.1"></script>
-  <script src="learning-ui.js?v=0.41.1"></script>
-  <script src="classroom.js?v=0.41.1"></script>
-  <script src="question-bank.js?v=0.41.1"></script>
-  <script src="construction-board.js?v=0.41.1"></script>
-  <script src="drag-board.js?v=0.41.1"></script>
-  <script src="equation-builder.js?v=0.41.1"></script>
-  <script src="math-keyboard.js?v=0.41.1"></script>
-  <script type="module" src="mathlive-adapter.js?v=0.41.1"></script>
+  <script src="math-input.js?v=0.41.2"></script>
+  <script src="number-display.js?v=0.41.2"></script>
+  <script src="tangent-solver.js?v=0.41.2"></script>
+  <script src="ellipse-distance.js?v=0.41.2"></script>
+  <script src="orthogonal-chord.js?v=0.41.2"></script>
+  <script src="ellipse-focal-chord.js?v=0.41.2"></script>
+  <script src="learning-ui.js?v=0.41.2"></script>
+  <script src="classroom.js?v=0.41.2"></script>
+  <script src="question-bank.js?v=0.41.2"></script>
+  <script src="construction-board.js?v=0.41.2"></script>
+  <script src="drag-board.js?v=0.41.2"></script>
+  <script src="equation-builder.js?v=0.41.2"></script>
+  <script src="math-keyboard.js?v=0.41.2"></script>
+  <script type="module" src="mathlive-adapter.js?v=0.41.2"></script>
   <script src="geogebra-bridge.js?v=0.7.0"></script>
   <script>
   (() => {
@@ -1509,6 +1511,6 @@ function motionStep(timestamp){if(!state.model){stopMotion(false);return;}const 
     document.getElementById('closeReleases').addEventListener('click',()=>dialog.close());
   })();
   </script>
-  <script src="pwa.js?v=0.41.1"></script>
+  <script src="pwa.js?v=0.41.2"></script>
 </body>
 </html>

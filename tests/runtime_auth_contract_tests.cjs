@@ -31,6 +31,26 @@ async function run(){
   const timeout=runtime(async(url,init)=>new Promise((resolve,reject)=>init.signal.addEventListener('abort',()=>reject(Object.assign(new Error('Aborted'),{name:'AbortError'})))),
     {setTimeout:fn=>{queueMicrotask(fn);return 1;},clearTimeout(){}});
   await assert.rejects(timeout.api.authenticate('课堂口令'),error=>error.code==='timeout');
+  let probes=0;
+  const publicHealth=runtime(async(url,init)=>{
+    probes++;assert.equal(url,'https://api.example.test/api/health');assert.equal(init.method,'GET');
+    assert.equal(init.cache,'no-store');assert.equal(init.credentials,'omit');assert.equal(init.body,undefined);
+    assert.equal(init.headers.Authorization,undefined);
+    return response(200,{app:'董解析',engine:{available:false}});
+  });
+  const health=await publicHealth.api.probeCloud();assert(health.reachable&&health.needsAuth);assert(!publicHealth.api.hasSession());
+  await assert.rejects(publicHealth.api.request('/api/jobs',{}),/尚未授权/);assert.equal(probes,1,'Public probing must not bypass protected job authorization');
+  for(const status of [401,429,503]){
+    const service=runtime(async()=>response(status,{}));
+    if(status===401)assert((await service.api.probeCloud()).needsAuth);
+    else await assert.rejects(service.api.probeCloud(),error=>error.code===(status===429?'rate_limited':'service_unavailable'));
+  }
+  await assert.rejects(network.api.probeCloud(),error=>error.code==='network');
+  await assert.rejects(timeout.api.probeCloud(),error=>error.code==='timeout');
+  const unrelated=runtime(async()=>response(200,{app:'different-site',engine:{}}));
+  await assert.rejects(unrelated.api.probeCloud(),error=>error.code==='invalid_response');
+  const html=runtime(async()=>response(200,null,false));
+  await assert.rejects(html.api.probeCloud(),error=>error.code==='invalid_response');
   console.log('PASS network/HTTP/auth/timeout classification, Chinese phrase trim, endpoint-bound sessions and invalid tokens');
 }
 run().catch(error=>{console.error(error);process.exitCode=1;});
