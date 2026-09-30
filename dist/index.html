@@ -13,9 +13,9 @@
   <link rel="apple-touch-icon" href="icons/icon.svg">
   <link rel="stylesheet" href="vendor/katex/katex.min.css">
   <link rel="stylesheet" href="vendor/mathlive/mathlive-fonts.css">
-  <link rel="stylesheet" href="learning-ui.css?v=0.41.4">
-  <link rel="stylesheet" href="classroom.css?v=0.41.4">
-  <link rel="stylesheet" href="question-bank.css?v=0.41.4">
+  <link rel="stylesheet" href="learning-ui.css?v=0.42.0">
+  <link rel="stylesheet" href="classroom.css?v=0.42.0">
+  <link rel="stylesheet" href="question-bank.css?v=0.42.0">
   <style>
     :root { --ink:#0c1b33; --ink-2:#1a3152; --paper:#f6f8fb; --panel:#ffffff; --line:#d7e0eb; --muted:#64748b; --teal:#0f9f99; --teal-soft:#e1f7f4; --amber:#f2a33c; --amber-soft:#fff2d9; --red:#df5b62; --blue:#3f78d8; --shadow:0 10px 30px rgba(12,27,51,.09); }
     * { box-sizing:border-box; }
@@ -392,12 +392,12 @@
     }
     @media (max-width:460px) { .condition-grid,.condition-list { grid-template-columns:1fr; }.condition-grid .wide { grid-column:auto; } }
   </style>
-  <link rel="stylesheet" href="theme.css?v=0.41.4">
+  <link rel="stylesheet" href="theme.css?v=0.42.0">
 </head>
 <body>
   <main class="app">
     <header class="topbar">
-      <div class="brand"><span class="brand-mark">董</span><span class="brand-name">董解析</span><button class="version-button" id="versionButton" title="查看版本、更新记录和能力边界">v0.41.4 · 更新记录</button></div>
+      <div class="brand"><span class="brand-mark">董</span><span class="brand-name">董解析</span><button class="version-button" id="versionButton" title="查看版本、更新记录和能力边界">v0.42.0 · 更新记录</button></div>
       <div class="top-actions"><span class="top-note">内置符号解题 · 动态几何 · 可选智能增强 · 我的题本</span><button id="openQuestionBank" class="button secondary" type="button" aria-haspopup="dialog">高考真题题库</button><button id="cloudOutageShortcut" class="install-button" type="button" title="云端暂不可用，点击改用本机解题并保留题稿" hidden>云端中断 · 本机解题</button><button id="pwaInstall" class="install-button" hidden>安装到设备</button></div>
     </header>
     <section id="pwaBanner" class="pwa-banner" hidden role="status"><span id="pwaMessage"></span><button id="pwaUpdate" hidden>立即更新</button><button id="pwaDismiss">稍后</button></section>
@@ -423,7 +423,7 @@
         </div>
         <div id="cloudConnection" class="cloud-connection" data-state="disconnected" role="status" aria-live="polite" hidden><span id="cloudConnectionText" class="cloud-connection-text">云端：尚未连接</span><button id="openCloudAuth" class="connection-action" type="button">输入口令</button></div>
         <section id="cloudOutage" class="cloud-outage" aria-label="云端服务提醒" role="status" aria-live="polite" hidden><strong>云端暂不可用</strong><p id="cloudOutageMessage">云端暂时无法连接，推荐改用本机解题。</p><p class="fallback-scope">题目和图稿会保留。网页本机模式使用内置引擎；未覆盖的复杂题需要电脑本机版与已下载模型。</p><div class="outage-actions"><button id="useLocalSolver" class="button primary" type="button">改用本机解题</button><button id="retryCloudConnection" class="button secondary" type="button">重新检测</button></div></section>
-        <div id="solveModePanel" class="solve-mode-panel" hidden><p class="help">选择一次后会记住；点 ▾ 可随时切换。</p><button type="button" class="solve-mode-option" data-solve-mode="cloud"><strong>云端解题</strong><span>调用在线服务中的 AI 模型，模型名称会标注“云端”；无需在当前设备下载。</span></button><button type="button" class="solve-mode-option" data-solve-mode="local"><strong>本机解题</strong><span>先用当前浏览器的内置精确引擎；电脑本机版还可下载标注“本机”的 AI 模型增强。</span></button><div id="engineRouteSummary" class="engine-route-summary" role="status" aria-live="polite"><strong id="engineRouteTitle">尚未选择解题路径</strong><span id="engineRouteDetail">点击上方“云端解题”或“本机解题”。</span></div><details id="engineSetup"><summary>当前解题引擎与连接</summary><div><p class="help">模型所属位置会明确标注；生成的推导与作图仍需核验。</p><div class="model-row" id="cloudAuth" hidden><button class="button secondary" id="openCloudAuthInSetup" type="button">输入或更换云端访问口令</button></div><div class="model-row model-selector-row" id="modelSelectorRow"><label id="modelNameLabel" class="model-field" for="modelName"><span>AI 模型</span><select id="modelName" aria-label="AI 模型"><option>等待检测模型</option></select></label><button class="button secondary" id="engineRefresh">检测连接</button></div><div class="learning-settings"><label for="solveDepth">推导模式</label><select id="solveDepth"><option value="normal">快速解题</option><option value="deep">深入推导（较慢）</option></select></div><button id="pullModel" class="button secondary">下载所选本机模型</button></div></details></div>
+        <div id="solveModePanel" class="solve-mode-panel" hidden><p class="help">选择一次后会记住；点 ▾ 可随时切换。</p><button type="button" class="solve-mode-option" data-solve-mode="cloud"><strong>云端解题</strong><span>调用在线服务中的 AI 模型，模型名称会标注“云端”；无需在当前设备下载。</span></button><button type="button" class="solve-mode-option" data-solve-mode="local"><strong>本机解题</strong><span>复制请求到你已有的 AI，粘贴回复后核验与作图；无需配置 API。保留内置解题和电脑本机版下载模型。</span></button><div id="engineRouteSummary" class="engine-route-summary" role="status" aria-live="polite"><strong id="engineRouteTitle">尚未选择解题路径</strong><span id="engineRouteDetail">点击上方“云端解题”或“本机解题”。</span></div><details id="engineSetup"><summary>当前解题引擎与连接</summary><div><p class="help">模型所属位置会明确标注；生成的推导与作图仍需核验。</p><div class="model-row" id="cloudAuth" hidden><button class="button secondary" id="openCloudAuthInSetup" type="button">输入或更换云端访问口令</button></div><div class="model-row model-selector-row" id="modelSelectorRow"><label id="modelNameLabel" class="model-field" for="modelName"><span>AI 模型</span><select id="modelName" aria-label="AI 模型"><option>等待检测模型</option></select></label><button class="button secondary" id="engineRefresh">检测连接</button></div><div class="learning-settings"><label for="solveDepth">推导模式</label><select id="solveDepth"><option value="normal">快速解题</option><option value="deep">深入推导（较慢）</option></select></div><button id="pullModel" class="button secondary">下载所选本机模型</button></div></details></div>
         <div class="input-utilities" aria-label="题目导入工具">
           <label class="file-button" for="textFile">导入文字<input id="textFile" type="file" accept=".txt,text/plain"></label>
           <label class="file-button" for="imageFile">上传题图<input id="imageFile" type="file" accept="image/*"></label>
@@ -582,23 +582,24 @@
   </dialog>
 
   <script src="runtime-config.js"></script>
-  <script src="runtime.js?v=0.41.4"></script>
+  <script src="runtime.js?v=0.42.0"></script>
   <script src="vendor/katex/katex.min.js"></script>
   <script src="vendor/katex/contrib/auto-render.min.js"></script>
-  <script src="math-input.js?v=0.41.4"></script>
-  <script src="number-display.js?v=0.41.4"></script>
-  <script src="tangent-solver.js?v=0.41.4"></script>
-  <script src="ellipse-distance.js?v=0.41.4"></script>
-  <script src="orthogonal-chord.js?v=0.41.4"></script>
-  <script src="ellipse-focal-chord.js?v=0.41.4"></script>
-  <script src="learning-ui.js?v=0.41.4"></script>
-  <script src="classroom.js?v=0.41.4"></script>
-  <script src="question-bank.js?v=0.41.4"></script>
-  <script src="construction-board.js?v=0.41.4"></script>
-  <script src="drag-board.js?v=0.41.4"></script>
-  <script src="equation-builder.js?v=0.41.4"></script>
-  <script src="math-keyboard.js?v=0.41.4"></script>
-  <script type="module" src="mathlive-adapter.js?v=0.41.4"></script>
+  <script src="math-input.js?v=0.42.0"></script>
+  <script src="number-display.js?v=0.42.0"></script>
+  <script src="tangent-solver.js?v=0.42.0"></script>
+  <script src="ellipse-distance.js?v=0.42.0"></script>
+  <script src="orthogonal-chord.js?v=0.42.0"></script>
+  <script src="ellipse-focal-chord.js?v=0.42.0"></script>
+  <script src="external-ai.js?v=0.42.0"></script>
+  <script src="learning-ui.js?v=0.42.0"></script>
+  <script src="classroom.js?v=0.42.0"></script>
+  <script src="question-bank.js?v=0.42.0"></script>
+  <script src="construction-board.js?v=0.42.0"></script>
+  <script src="drag-board.js?v=0.42.0"></script>
+  <script src="equation-builder.js?v=0.42.0"></script>
+  <script src="math-keyboard.js?v=0.42.0"></script>
+  <script type="module" src="mathlive-adapter.js?v=0.42.0"></script>
   <script src="geogebra-bridge.js?v=0.7.0"></script>
   <script>
   (() => {
@@ -749,7 +750,9 @@
       browserReflectedChord(sceneFromModel(model),s);
       browserPolygons(raw,model);
       const tangentScene=sceneFromModel(model);
-      window.DongTangentSolver?.install(tangentScene,window.DongMathInput?.toPlain(raw)??raw,browserConicQuadratic(tangentScene));
+      const importedContacts=model.provenance?.externalReply?model.objects.filter(o=>o.op==='ellipse_tangent_point'):[];
+      const importedTangents=importedContacts.length>=2&&importedContacts.every(c=>model.objects.some(o=>o.op==='tangent'&&o.refs?.[0]===c.id||o.op==='line'&&o.refs?.includes(c.id)&&o.refs?.includes(c.refs?.[0])));
+      if(!importedTangents)window.DongTangentSolver?.install(tangentScene,window.DongMathInput?.toPlain(raw)??raw,browserConicQuadratic(tangentScene));
       for(const part of result.parts||[])browserPolygons([part.answer,...(part.steps||[])].join('。'),model,part.index??null);
       return result;
     }
@@ -1527,6 +1530,6 @@ function motionStep(timestamp){if(!state.model){stopMotion(false);return;}const 
     document.getElementById('closeReleases').addEventListener('click',()=>dialog.close());
   })();
   </script>
-  <script src="pwa.js?v=0.41.4"></script>
+  <script src="pwa.js?v=0.42.0"></script>
 </body>
 </html>

@@ -12,7 +12,7 @@ fs.mkdirSync(output,{recursive:true});
 const suites=process.argv.slice(2);
 if(!suites.length)suites.push('question_bank','solve_progress_implicit','mobile_panels','orthogonal_chord','ellipse_focal_chord','hyperbola_focal_chord_condition','hyperbola_conditions','cloud_auth','cloud_outage','cloud_primary','cloud_primary_hyperbola','cloud_vision','latex_tangent','curve_edit_tangent','additive_conic_snap','focus_chord','derived_construction','one_stop_solver','desktop_layout','dependent_motion','named_points','reflected_chord','structured_input','conic_quick_tools','viewport_quick_draw','polygon_problem_sweep','ellipse_distance','parameter_selection','pwa','mobile_touch','solve_switch','photo_ocr','extreme_highlight','mathlive_input','point_hover');
 const delay=ms=>new Promise(resolve=>setTimeout(resolve,ms));
-if(process.argv.length===2)suites.unshift('cloud_stream');
+if(process.argv.length===2)suites.unshift('external_ai','cloud_stream');
 async function port(){const probe=net.createServer();await new Promise((resolve,reject)=>probe.once('error',reject).listen(0,'127.0.0.1',resolve));const value=probe.address().port;await new Promise(resolve=>probe.close(resolve));return value;}
 async function run(){
   let service,browser,baseURL=process.env.DONG_TEST_BASE_URL;
@@ -30,7 +30,9 @@ async function run(){
       const filename=suite.endsWith('.cjs')?suite:suite+'_browser_smoke.cjs';
       if(path.basename(filename)!==filename)throw new Error('Use a test filename within tests/');
       const context=await browser.newContext({viewport:{width:1600,height:1050},acceptDownloads:true});
-      await context.addInitScript(mode=>{try{if(!localStorage.getItem('dongjiexi:solve-mode:v1'))localStorage.setItem('dongjiexi:solve-mode:v1',mode);}catch{}},suite.startsWith('cloud_primary')?'cloud':'local');
+      // Existing mathematical suites explicitly exercise the preserved native engine;
+      // the external_ai suite tests the new first-use clipboard default separately.
+      await context.addInitScript(({mode,native})=>{try{if(!localStorage.getItem('dongjiexi:solve-mode:v1'))localStorage.setItem('dongjiexi:solve-mode:v1',mode);if(native&&!localStorage.getItem('dongjiexi:local-workflow:v1'))localStorage.setItem('dongjiexi:local-workflow:v1','native');}catch{}},{mode:suite.startsWith('cloud_primary')?'cloud':'local',native:suite!=='external_ai'&&suite!=='external_ai_browser_smoke.cjs'});
       const page=await context.newPage(),errors=[];
       page.on('pageerror',error=>errors.push(error.message));
       const screenshot=async(name='board.png',selector='.board-shell')=>{

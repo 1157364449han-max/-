@@ -21,7 +21,7 @@
     window.renderMathInElement(element, {delimiters:[{left:'$$',right:'$$',display:true},{left:'\\[',right:'\\]',display:true},{left:'\\(',right:'\\)',display:false},{left:'$',right:'$',display:false}],throwOnError:false,trust:false,strict:'ignore',maxExpand:300,maxSize:20});
   }
   function lessonText(solution) {
-    return [solution.title,solution.restatement,solution.strategy,...(solution.parts||[]).flatMap(part=>[part.label,part.answer,...(part.steps||[])]),solution.verification?.message].filter(Boolean).join('\n\n');
+    return [solution.title,solution.restatement,solution.strategy,...(solution.parts||[]).flatMap(part=>[part.label,part.answer,...(part.steps||[])]),solution.external?.plain?solution.rawReply:'',solution.verification?.message].filter(Boolean).join('\n\n');
   }
   function attach(api) {
     const find = selector => document.querySelector(selector);
@@ -42,6 +42,13 @@
     const modelKey = 'dongjiexi:model';
     const modeKey = 'dongjiexi:solve-mode:v1';
     let solveMode = ['cloud','local'].includes(localStorage.getItem(modeKey)) ? localStorage.getItem(modeKey) : null;
+    const workflowKey='dongjiexi:local-workflow:v1';
+    let localWorkflow=['clipboard','native','model'].includes(localStorage.getItem(workflowKey))?localStorage.getItem(workflowKey):'clipboard';
+    const workflowRow=document.createElement('div');workflowRow.id='localWorkflowRow';workflowRow.className='local-workflow-row';
+    workflowRow.innerHTML='<label for="localWorkflow">本机解题方式</label><select id="localWorkflow"><option value="clipboard">使用已有 AI · 复制粘贴（推荐）</option><option value="native">内置数学引擎 · 无需 AI</option><option value="model">已下载模型 · 电脑本机版</option></select>';
+    find('#engineRouteSummary').after(workflowRow);
+    const workflowSelect=find('#localWorkflow');workflowSelect.value=localWorkflow;
+    if(runtime.config.deployment==='web'||runtime.config.apiBase)workflowSelect.querySelector('[value="model"]').disabled=true;
     const modePanel = find('#solveModePanel'), modeToggle = find('#solveModeToggle');
     const cloudDialog=find('#cloudAuthDialog'),cloudFeedback=find('#cloudAuthFeedback');
     let cloudCheckPending=false, lastCloudCheck=0, cloudUnavailable=false;
@@ -100,7 +107,7 @@
     function useLocalSolver(){
       if(processing){api.setStatus('请先停止当前解题任务，再切换本机解题。');return;}
       cloudDialog.close();selectMode('local');
-      api.setStatus('已改用本机解题，题目和图稿已保留。网页版使用内置精确引擎；未覆盖的复杂题需要电脑本机版和已下载模型。');
+      api.setStatus('已改用本机解题，题目和图稿已保留。默认复制请求到已有 AI，再粘贴回复；也可选择内置数学引擎。');
     }
     find('#useLocalSolver').addEventListener('click',useLocalSolver);
     find('#cloudAuthUseLocal').addEventListener('click',useLocalSolver);
@@ -113,6 +120,10 @@
     modePanel.querySelectorAll('[data-solve-mode]').forEach(button=>button.addEventListener('click',()=>selectMode(button.dataset.solveMode)));
     modeToggle.addEventListener('click',()=>showModes(modePanel.hidden));
     modePanel.querySelectorAll('[data-solve-mode]').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.solveMode===solveMode)));
+    workflowSelect.addEventListener('change',()=>{
+      if(processing){workflowSelect.value=localWorkflow;api.setStatus('请先停止当前解题任务。');return;}
+      localWorkflow=workflowSelect.value;localStorage.setItem(workflowKey,localWorkflow);void refreshEngine();
+    });
     let activeJob = null;
     let streamController = null;
     let cloudTransport = 'jobs';
@@ -130,6 +141,8 @@
       const remote=runtime.config.deployment==='web'||!!runtime.config.apiBase;
       const summary=find('#engineRouteSummary'),title=find('#engineRouteTitle'),detail=find('#engineRouteDetail');
       const row=find('#modelSelectorRow'),select=find('#modelName'),label=find('#modelNameLabel span');
+      workflowRow.hidden=solveMode!=='local';
+      find('#solveDepth').closest('.learning-settings').hidden=solveMode==='local'&&localWorkflow!=='model';
       find('#cloudConnection').hidden=solveMode!=='cloud';
       find('#cloudOutage').hidden=solveMode!=='cloud'||!cloudUnavailable;
       renderCloudShortcut();
@@ -141,8 +154,8 @@
         row.hidden=false;label.textContent='云端 AI 模型（运行于在线服务）';select.setAttribute('aria-label','云端 AI 模型');
       }else{
         title.textContent='当前路径：本机解题';
-        detail.textContent=remote?'使用当前浏览器内置精确引擎，不调用上方云端模型。':'先用浏览器内置精确引擎；未覆盖题型可调用安装在这台电脑上的本机模型。';
-        row.hidden=remote;label.textContent='本机 AI 模型（运行于这台电脑）';select.setAttribute('aria-label','本机 AI 模型');
+        detail.textContent=localWorkflow==='clipboard'?'使用你已有的 AI：复制请求、粘贴回复；不调用上方云端模型，也不假称 AI 在本机运行。':localWorkflow==='native'?'使用当前浏览器或本机内置数学引擎，不调用上方云端模型；未覆盖题型不会伪装成已解答。':'使用安装在这台电脑上的模型，不调用上方云端模型。';
+        row.hidden=remote||localWorkflow!=='model';label.textContent='本机 AI 模型（运行于这台电脑）';select.setAttribute('aria-label','本机 AI 模型');
       }
     }
     renderEngineRoute();
@@ -212,11 +225,12 @@
       const trust=`<div class="trust-summary ${escapeText(report.status||'generated')}"><strong>${escapeText(verificationNames[report.status]||'核验状态未知')}</strong>${report.status==='reference-reviewed'?'':`<span>通过 ${Number(counts.verified)||0} · 冲突 ${Number(counts.contradicted)||0} · 未决 ${Number(counts.unresolved)||0}</span>`}</div>`;
       const source=solution.lessonSource;
       const provenance=source?`<details class="reference-source"><summary>真题出处 · ${escapeText(source.year||'经典题')} · ${escapeText(source.paper)} · ${escapeText(source.number)} · ${escapeText(source.scope)}</summary>${(source.sources||[]).filter(item=>/^https:\/\//.test(item.url)).map(item=>`<p><a href="${escapeText(item.url)}" target="_blank" rel="noopener noreferrer">${escapeText(item.title)}</a></p>`).join('')}<p>易错点：${escapeText(source.pitfall)}</p></details>`:'';
+      const externalReply=solution.mode==='external-ai'&&solution.rawReply?`<details class="external-original"${solution.external?.plain?' open':''}><summary>外部 AI 原始回复 · 未执行其中代码</summary>${textBlock(solution.rawReply)}</details>`:'';
       const model=solution.problemModel;
       const modelDetails=model?`<details class="problem-model"><summary>结构化题目模型 · ${model.curve?escapeText(model.curve.kind):'曲线未确定'} · ${model.parts?.length||0} 问</summary><p>输入确认：${model.source?.confirmed?'已确认':'存在模糊字段'}；点 ${model.points?.length||0} 个；直线 ${model.lines?.length||0} 条。</p>${model.source?.ambiguities?.length?`<p class="verification-conflict">未确认：${escapeText(model.source.ambiguities.join('、'))}</p>`:''}</details>`:'';
       const checkList=(part)=>{const checks=(report.checks||[]).filter(item=>item.part==null||Number(item.part)===Number(part.index));if(!checks.length)return '';return `<details class="verification-details"><summary>查看本问机器核验（${checks.length} 项）</summary><ul>${checks.map(item=>`<li class="check-${escapeText(item.status)}"><strong>${escapeText(checkNames[item.status]||item.status)}</strong> · ${escapeText(item.label)}：${escapeText(item.detail)}${item.formula?textBlock('$'+item.formula+'$'):''}</li>`).join('')}</ul></details>`;};
       const partMarkup=visible.map(part=>{const partTrust=part.verification||{status:'generated',message:'仅生成'};const derivation=part.derivation||{};const obligations=derivation.proof_obligations||[];return `<section class="part-body" data-part-index="${escapeText(part.index)}"><h3>${escapeText(part.label||'本问')}</h3><span class="answer-status ${['answered','partial','needs_information'].includes(part.status)?part.status:'partial'}">${escapeText(statusNames[part.status]||'请核对解答')}</span><span class="verification-status ${escapeText(partTrust.status||'generated')}">${escapeText(verificationNames[partTrust.status]||partTrust.message||'待核验')}</span><div class="answer-summary">${textBlock(part.answer)}</div><ol>${(part.steps||[]).map(step=>'<li>'+textBlock(step)+'</li>').join('')}</ol>${obligations.length?`<details class="proof-obligations"><summary>尚需完成的证明义务（${obligations.length}）</summary><ul>${obligations.map(item=>'<li>'+textBlock(item)+'</li>').join('')}</ul></details>`:''}${checkList(part)}</section>`;}).join('');
-      return `<h3>${escapeText(solution.title||'解题结果')}</h3><p>${escapeText(summary)}${solution.model?' · '+escapeText(solution.model):''}</p>${trust}${provenance}${stale}${solution.quality_notice?`<p class="verification-conflict">${escapeText(solution.quality_notice)}</p>`:''}<details><summary>查看原题</summary>${textBlock(solution.restatement)}</details>${modelDetails}${tabs}${solution.knowns?.length?`<details><summary>已知条件</summary><ul>${solution.knowns.map(value=>'<li>'+textBlock(value)+'</li>').join('')}</ul></details>`:''}${solution.strategy?`<div class="method-overview"><p><strong>解题方法</strong></p>${textBlock(solution.strategy)}</div>`:''}${partMarkup}${solution.assumptions?.length?`<p class="lesson-assumptions">使用的假设：${escapeText(solution.assumptions.join('；'))}</p>`:''}<div class="proof">${escapeText(report.message||'尚未核验')}${solution.scene_notice?'<p>'+escapeText(solution.scene_notice)+'</p>':''}</div>`;
+      return `<h3>${escapeText(solution.title||'解题结果')}</h3><p>${escapeText(summary)}${solution.model?' · '+escapeText(solution.model):''}</p>${trust}${provenance}${stale}${solution.quality_notice?`<p class="verification-conflict">${escapeText(solution.quality_notice)}</p>`:''}<details><summary>查看原题</summary>${textBlock(solution.restatement)}</details>${modelDetails}${tabs}${solution.knowns?.length?`<details><summary>已知条件</summary><ul>${solution.knowns.map(value=>'<li>'+textBlock(value)+'</li>').join('')}</ul></details>`:''}${solution.strategy?`<div class="method-overview"><p><strong>解题方法</strong></p>${textBlock(solution.strategy)}</div>`:''}${partMarkup}${externalReply}${solution.assumptions?.length?`<p class="lesson-assumptions">使用的假设：${escapeText(solution.assumptions.join('；'))}</p>`:''}<div class="proof">${escapeText(report.message||'尚未核验')}${solution.scene_notice?'<p>'+escapeText(solution.scene_notice)+'</p>':''}</div>`;
     }
     function bindTabs(element) {
       element.querySelectorAll('[data-study-part]').forEach(button=>button.addEventListener('click',()=>{
@@ -257,6 +271,9 @@
       notice.textContent=remote?'内置确定性解题与画板无需另装模型；配置在线服务后可继续增强开放题推理。':'内置确定性解题无需下载模型；本机模型仅用于尚未覆盖的开放题增强。';
       find('#cloudAuth').hidden=true;
       if(!solveMode){engineReady=false;find('#cloudConnection').hidden=true;find('#cloudVisionChoice').hidden=true;find('#pullModel').hidden=true;find('#engineStatus').classList.remove('ready');find('#engineStatus').textContent='请选择云端解题或本机解题';renderEngineRoute();return;}
+      if(solveMode==='local'&&localWorkflow==='clipboard'){
+        engineReady=false;cloudPrimary=false;find('#cloudConnection').hidden=true;find('#cloudVisionChoice').hidden=true;find('#pullModel').hidden=true;find('#engineStatus').classList.add('ready');find('#engineStatus').textContent='本机浏览器复制粘贴流程已就绪 · 不调用云端模型';renderEngineRoute();return;
+      }
       if(remote&&solveMode==='local'){
         engineReady=false;cloudPrimary=true;find('#cloudConnection').hidden=true;find('#cloudVisionChoice').hidden=true;find('#pullModel').hidden=true;find('#engineStatus').classList.add('ready');find('#engineStatus').textContent='本机浏览器内置解题引擎已就绪 · 不调用云端模型';renderEngineRoute();return;
       }
@@ -412,6 +429,60 @@
       if(api.state.model){const image=document.createElement('img');image.src=api.canvas.toDataURL('image/png');image.alt='当前图形';target.append(image);if(api.state.exploring)target.insertAdjacentHTML('beforeend','<p>此图已调整参数；解析仍对应原题。</p>');}
       typeset(target);window.print();
     }
+    function acceptSolution(result,original,{installGraph=true}={}){
+      if(api.question.value.trim()!==original){api.setStatus('题目已修改，本次旧题结果未应用。请点击“解题”求解当前题目。');return false;}
+      if(['cloud-ai','local-ollama','external-ai'].includes(result.mode)){
+        const answerContext=[original,result.strategy,...(result.parts||[]).flatMap(part=>[part.answer,...(part.steps||[])])].filter(Boolean).join('\n');
+        let exactSolution;
+        try{exactSolution=api.solveDeterministic?.(original);}catch{}
+        if(!exactSolution?.scene&&result.mode!=='external-ai'){try{exactSolution=api.solveDeterministic?.(answerContext);}catch{}}
+        const exactScene=exactSolution?.scene,completion=exactSolution?.completion||{};
+        const exactComplete=Number(completion.total)>0&&Number(completion.answered)===Number(completion.total);
+        if(exactSolution?.parts?.length){
+          const exactByIndex=new Map(exactSolution.parts.filter(part=>part.status==='answered').map(part=>[Number(part.index),part]));
+          let corrected=false;
+          result.parts=(result.parts||[]).map(part=>{const exact=exactByIndex.get(Number(part.index));if(!exact)return part;corrected=true;return{...part,answer:exact.answer,steps:exact.steps,status:'answered',verification:exact.verification,derivation:exact.derivation,source:'symbolic-verified-override'};});
+          if(corrected){
+            result.completion={answered:result.parts.filter(part=>part.status==='answered').length,total:result.parts.length};
+            if(result.parts.length===1){result.answer=result.parts[0].answer;result.steps=result.parts[0].steps;}
+            if(result.mode==='external-ai'){
+              const verified=result.parts.filter(p=>p.source==='symbolic-verified-override').length;
+              result.verification={status:'locally-verified',counts:{verified,contradicted:0,unresolved:result.parts.length-verified},message:`内置引擎复算了 ${verified} 个已覆盖小问；其它推导及一般性证明仍需核验。`};
+            }
+            result.quality_notice='已覆盖的小问由内置数学引擎独立复算，最终结论以该小问的核验结果为准。';
+          }
+        }
+        if(result.mode==='external-ai'&&result.scene&&exactComplete&&exactScene?.type===result.scene.type){
+          // Keep the validated reply's dependency graph while correcting primary parameters.
+          for(const key of ['a','b','r','p','h','k','direction','orientation'])if(exactScene[key]!=null)result.scene[key]=exactScene[key];
+          result.scene.exact=exactScene.exact||{};
+          result.scene_notice='题面支持的主曲线参数已复算；外部回复的关联构造保留，其它结论仍需核验。';
+        }else if(result.mode!=='external-ai'&&exactScene&&(!result.scene||exactComplete||exactScene.inferredFromConditions||exactScene.inferred_from_conditions)){
+          result.scene=exactScene;
+          result.scene_notice='AI 已先完成解答；画板再由可核验的符号模型对齐题目与答案。';
+        }
+      }
+      if(installGraph)result=api.enrichSolvedScene?.(result,original)||result;
+      else{result.scene=null;result.scene_notice='仅导入文字；原画板未替换，不应当作本题的新图形。';}
+      api.showSolution(result);
+      if(result.scene){try{api.installScene(api.modelFromJson(JSON.stringify(result.scene)),['local-ollama','cloud-ai','external-ai'].includes(result.mode)?'智能生成图形（需核验）':'内置精确建模');}catch(error){result.scene_notice='图形未能载入，解析已保留：'+error.message;}}
+      else if(api.state.model){api.state.exploring=true;find('#exploreNotice').hidden=false;find('#exploreNotice').textContent='本题没有生成新图形，画板仍是此前的图稿，不对应当前解析。';}
+      inspectorView='lesson';renderSolution();api.remember();
+      if(api.question.value.trim()===original){try{saveLesson(true);}catch(error){report(error);return;}}
+      const completion=result.completion||{answered:0,total:(result.parts||[]).length||1};
+      progress(completion.answered===completion.total?'complete':'partial',`解题完成：已解答 ${completion.answered}/${completion.total} 问${completion.answered<completion.total?'，其余待推导':''}。`);
+      api.setStatus(`${result.mode==='external-ai'?'外部 AI 回复已导入':result.mode==='cloud-ai'?'云端 AI 返回':'内置引擎已完成'} ${completion.answered}/${completion.total} 问；${verificationNames[result.verification?.status]||'请核对步骤'}。${result.scene_notice||''}`);
+      return completion;
+    }
+    function checkQuestionGeometry(scene,question){
+      const native=api.solveDeterministic?.(question),expected=native?.scene;
+      if(!expected||!native.completion?.total||native.completion.answered!==native.completion.total)return [];
+      if(expected.type!==scene.type)return ['作图主曲线与题面的内置复算结果冲突。'];
+      for(const key of ['a','b','r','p','h','k'])if(Number.isFinite(expected[key])&&Number.isFinite(scene[key])&&Math.abs(expected[key]-scene[key])>1e-8*Math.max(1,Math.abs(expected[key])))return ['作图参数 '+key+' 与题面复算结果冲突。'];
+      for(const [key,p] of Object.entries(expected.points||{}))if(scene.points[key]&&p.some((v,i)=>Math.abs(v-scene.points[key][i])>1e-8*Math.max(1,Math.abs(v))))return ['固定点 '+key+' 的坐标与题面冲突。'];
+      return [];
+    }
+    const externalAI=window.DongExternalAI.attach({question:api.question,download:api.download,report,progress,getProgress:()=>solveProgress.dataset.state,markup,typeset,accept:acceptSolution,checkQuestionGeometry});
     async function solve() {
       if(processing)return;
       if(!solveMode){showModes(true);api.setStatus('请先选择云端解题或本机解题。');return;}
@@ -431,48 +502,15 @@
         void refreshEngine();
         return;
       }
+      if(solveMode==='local'&&localWorkflow==='clipboard'){await externalAI.open();return;}
       progress('solving','正在解题：识别条件、推导并核对结果…');
-      const acceptResult=result=>{
-        if(api.question.value.trim()!==original){api.setStatus('题目已修改，本次旧题结果未应用。请点击“解题”求解当前题目。');return;}
-        if(['cloud-ai','local-ollama'].includes(result.mode)){
-          const answerContext=[original,result.strategy,...(result.parts||[]).flatMap(part=>[part.answer,...(part.steps||[])])].filter(Boolean).join('\n');
-          let exactSolution;
-          try{exactSolution=api.solveDeterministic?.(original);}catch{}
-          if(!exactSolution?.scene){try{exactSolution=api.solveDeterministic?.(answerContext);}catch{}}
-          const exactScene=exactSolution?.scene,completion=exactSolution?.completion||{};
-          const exactComplete=Number(completion.total)>0&&Number(completion.answered)===Number(completion.total);
-          if(exactSolution?.parts?.length){
-            const exactByIndex=new Map(exactSolution.parts.filter(part=>part.status==='answered').map(part=>[Number(part.index),part]));
-            let corrected=false;
-            result.parts=(result.parts||[]).map(part=>{const exact=exactByIndex.get(Number(part.index));if(!exact)return part;corrected=true;return{...part,answer:exact.answer,steps:exact.steps,status:'answered',verification:exact.verification,derivation:exact.derivation,source:'symbolic-verified-override'};});
-            if(corrected){
-              result.completion={answered:result.parts.filter(part=>part.status==='answered').length,total:result.parts.length};
-              if(result.parts.length===1){result.answer=result.parts[0].answer;result.steps=result.parts[0].steps;}
-              result.quality_notice='已覆盖的小问由内置数学引擎独立复算，最终结论以该小问的核验结果为准。';
-            }
-          }
-          if(exactScene&&(!result.scene||exactComplete||exactScene.inferredFromConditions||exactScene.inferred_from_conditions)){
-            result.scene=exactScene;
-            result.scene_notice='AI 已先完成解答；画板再由可核验的符号模型对齐题目与答案。';
-          }
-        }
-        result=api.enrichSolvedScene?.(result,original)||result;
-        api.showSolution(result);
-        if(result.scene){try{api.installScene(api.modelFromJson(JSON.stringify(result.scene)),['local-ollama','cloud-ai'].includes(result.mode)?'智能生成图形（需核验）':'内置精确建模');}catch(error){result.scene_notice='图形未能载入，解析已保留：'+error.message;}}
-        else if(api.state.model){api.state.exploring=true;find('#exploreNotice').hidden=false;find('#exploreNotice').textContent='本题没有生成新图形，画板仍是此前的图稿，不对应当前解析。';}
-        inspectorView='lesson';renderSolution();api.remember();
-        if(api.question.value.trim()===original){try{saveLesson(true);}catch(error){report(error);return;}}
-        const completion=result.completion||{answered:0,total:(result.parts||[]).length||1};
-        progress(completion.answered===completion.total?'complete':'partial',`解题完成：已解答 ${completion.answered}/${completion.total} 问${completion.answered<completion.total?'，其余待推导':''}。`);
-        api.setStatus(`${result.mode==='cloud-ai'?'云端 AI 返回':'内置引擎已完成'} ${completion.answered}/${completion.total} 问；${verificationNames[result.verification?.status]||'请核对步骤'}。${result.scene_notice||''}`);
-        return completion;
-      };
+      const acceptResult=result=>acceptSolution(result,original);
       if(solveMode==='cloud'&&engineReady&&cloudPrimary){
         api.setStatus('云端 AI 正在先识别题意并完成答案；答案确定后再建立对应图形。');
         await runJob({kind:'solve',text:original,model:find('#modelName').value,depth:find('#solveDepth').value},acceptResult);
         return;
       }
-      if(solveMode==='local'&&engineReady&&!cloudPrimary){
+      if(solveMode==='local'&&localWorkflow==='model'&&engineReady&&!cloudPrimary){
         api.setStatus('本机 AI 正在先识别题意并完成答案；答案确定后再建立对应图形。');
         await runJob({kind:'solve',text:original,model:find('#modelName').value,depth:find('#solveDepth').value},acceptResult);
         return;
@@ -491,7 +529,7 @@
       finally{busy(false);}
       if(api.question.value.trim()!==original)return;
       const completion=deterministic.completion||{answered:0,total:(deterministic.parts||[]).length||1};
-      if(completion.answered<completion.total&&engineReady&&solveMode==='local'&&!cloudPrimary){
+      if(completion.answered<completion.total&&engineReady&&solveMode==='local'&&localWorkflow==='model'&&!cloudPrimary){
         api.setStatus(`内置引擎先完成 ${completion.answered}/${completion.total} 问；正在用可选智能引擎补充其余小问。`);
         await runJob({kind:'solve',text:original,model:find('#modelName').value,depth:find('#solveDepth').value},acceptResult);
       }else if(completion.answered<completion.total){

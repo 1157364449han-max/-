@@ -11,6 +11,23 @@
 .engine-route-summary span { font-size:.75rem;line-height:1.45; }
 .engine-route-summary[data-route="cloud"] { border-color:#9fcfc9;background:#edf9f6;color:#12625d; }
 .engine-route-summary[data-route="local"] { border-color:#b8cce2;background:#f1f6fb;color:#294f78; }
+.local-workflow-row { display:grid;gap:.35rem;margin:.7rem 0;font-size:.8rem; }
+.local-workflow-row[hidden] { display:none; }
+.local-workflow-row select { width:100%;min-height:40px;border:1px solid #bdcadd;border-radius:8px;background:white;color:#294f78;padding:.45rem; }
+.external-ai-dialog { width:min(940px,calc(100vw - 24px));overflow-y:auto;overflow-x:hidden;overflow-wrap:anywhere; }
+.external-ai-dialog header { position:sticky;top:-1.3rem;background:white;padding:.5rem 0;z-index:2; }
+.external-ai-dialog textarea { box-sizing:border-box;width:100%;min-height:180px;margin:.5rem 0;font-size:.88rem; }
+.external-ai-dialog #externalRequestText { min-height:150px; }
+.external-ai-dialog #externalFeedback[data-state="error"],.external-ai-dialog #externalWarnings { color:#8b3428; }
+.external-request-actions { display:flex;flex-wrap:wrap;gap:.45rem;margin:.6rem 0; }
+.external-confirm { display:flex;gap:.5rem;align-items:flex-start;margin:.7rem 0;line-height:1.5;font-size:.86rem; }
+.external-ai-dialog .external-confirm input { width:auto;flex:none;margin-top:.25rem; }
+.external-original { margin:.7rem 0;padding:.6rem;border:1px solid #d9e3ec;border-radius:8px; }
+.external-ai-dialog .solution { border:1px solid #d9e3ec;border-radius:8px;padding:.7rem;overflow-x:auto;min-width:0; }
+.external-ai-dialog [hidden],.learning-settings[hidden] { display:none!important; }
+.external-ai-dialog .katex { position:relative; }
+.external-ai-dialog .katex-mathml { left:0;top:0; }
+@media(max-width:560px) { .external-ai-dialog { padding:.85rem;max-height:92dvh; }.external-ai-dialog header { top:-.85rem; }.external-request-actions button { flex:1;min-height:44px; }.external-ai-dialog h2 { font-size:1rem; }.external-ai-dialog textarea { min-height:160px; } }
 .job-panel { margin-top:.7rem;padding:.7rem;border-radius:9px;background:#e1f7f4;font-size:.82rem; }
 .job-panel button { margin-top:.4rem;min-height:30px; }
 #questionImage { display:block;max-width:100%;max-height:200px;object-fit:contain;margin:.6rem auto; }

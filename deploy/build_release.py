@@ -24,7 +24,7 @@ APP_FILES = {
     'Dockerfile', 'compose.yaml', '.dockerignore', '.gitignore', 'README.md', '使用说明.md', '更新日志.md',
     '启动智几何.bat', '创建桌面快捷方式.bat', '手机访问.bat', '检查更新.py', '检查更新.bat',
     '安装更新包.bat', '安装本地AI.bat', '安装本地AI.ps1',
-    'deploy/build_release.py', 'deploy/部署说明.md', 'deploy/cloud.env.example',
+    'deploy/build_release.py', 'deploy/部署说明.md', 'deploy/更新计划.md', 'deploy/cloud.env.example',
     'deploy/runtime-config.web.example.js', '.github/workflows/deploy-dongjiexi.yml',
     'deploy/phone/README.md', 'deploy/phone/start.sh', 'deploy/phone/configure.sh',
     'deploy/phone/download-model.sh', 'deploy/phone/download-deepseek.sh', 'deploy/phone/serve-only.sh',

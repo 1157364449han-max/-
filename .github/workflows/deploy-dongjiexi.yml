@@ -54,6 +54,7 @@ jobs:
           node tests/question_bank_contract_tests.cjs
           node tests/runtime_auth_contract_tests.cjs
           node tests/cloudflare_worker_tests.cjs
+          node tests/external_ai_tests.cjs
       - name: Test actual browser workflows
         working-directory: ${{ steps.app.outputs.root }}
         env:
