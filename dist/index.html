@@ -13,9 +13,9 @@
   <link rel="apple-touch-icon" href="icons/icon.svg">
   <link rel="stylesheet" href="vendor/katex/katex.min.css">
   <link rel="stylesheet" href="vendor/mathlive/mathlive-fonts.css">
-  <link rel="stylesheet" href="learning-ui.css?v=0.43.3">
-  <link rel="stylesheet" href="classroom.css?v=0.43.3">
-  <link rel="stylesheet" href="question-bank.css?v=0.43.3">
+  <link rel="stylesheet" href="learning-ui.css?v=0.44.0">
+  <link rel="stylesheet" href="classroom.css?v=0.44.0">
+  <link rel="stylesheet" href="question-bank.css?v=0.44.0">
   <style>
     :root { --ink:#0c1b33; --ink-2:#1a3152; --paper:#f6f8fb; --panel:#ffffff; --line:#d7e0eb; --muted:#64748b; --teal:#0f9f99; --teal-soft:#e1f7f4; --amber:#f2a33c; --amber-soft:#fff2d9; --red:#df5b62; --blue:#3f78d8; --shadow:0 10px 30px rgba(12,27,51,.09); }
     * { box-sizing:border-box; }
@@ -392,12 +392,12 @@
     }
     @media (max-width:460px) { .condition-grid,.condition-list { grid-template-columns:1fr; }.condition-grid .wide { grid-column:auto; } }
   </style>
-  <link rel="stylesheet" href="theme.css?v=0.43.3">
+  <link rel="stylesheet" href="theme.css?v=0.44.0">
 </head>
 <body>
   <main class="app">
     <header class="topbar">
-      <div class="brand"><span class="brand-mark">董</span><span class="brand-name">董解析</span><button class="version-button" id="versionButton" title="查看版本、更新记录和能力边界">v0.43.3 · 更新记录</button></div>
+      <div class="brand"><span class="brand-mark">董</span><span class="brand-name">董解析</span><button class="version-button" id="versionButton" title="查看版本、更新记录和能力边界">v0.44.0 · 更新记录</button></div>
       <div class="top-actions"><span class="top-note">内置符号解题 · 动态几何 · 可选智能增强 · 我的题本</span><button id="openQuestionBank" class="button secondary" type="button" aria-haspopup="dialog">高考真题题库</button><button id="cloudOutageShortcut" class="install-button" type="button" title="云端暂不可用，点击改用本机解题并保留题稿" hidden>云端中断 · 本机解题</button><button id="pwaInstall" class="install-button" hidden>安装到设备</button></div>
     </header>
     <section id="pwaBanner" class="pwa-banner" hidden role="status"><span id="pwaMessage"></span><button id="pwaUpdate" hidden>立即更新</button><button id="pwaDismiss">稍后</button></section>
@@ -582,28 +582,30 @@
   </dialog>
 
   <script src="runtime-config.js"></script>
-  <script src="runtime.js?v=0.43.3"></script>
+  <script src="runtime.js?v=0.44.0"></script>
   <script src="vendor/katex/katex.min.js"></script>
   <script src="vendor/katex/contrib/auto-render.min.js"></script>
-  <script src="math-input.js?v=0.43.3"></script>
-  <script src="number-display.js?v=0.43.3"></script>
-  <script src="scene-audit.js?v=0.43.3"></script>
-  <script src="scene-merge.js?v=0.43.3"></script>
-  <script src="tangent-solver.js?v=0.43.3"></script>
-  <script src="ellipse-distance.js?v=0.43.3"></script>
-  <script src="orthogonal-chord.js?v=0.43.3"></script>
-  <script src="axis-intercept-chord.js?v=0.43.3"></script>
-  <script src="conic-parameter.js?v=0.43.3"></script>
-  <script src="ellipse-focal-chord.js?v=0.43.3"></script>
-  <script src="external-ai.js?v=0.43.3"></script>
-  <script src="learning-ui.js?v=0.43.3"></script>
-  <script src="classroom.js?v=0.43.3"></script>
-  <script src="question-bank.js?v=0.43.3"></script>
-  <script src="construction-board.js?v=0.43.3"></script>
-  <script src="drag-board.js?v=0.43.3"></script>
-  <script src="equation-builder.js?v=0.43.3"></script>
-  <script src="math-keyboard.js?v=0.43.3"></script>
-  <script type="module" src="mathlive-adapter.js?v=0.43.3"></script>
+  <script src="math-input.js?v=0.44.0"></script>
+  <script src="number-display.js?v=0.44.0"></script>
+  <script src="label-layout.js?v=0.44.0"></script>
+  <script src="step-highlight.js?v=0.44.0"></script>
+  <script src="scene-audit.js?v=0.44.0"></script>
+  <script src="scene-merge.js?v=0.44.0"></script>
+  <script src="tangent-solver.js?v=0.44.0"></script>
+  <script src="ellipse-distance.js?v=0.44.0"></script>
+  <script src="orthogonal-chord.js?v=0.44.0"></script>
+  <script src="axis-intercept-chord.js?v=0.44.0"></script>
+  <script src="conic-parameter.js?v=0.44.0"></script>
+  <script src="ellipse-focal-chord.js?v=0.44.0"></script>
+  <script src="external-ai.js?v=0.44.0"></script>
+  <script src="learning-ui.js?v=0.44.0"></script>
+  <script src="classroom.js?v=0.44.0"></script>
+  <script src="question-bank.js?v=0.44.0"></script>
+  <script src="construction-board.js?v=0.44.0"></script>
+  <script src="drag-board.js?v=0.44.0"></script>
+  <script src="equation-builder.js?v=0.44.0"></script>
+  <script src="math-keyboard.js?v=0.44.0"></script>
+  <script type="module" src="mathlive-adapter.js?v=0.44.0"></script>
   <script src="geogebra-bridge.js?v=0.7.0"></script>
   <script>
   (() => {
@@ -612,6 +614,9 @@
     let learningUI = null;
     const canvas = $('#canvas');
     const ctx = canvas.getContext('2d');
+    const boardLabels = window.DongLabelLayout.create(ctx);
+    window.DongBoardLabels = Object.freeze({snapshot:()=>boardLabels.snapshot()});
+    let labelSceneKey=0;
     const question = $('#question');
     const sceneJson = $('#sceneJson');
     const status = $('#status');
@@ -622,7 +627,7 @@
     const metricsEl = $('#metrics');
     const scanResult = $('#scanResult');
     const state = { model:null, p:{}, grid:true, guides:true, activePart:null, solution:null, view:{xmin:-5,xmax:5,ymin:-4,ymax:4}, cssW:0, cssH:0, original:null };
-    let dragController = null, nativeController = null;
+    let dragController = null, nativeController = null, stepHighlighter = null;
     let motionFrame = null, motionPrevious = 0, motionElapsed = 0;
     let pendingSceneSource = '题干条件';
     const equationBuilder = window.DongEquationBuilder.attach({typeSelect:$('#objectType'),templateSelect:$('#equationTemplate'),fields:$('#equationFields'),preview:$('#equationPreview'),error:$('#equationBuilderError')});
@@ -970,6 +975,9 @@
     function cloneScene(scene) { return JSON.parse(JSON.stringify(scene)); }
     function remember(){try{localStorage.setItem('zhigeometry:last',JSON.stringify({question:question.value,scene:state.model?sceneData():null,grid:state.grid,guides:state.guides,solution:state.solution,activePart:state.activePart,exploring:state.exploring}));}catch{}}
     function installScene(scene, source='题干') {
+      learningUI?.clearStepHighlight();stepHighlighter?.clear();
+      labelSceneKey++;boardLabels.clear();
+      $('#dragHint').textContent='拖点改坐标；拖直线平移，选中后拖手柄旋转；拖空白处移动视野。';$('#snapStatus').textContent='';
       stopMotion(false);extremeScan=null;scanResult.textContent='—';$('#jumpMinimum').hidden=$('#jumpMaximum').hidden=true;nativeController?.reset();parameterTarget='';state.model=scene.model; state.p=scene.values; nativeController?.engine.ensureIds();state.original=cloneScene(scene); state.exploring=false; dragController?.reset(); $('#exploreNotice').hidden=true; homeView(); buildParams(); updateSceneJson(); refreshLayers();syncMotionButton();
       boardTitle.textContent=state.model.title || '已载入图形'; emptyState.hidden=true;
       setStatus(`${source}已转为「${typeName()}」模型。请核对方程和动直线经过的点，再调节参数。`); render();
@@ -1122,11 +1130,12 @@
     function worldX(px) { const v=state.view; return v.xmin+px/state.cssW*(v.xmax-v.xmin); }
     function worldY(py) { const v=state.view; return v.ymax-py/state.cssH*(v.ymax-v.ymin); }
     function tickSpan(span) { const rough=span/9; const mag=10**Math.floor(Math.log10(rough)); return [1,2,5,10].map(n=>n*mag).find(v=>v>=rough)||mag*10; }
+    function reservedText(text,x,y){const m=ctx.measureText(text),ascent=m.actualBoundingBoxAscent||10,descent=m.actualBoundingBoxDescent||3;ctx.fillText(text,x,y);boardLabels.reserve({x:x-2,y:y-ascent-2,width:m.width+4,height:ascent+descent+4,text});}
     function drawGrid() { const w=state.cssW,h=state.cssH,v=state.view; ctx.clearRect(0,0,w,h); ctx.fillStyle='#fbfdff';ctx.fillRect(0,0,w,h); if (!state.grid) return; const sx=tickSpan(v.xmax-v.xmin),sy=tickSpan(v.ymax-v.ymin); ctx.lineWidth=1;ctx.strokeStyle='#e7edf5';ctx.fillStyle='#7e91a7';ctx.font='12px Microsoft YaHei UI';
-      for(let x=Math.ceil(v.xmin/sx)*sx;x<=v.xmax+1e-8;x+=sx){const p=xy(x,0);ctx.beginPath();ctx.moveTo(p.x,0);ctx.lineTo(p.x,h);ctx.stroke(); if(Math.abs(x)>1e-8)ctx.fillText(num(x,2),p.x+3,Math.max(13,xy(0,0).y-4));}
-      for(let y=Math.ceil(v.ymin/sy)*sy;y<=v.ymax+1e-8;y+=sy){const p=xy(0,y);ctx.beginPath();ctx.moveTo(0,p.y);ctx.lineTo(w,p.y);ctx.stroke();if(Math.abs(y)>1e-8)ctx.fillText(num(y,2),Math.min(w-28,xy(0,0).x+4),p.y-3);}
+      for(let x=Math.ceil(v.xmin/sx)*sx;x<=v.xmax+1e-8;x+=sx){const p=xy(x,0);ctx.beginPath();ctx.moveTo(p.x,0);ctx.lineTo(p.x,h);ctx.stroke(); if(Math.abs(x)>1e-8)reservedText(num(x,2),p.x+3,Math.max(13,xy(0,0).y-4));}
+      for(let y=Math.ceil(v.ymin/sy)*sy;y<=v.ymax+1e-8;y+=sy){const p=xy(0,y);ctx.beginPath();ctx.moveTo(0,p.y);ctx.lineTo(w,p.y);ctx.stroke();if(Math.abs(y)>1e-8)reservedText(num(y,2),Math.min(w-28,xy(0,0).x+4),p.y-3);}
     }
-    function drawAxes(){const o=xy(0,0);ctx.strokeStyle='#7d91a9';ctx.lineWidth=1.25;ctx.beginPath();ctx.moveTo(0,o.y);ctx.lineTo(state.cssW,o.y);ctx.moveTo(o.x,0);ctx.lineTo(o.x,state.cssH);ctx.stroke();ctx.fillStyle='#5d7188';ctx.font='12px Microsoft YaHei UI';ctx.fillText('x',state.cssW-14,Math.max(12,o.y-5));ctx.fillText('y',o.x+5,13);}
+    function drawAxes(){const o=xy(0,0);ctx.strokeStyle='#7d91a9';ctx.lineWidth=1.25;ctx.beginPath();ctx.moveTo(0,o.y);ctx.lineTo(state.cssW,o.y);ctx.moveTo(o.x,0);ctx.lineTo(o.x,state.cssH);ctx.stroke();ctx.fillStyle='#5d7188';ctx.font='12px Microsoft YaHei UI';reservedText('x',state.cssW-14,Math.max(12,o.y-5));reservedText('y',o.x+5,13);}
     function strokePath(points,color='#0f9f99',width=2.5){if(points.length<2)return;ctx.beginPath();points.forEach((p,i)=>{const q=xy(p.x,p.y);i?ctx.lineTo(q.x,q.y):ctx.moveTo(q.x,q.y);});ctx.strokeStyle=color;ctx.lineWidth=width;ctx.lineJoin='round';ctx.lineCap='round';ctx.stroke();}
     function viewportConicPaths(spec){
       const {type,h,k,orientation,direction=1}=spec,v=state.view,vertical=orientation==='vertical',paths=[];
@@ -1136,7 +1145,7 @@
       return paths;
     }
     function conicPaths(){return viewportConicPaths({type:state.model.type,h:P('h'),k:P('k'),a:P('a'),b:P('b'),r:P('r'),p:P('p'),orientation:state.model.orientation,direction:P('direction')||1});}
-    function annotation(text,world,color='#526b88'){const q=xy(world.x,world.y);ctx.fillStyle=color;ctx.font='600 12px Microsoft YaHei UI';ctx.fillText(text,Math.max(6,Math.min(state.cssW-ctx.measureText(text).width-6,q.x+5)),Math.max(16,Math.min(state.cssH-8,q.y-5)));}
+    function annotation(text,world,color='#526b88'){const q=xy(world.x,world.y);if(!Number.isFinite(q.x)||!Number.isFinite(q.y))return;boardLabels.annotation({text:String(text??''),x:Math.max(8,Math.min(state.cssW-8,q.x)),y:Math.max(8,Math.min(state.cssH-8,q.y)),color,key:'annotation:'+String(text),priority:10});}
     function drawLine(o){const rad=P('theta')*Math.PI/180,span=Math.max(state.view.xmax-state.view.xmin,state.view.ymax-state.view.ymin)*1.3,dx=Math.cos(rad),dy=Math.sin(rad);const end={x:o.x+span*dx,y:o.y+span*dy};strokePath([{x:o.x-span*dx,y:o.y-span*dy},end],'#f2a33c',2);annotation(state.model.dynamicLineLabel||'动直线',end,'#9a6507');}
     function namedObject(name){const derived=(state.model.objects||[]).find(o=>o.kind==='construction'&&o.label===name);if(derived){const shape=nativeController?.engine.resolve(derived.id);if(shape?.type==='point')return shape;}const known=features().find(item=>item.name===name)||(state.model.objects||[]).find(o=>o.kind==='point'&&o.label===name);if(known)return known;if(name===state.model.fixedPoint?.name&&Number.isFinite(state.model.fixedPoint.x))return state.model.fixedPoint;const index=(state.model.dynamicIntersectionLabels||['A','B']).indexOf(name);if(index>=0)return intersections()[index]||null;const second=state.model.pairedChord?.labels.indexOf(name)??-1;return second>=0?secondIntersections()[second]||null:null;}
     function visibleForPart(item){return window.DongSceneAudit.visible(item,state.activePart);}
@@ -1188,10 +1197,40 @@
     function drawHighlightedPolygons(){for(const item of state.model.polygons||[]){const data=polygonData(item);if(!data)continue;const points=data.points;ctx.save();ctx.beginPath();points.forEach((p,i)=>{const q=xy(p.x,p.y);i?ctx.lineTo(q.x,q.y):ctx.moveTo(q.x,q.y);});ctx.closePath();ctx.fillStyle='rgba(255,174,59,.17)';if(!data.degenerate)ctx.fill();ctx.strokeStyle='#e58c21';ctx.lineWidth=3;ctx.stroke();ctx.restore();const center={x:points.reduce((sum,p)=>sum+p.x,0)/points.length,y:points.reduce((sum,p)=>sum+p.y,0)/points.length};annotation(item.label,center,'#a65c08');}}
     function drawPolygonMetrics(){if(!state.model?.polygons?.length)return;let html='';for(const item of state.model.polygons){if(!visibleForPart(item))continue;const data=polygonData(item),missing=(item.labels||[]).filter(label=>!namedObject(label));html+=metric(`${escapeHtml(item.label)} · 面积`,data?(data.invalid?escapeHtml(data.warning):exactNumber(data.area,5)+(data.warning?'（'+escapeHtml(data.warning)+'）':'')):`暂未定位${missing.length?'：'+escapeHtml(missing.join('、')):''}`);if(data){html+=metric(`${escapeHtml(item.label)} · 周长`,escapeHtml(data.perimeterExpression));if(data.points.length===3){for(let i=0;i<3;i++){const a=data.points[i],b=data.points[(i+1)%3],c=data.points[(i+2)%3],u={x:b.x-a.x,y:b.y-a.y},v={x:c.x-a.x,y:c.y-a.y},denominator=Math.hypot(u.x,u.y)*Math.hypot(v.x,v.y);const angle=!data.degenerate&&denominator>0?Math.acos(Math.max(-1,Math.min(1,(u.x*v.x+u.y*v.y)/denominator)))*180/Math.PI:NaN;html+=metric(`∠${escapeHtml(item.labels[i])}（${escapeHtml(item.label)}）`,Number.isFinite(angle)?`${exactNumber(angle,3)}°`:'退化，未定义');}}}}metricsEl.innerHTML+=html;}
     function drawUserObjects(){for(const obj of state.model.objects||[]){if(!visibleForPart(obj))continue;if(obj.kind==='circle'){const path=Array.from({length:361},(_,i)=>{const t=i*Math.PI/180;return{x:obj.h+obj.r*Math.cos(t),y:obj.k+obj.r*Math.sin(t)}});strokePath(path,'#c15b87',2.2);annotation(obj.label||'圆',{x:obj.h+obj.r,y:obj.k},'#9d3f6c');}else if(obj.kind==='conic'){userConicPaths(obj).forEach(path=>strokePath(path,'#c15b87',2.2));const anchor=obj.orientation==='vertical'?{x:obj.h,y:obj.k+(obj.a||obj.p)}:{x:obj.h+(obj.a||obj.p),y:obj.k};annotation(obj.label||'自定义圆锥曲线',anchor,'#9d3f6c');}else if(obj.kind==='function'){const paths=userFunctionPaths(obj),color={sine:'#bf5082',cosine:'#4d79d8',tangent:'#c47a28'}[obj.family]||'#9d3f6c',fraction={sine:.2,cosine:.48,tangent:.75}[obj.family]??.2,target=state.view.xmin+(state.view.xmax-state.view.xmin)*fraction;paths.forEach(path=>strokePath(path,color,2.2));const anchor=paths.flat().filter(p=>p.y>=state.view.ymin+.1&&p.y<=state.view.ymax-.1).sort((a,b)=>Math.abs(a.x-target)-Math.abs(b.x-target))[0];if(anchor)annotation(obj.label||obj.equation||'函数曲线',anchor,color);}else if(obj.kind==='point'){point(obj,'#c15b87',obj.label||'P');}else if(obj.kind==='line'){const ends=endpointsForLine(obj);if(ends){strokePath([ends.a,ends.b],'#c15b87',2.2);annotation(obj.label||'自定义直线',ends.b,'#9d3f6c');}}}}
-    function guideLine(a,b,label){ctx.save();ctx.setLineDash([6,5]);strokePath([a,b],'#9aa9bb',1);ctx.setLineDash([]);ctx.fillStyle='#617388';ctx.font='12px Microsoft YaHei UI';const p=xy(b.x,b.y);ctx.fillText(label,p.x+5,p.y-5);ctx.restore();}
+    function guideLine(a,b,label){ctx.save();ctx.setLineDash([6,5]);strokePath([a,b],'#9aa9bb',1);ctx.restore();annotation(label,b,'#617388');}
     function drawGuides(){if(!state.guides||!state.model)return;const h=P('h'),k=P('k'),t=state.model.type,v=state.view,span=Math.max(v.xmax-v.xmin,v.ymax-v.ymin);if(t==='ellipse'){const c=Math.sqrt(Math.max(0,P('a')**2-P('b')**2));if(c>.0001){const e=c/P('a'),d=P('a')/e;if(state.model.orientation==='horizontal'){guideLine({x:h-d,y:v.ymin},{x:h-d,y:v.ymax},'准线');guideLine({x:h+d,y:v.ymin},{x:h+d,y:v.ymax},'准线');}else{guideLine({x:v.xmin,y:k-d},{x:v.xmax,y:k-d},'准线');guideLine({x:v.xmin,y:k+d},{x:v.xmax,y:k+d},'准线');}}}else if(t==='hyperbola'){const slope=state.model.orientation==='vertical'?P('a')/P('b'):P('b')/P('a');guideLine({x:h-span,y:k-span*slope},{x:h+span,y:k+span*slope},'渐近线');guideLine({x:h-span,y:k+span*slope},{x:h+span,y:k-span*slope},'渐近线');}else if(t==='parabola'){const d=P('direction')||1;if(state.model.orientation==='vertical')guideLine({x:v.xmin,y:k-d*P('p')},{x:v.xmax,y:k-d*P('p')},'准线');else guideLine({x:h-d*P('p'),y:v.ymin},{x:h-d*P('p'),y:v.ymax},'准线');}}
-    function point(p,color,label){const q=xy(p.x,p.y);ctx.beginPath();ctx.arc(q.x,q.y,4.5,0,Math.PI*2);ctx.fillStyle=color;ctx.fill();ctx.strokeStyle='#fff';ctx.lineWidth=1.5;ctx.stroke();ctx.fillStyle='#203b5b';ctx.font='600 13px Microsoft YaHei UI';ctx.fillText(label,q.x+7,q.y-7);}
-    function render(){resize(); if(!state.model){ctx.clearRect(0,0,state.cssW,state.cssH);return;}refreshFixedPoint();drawGrid();drawAxes();drawGuides();drawKnownLines();if(state.model.showConic!==false)conicPaths().forEach(p=>strokePath(p));drawUserObjects();const o=lineOrigin(),showDynamic=state.model.showDynamic!==false&&visibleForPart({part:state.model.dynamicLinePart,parts:state.model.dynamicLineParts});if(showDynamic)drawLine(o);if(showDynamic&&state.model.pairedChord){const rad=P('theta2')*Math.PI/180,span=Math.max(state.view.xmax-state.view.xmin,state.view.ymax-state.view.ymin)*1.3,dx=Math.cos(rad),dy=Math.sin(rad),end={x:o.x+span*dx,y:o.y+span*dy};strokePath([{x:o.x-span*dx,y:o.y-span*dy},end],'#4d86d1',2);annotation(state.model.pairedChord.lineLabel||'l′',end,'#35619a');}const fs=features();fs.filter(featureVisible).forEach(f=>point(f,f.kind==='focus'||f.kind==='center'?'#3f78d8':'#0f9f99',f.name));const ins=showDynamic&&state.model.showConic!==false?intersections():[];ins.forEach((p,i)=>point(p,'#df5b62',(state.model.dynamicIntersectionLabels||['A','B'])[i]));if(showDynamic&&state.model.showConic!==false&&state.model.pairedChord)secondIntersections().forEach((p,i)=>point(p,'#4d86d1',state.model.pairedChord.labels[i]));if(Number.isFinite(state.model.fixedPoint?.x))point(state.model.fixedPoint,'#d0741b',state.model.fixedPoint.name||'T');const extra=extraIntersections();extra.forEach(g=>g.points.forEach(p=>point(p,'#bd4166',p.name)));drawMetrics(ins,extra);nativeController?.draw();dragController?.draw();drawExtremeHit(ins,showDynamic);drawDistanceExtrema();drawOrthogonalChord(ins);}
+    function point(p,color,label){const q=xy(p.x,p.y);if(!Number.isFinite(q.x)||!Number.isFinite(q.y))return;ctx.beginPath();ctx.arc(q.x,q.y,4.5,0,Math.PI*2);ctx.fillStyle=color;ctx.fill();ctx.strokeStyle='#fff';ctx.lineWidth=1.5;ctx.stroke();const primary=Object.hasOwn(state.model.points||{},label)||(state.model.dynamicIntersectionLabels||[]).includes(label)||(state.model.objects||[]).some(o=>o.label===label&&o.source==='question');boardLabels.point({x:q.x,y:q.y,worldX:p.x,worldY:p.y,text:String(label??''),color:'#203b5b',key:'point:'+String(label),priority:primary?100:40});}
+    function render(){
+      if(stepHighlighter&&!stepHighlighter.valid())learningUI?.clearStepHighlight();
+      resize();boardLabels.begin(state.cssW,state.cssH,{sceneKey:labelSceneKey+':'+state.activePart});
+      if(!state.model){ctx.clearRect(0,0,state.cssW,state.cssH);boardLabels.flush();return;}
+      refreshFixedPoint();drawGrid();drawAxes();drawGuides();drawKnownLines();
+      if(state.model.showConic!==false)conicPaths().forEach(p=>strokePath(p));drawUserObjects();
+      const o=lineOrigin(),showDynamic=state.model.showDynamic!==false&&visibleForPart({part:state.model.dynamicLinePart,parts:state.model.dynamicLineParts});
+      if(showDynamic)drawLine(o);
+      if(showDynamic&&state.model.pairedChord){const rad=P('theta2')*Math.PI/180,span=Math.max(state.view.xmax-state.view.xmin,state.view.ymax-state.view.ymin)*1.3,dx=Math.cos(rad),dy=Math.sin(rad),end={x:o.x+span*dx,y:o.y+span*dy};strokePath([{x:o.x-span*dx,y:o.y-span*dy},end],'#4d86d1',2);annotation(state.model.pairedChord.lineLabel||'l′',end,'#35619a');}
+      features().filter(featureVisible).forEach(f=>point(f,f.kind==='focus'||f.kind==='center'?'#3f78d8':'#0f9f99',f.name));
+      const ins=showDynamic&&state.model.showConic!==false?intersections():[];
+      ins.forEach((p,i)=>point(p,'#df5b62',(state.model.dynamicIntersectionLabels||['A','B'])[i]));
+      if(showDynamic&&state.model.showConic!==false&&state.model.pairedChord)secondIntersections().forEach((p,i)=>point(p,'#4d86d1',state.model.pairedChord.labels[i]));
+      if(Number.isFinite(state.model.fixedPoint?.x))point(state.model.fixedPoint,'#d0741b',state.model.fixedPoint.name||'T');
+      const extra=extraIntersections();extra.forEach(g=>g.points.forEach(p=>point(p,'#bd4166',p.name)));
+      drawMetrics(ins,extra);nativeController?.draw();dragController?.draw();drawExtremeHit(ins,showDynamic);drawDistanceExtrema();drawOrthogonalChord(ins);stepHighlighter?.draw();boardLabels.flush();
+    }
+    function stepGraphEntries(){
+      if(!state.model||!nativeController)return [];
+      const entries=[],addPoint=(id,label,shape)=>{if(Number.isFinite(shape?.x)&&Number.isFinite(shape?.y))entries.push({id,label,shape:{type:'point',x:shape.x,y:shape.y}});};
+      features().filter(featureVisible).forEach(p=>addPoint('feature:'+p.name,p.name,p));
+      const dynamic=state.model.showDynamic!==false&&state.model.showConic!==false&&visibleForPart({part:state.model.dynamicLinePart,parts:state.model.dynamicLineParts});
+      if(dynamic){intersections().forEach((p,i)=>addPoint('dynamic:'+i,(state.model.dynamicIntersectionLabels||['A','B'])[i],p));entries.push({id:'$dynamic',label:state.model.dynamicLineLabel||'l',shape:nativeController.engine.resolve('$dynamic')});
+        if(state.model.pairedChord){secondIntersections().forEach((p,i)=>addPoint('dynamic2:'+i,state.model.pairedChord.labels[i],p));entries.push({id:'$dynamic2',label:state.model.pairedChord.lineLabel||'l′',shape:nativeController.engine.resolve('$dynamic2')});}}
+      if(Number.isFinite(state.model.fixedPoint?.x))addPoint('fixed',state.model.fixedPoint.name||'T',state.model.fixedPoint);
+      for(const [i,group] of extraIntersections().entries())group.points.forEach((p,j)=>addPoint('extra:'+i+':'+j,p.name,p));
+      if(state.model.showConic!==false){const text=window.DongMathInput?.toPlain(question.value)||question.value,curveName=state.model.curveLabel||text.match(/(?:曲线|椭圆|双曲线|抛物线|圆)\s*[（(]?\s*([A-Z][₀₁₂₃0-9′']*)/)?.[1]||'主曲线';entries.push({id:'$conic',label:curveName,paths:conicPaths()});}
+      for(const obj of nativeController.engine.objects()){if(!obj.label||!visibleForPart(obj))continue;const shape=nativeController.engine.resolve(obj.id);if(!shape)continue;const entry={id:obj.id,label:obj.label,shape};if(obj.kind==='conic')entry.paths=userConicPaths(obj);else if(obj.kind==='function')entry.paths=userFunctionPaths(obj);entries.push(entry);}
+      for(const [i,obj] of (state.model.polygons||[]).entries()){const data=polygonData(obj);if(data&&!data.invalid&&!data.degenerate)entries.push({id:'polygon:'+i,label:obj.label||(obj.labels||[]).join(''),shape:{type:'polygon',points:data.points}});}
+      return entries;
+    }
 
     function motionSources(){if(!state.model)return{points:[],line:false};const points=(state.model.objects||[]).filter(item=>{if(item.kind!=='construction'||item.op!=='point_on'||!visibleForPart(item))return false;const source=item.refs?.[0],shape=nativeController?.engine.resolve(source);return ['conic','circle'].includes(shape?.type)&&(source==='$conic'?state.model.showConic!==false:visibleForPart(nativeController.engine.getObject(source)||{}));});const line=state.model.showDynamic!==false&&visibleForPart({part:state.model.dynamicLinePart,parts:state.model.dynamicLineParts});return{points,line};}
     function syncMotionButton(){const button=$('#motionPlay'),sources=motionSources(),available=!!state.model&&(sources.line||sources.points.length>0);button.disabled=!available;button.setAttribute('aria-pressed',String(motionFrame!==null));button.textContent=motionFrame===null?'▶ 播放联动':'⏸ 暂停联动';}
@@ -1467,7 +1506,7 @@ function motionStep(timestamp){if(!state.model){stopMotion(false);return;}const 
     function showSolution(d){state.solution=d;const parts=Array.isArray(d.parts)?d.parts:[];state.activePart=parts.length>1?parts[0].index:null;renderSolution();}
     async function solveLocal(){return learningUI?.solve();}
     function zoom(f){if(!state.model)return;const v=state.view,cx=(v.xmin+v.xmax)/2,cy=(v.ymin+v.ymax)/2,w=(v.xmax-v.xmin)*f,h=(v.ymax-v.ymin)*f;state.view={xmin:cx-w/2,xmax:cx+w/2,ymin:cy-h/2,ymax:cy+h/2};render();}
-    function resetParams(){if(!state.original){setStatus('请先载入图形。',true);return;}const before=dragController?.checkpoint(),source=cloneScene(state.original);state.model=source.model;state.p=source.values;state.exploring=false;homeView();buildParams();updateSceneJson();refreshLayers();if(before)dragController?.record(before);setStatus('已还原到本题初始参数。');render();}
+    function resetParams(){if(!state.original){setStatus('请先载入图形。',true);return;}learningUI?.clearStepHighlight();stepHighlighter?.clear();const before=dragController?.checkpoint(),source=cloneScene(state.original);state.model=source.model;state.p=source.values;state.exploring=false;homeView();buildParams();updateSceneJson();refreshLayers();if(before)dragController?.record(before);setStatus('已还原到本题初始参数。');render();}
     function restoreLocal(){try{const saved=JSON.parse(localStorage.getItem('zhigeometry:last')||'null');if(!saved)return;question.value=saved.question||'';state.solution=saved.solution||null;state.activePart=saved.activePart??null;state.grid=saved.grid!==false;state.guides=saved.guides!==false;$('#gridToggle').checked=state.grid;$('#guideToggle').checked=state.guides;if(saved.scene)installScene(modelFromJson(JSON.stringify(saved.scene)),'上次保存');state.exploring=!!saved.exploring;$('#exploreNotice').hidden=!state.exploring;if(state.solution)renderSolution();if(state.model)updateSceneJson();setStatus('已恢复上次的题目和学习进度。');}catch{}}
     $('#parseButton').addEventListener('click',parseAndInstall);$('#clearButton').addEventListener('click',clear);$('#applyJson').addEventListener('click',applyJson);$('#exportJson').addEventListener('click',exportJson);$('#pngButton').addEventListener('click',exportPng);$('#copyButton').addEventListener('click',copyForCodex);$('#scanButton').addEventListener('click',scan);$('#extremeMetric').addEventListener('change',()=>{extremeScan=null;scanResult.textContent='请选择“寻找最大 / 最小”开始扫描。';$('#jumpMinimum').hidden=$('#jumpMaximum').hidden=true;render();});$('#jumpMinimum').addEventListener('click',()=>jumpExtreme('min'));$('#jumpMaximum').addEventListener('click',()=>jumpExtreme('max'));$('#solveButton').addEventListener('click',solveLocal);$('#motionPlay').addEventListener('click',toggleMotion);$('#addObject').addEventListener('click',addFreeObject);$('#clearObjects').addEventListener('click',()=>{if(!state.model)return;state.model.objects=[];stopMotion(false);updateSceneJson();refreshLayers();syncMotionButton();render();setStatus('已清除本次手动添加的对象。');});$('#objectType').addEventListener('change',updateObjectHint);$('#gridToggle').addEventListener('change',e=>{state.grid=e.target.checked;remember();render();});$('#guideToggle').addEventListener('change',e=>{state.guides=e.target.checked;remember();render();});$('#zoomIn').addEventListener('click',()=>zoom(.8));$('#zoomOut').addEventListener('click',()=>zoom(1.25));$('#homeButton').addEventListener('click',()=>{homeView();render();});$('#resetParams').addEventListener('click',resetParams);$('#saveLocal').addEventListener('click',()=>{remember();setStatus('已保存在这台设备的浏览器中。');});
     function setToolboxCollapsed(collapsed){const shell=$('.board-shell'),button=$('#toolboxToggle');shell.classList.toggle('toolbox-collapsed',collapsed);button.textContent=collapsed?'展开作图工具':'收起作图工具';button.setAttribute('aria-expanded',String(!collapsed));if(collapsed&&innerWidth<=760){$('.board-toolbar').scrollIntoView({block:'start',behavior:'smooth'});button.focus({preventScroll:true});}requestAnimationFrame(render);}
@@ -1520,7 +1559,9 @@ function motionStep(timestamp){if(!state.model){stopMotion(false);return;}const 
     $('#objectInput').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();addFreeObject();}});
     $('#equationFields').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();addFreeObject();}});
     new ResizeObserver(()=>render()).observe(canvas.parentElement);
-    learningUI=window.DongLearning.attach({state,question,sceneData,setStatus,showSolution,remember,clear,render,refreshLayers,syncMotionButton,installScene,modelFromJson,download,canvas,solveDeterministic:browserDeterministicSolution,enrichSolvedScene});
+    stepHighlighter=window.DongStepHighlight.attach({entries:stepGraphEntries,model:()=>state.model,part:()=>state.activePart,ctx,xy,clip:clipNativeLine,render});
+    window.DongBoardStep=Object.freeze({snapshot:()=>stepHighlighter.snapshot()});
+    learningUI=window.DongLearning.attach({state,question,sceneData,setStatus,showSolution,remember,clear,render,refreshLayers,syncMotionButton,installScene,modelFromJson,download,canvas,solveDeterministic:browserDeterministicSolution,enrichSolvedScene,highlightStep:input=>stepHighlighter.highlight(input),clearStepHighlight:()=>{stepHighlighter.clear();render();}});
     window.addEventListener('resize',()=>{if(innerWidth<=760)setInputPanelCollapsed(false);else render();});document.addEventListener('visibilitychange',()=>{if(document.hidden&&motionFrame!==null)stopMotion(true);});updateObjectHint();refreshLayers();syncMotionButton();render();restoreLocal();try{if(localStorage.getItem('dongjiexi:input-collapsed')==='1')setInputPanelCollapsed(true);}catch{}refreshEngine();
   })();
   </script>
@@ -1549,6 +1590,6 @@ function motionStep(timestamp){if(!state.model){stopMotion(false);return;}const 
     document.getElementById('closeReleases').addEventListener('click',()=>dialog.close());
   })();
   </script>
-  <script src="pwa.js?v=0.43.3"></script>
+  <script src="pwa.js?v=0.44.0"></script>
 </body>
 </html>

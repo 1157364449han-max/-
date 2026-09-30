@@ -1,8 +1,9 @@
 'use strict';
 
-const VERSION = '0.43.3';
+const VERSION = '0.44.0';
 const CACHE = `dongjiexi-app-${VERSION}`;
 const CORE = [
+  './label-layout.js', './step-highlight.js',
   './scene-merge.js',
   './conic-parameter.js',
   './math-input.js', './number-display.js', './tangent-solver.js', './ellipse-distance.js', './orthogonal-chord.js', './ellipse-focal-chord.js', './axis-intercept-chord.js',
@@ -60,7 +61,8 @@ self.addEventListener('fetch', event => {
         cache.put('./index.html', response.clone());
         return response;
       } catch {
-        return (await caches.match('./index.html')) || (await caches.match('./offline.html'));
+        const cache=await caches.open(CACHE);
+        return (await cache.match('./index.html')) || (await cache.match('./offline.html'));
       }
     })());
     return;
@@ -86,11 +88,16 @@ self.addEventListener('fetch', event => {
   }
 
   event.respondWith((async () => {
-    const cached = await caches.match(request, {ignoreSearch: true});
+    // Use only this worker's complete app shell. During an update, never serve
+    // old JavaScript for a newer HTML page's explicit version query.
+    const cache=await caches.open(CACHE);
+    const requestedVersion=url.searchParams.get('v');
+    const sameVersion=!requestedVersion||requestedVersion===VERSION;
+    const cached = await cache.match(request, {ignoreSearch: sameVersion});
     if (cached) return cached;
     try {
       const response = await fetch(request);
-      if (response.ok) (await caches.open(CACHE)).put(request, response.clone());
+      if (response.ok) await cache.put(request, response.clone());
       return response;
     } catch {
       return Response.error();

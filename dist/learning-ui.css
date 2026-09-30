@@ -57,6 +57,14 @@
 .lesson-actions,.followup-chips { display:flex;flex-wrap:wrap;gap:.35rem;margin:.6rem 0; }
 .lesson-actions button,.followup-chips button { padding:.35rem .45rem;border:1px solid #cbd9e7;border-radius:7px;background:white;color:#285263;font-size:.78rem; }
 .solution .part-body { border-top:1px solid #cbdedb;margin-top:.7rem;padding-top:.6rem; }
+.step-graph-link { margin:.25rem 0 0;padding:.22rem .5rem;border:1px solid #c5d8df;border-radius:6px;background:#f7fbfc;color:#285263;font-size:.75rem;cursor:pointer; }
+.step-graph-link[aria-pressed="true"] { border-color:#ad6406;background:#fff0d5;color:#774509; }
+.step-graph-link:focus-visible,.step-graph-toolbar button:focus-visible { outline:3px solid #087f80;outline-offset:2px; }
+.step-graph-toolbar { display:flex;align-items:flex-start;gap:.45rem;margin:.55rem 0;padding:.5rem .6rem;border:1px solid #edc17b;border-radius:8px;background:#fff9ed;font-size:.75rem;line-height:1.6; }
+.step-graph-toolbar[hidden] { display:none; }
+.step-graph-toolbar span { flex:1;min-width:0;overflow-wrap:anywhere; }
+.step-graph-toolbar button { flex:none;white-space:nowrap;padding:.25rem .4rem;border:1px solid #d7b171;border-radius:6px;background:white;color:#774509;font-size:.75rem;cursor:pointer; }
+@media (max-width:760px) { .step-graph-link,.step-graph-toolbar button { min-height:40px; }.step-graph-toolbar { flex-wrap:wrap; }.step-graph-toolbar span { flex-basis:100%; } }
 .learning-chat { margin:.8rem 0;padding:.8rem;border:1px solid #ceddeb;border-radius:11px;background:#f8fbff;font-size:.84rem; }
 .learning-chat h3 { margin:0;font-size:.95rem; }
 .learning-chat textarea { min-height:88px;font-size:.86rem; }
@@ -90,7 +98,7 @@
   #printLesson { display:block!important;color:#111;font-size:12pt;padding:12mm; }
   #printLesson .solution { border:0;background:white;box-shadow:none; }
   #printLesson .solution p,#printLesson .solution ol { font-size:11pt; }
-  #printLesson .lesson-actions,#printLesson .part-tabs { display:none; }
+  #printLesson .lesson-actions,#printLesson .part-tabs,#printLesson .step-graph-link,#printLesson .step-graph-toolbar { display:none; }
   #printLesson img { width:100%;max-height:110mm;object-fit:contain; }
   #printLesson .part-body { break-inside:avoid; }
 }

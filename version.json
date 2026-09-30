@@ -1,6 +1,6 @@
 {
   "name": "董解析",
-  "version": "0.43.3",
+  "version": "0.44.0",
   "default_model": "hf.co/bartowski/DeepSeek-R1-Distill-Llama-8B-GGUF:Q4_K_M",
   "update_channel": "https://dongjiexi.github.io/-/update-manifest.json"
 }

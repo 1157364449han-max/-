@@ -26,6 +26,7 @@ APP_FILES = {
     '安装更新包.bat', '安装本地AI.bat', '安装本地AI.ps1',
     'deploy/build_release.py', 'deploy/部署说明.md', 'deploy/更新计划.md', 'deploy/0.43.0-验证记录.md', 'deploy/cloud.env.example',
     'tests/fixtures/sourced-exam-additions.json', 'deploy/0.43.1-验证记录.md', 'deploy/0.43.2-验证记录.md', 'deploy/0.43.3-验证记录.md',
+    'deploy/0.44.0-验证记录.md',
     'deploy/runtime-config.web.example.js', '.github/workflows/deploy-dongjiexi.yml',
     'deploy/phone/README.md', 'deploy/phone/start.sh', 'deploy/phone/configure.sh',
     'deploy/phone/download-model.sh', 'deploy/phone/download-deepseek.sh', 'deploy/phone/serve-only.sh',

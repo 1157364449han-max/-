@@ -56,6 +56,9 @@ jobs:
           node tests/cloudflare_worker_tests.cjs
           node tests/external_ai_tests.cjs
           node tests/scene_consistency_tests.cjs
+          node tests/label_layout_tests.cjs
+          node tests/step_highlight_tests.cjs
+          node tests/service_worker_version_tests.cjs
       - name: Test actual browser workflows
         working-directory: ${{ steps.app.outputs.root }}
         env:

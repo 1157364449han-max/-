@@ -42,6 +42,8 @@ assert.match(worker, /'\.\/orthogonal-chord\.js'/, 'orthogonal chord solver must
 assert.match(worker, /'\.\/ellipse-focal-chord\.js'/, 'ellipse focal chord solver must be available offline');
 assert.match(worker, /'\.\/number-display\.js'/, 'exact number formatting must be available offline');
 assert.match(worker, /SKIP_WAITING/);
+assert.ok(worker.includes("'./label-layout.js'")&&html.includes(`label-layout.js?v=${app.version}`),'Label placement must be updated and cached offline');
+assert.ok(worker.includes("'./step-highlight.js'")&&html.includes(`step-highlight.js?v=${app.version}`),'Step-board linkage must be updated and cached offline');
 assert.match(workflow, /update-manifest\.json/);
 assert.match(workflow, /sha256/);
 assert.match(workflow, /dongjiexi-v\{version\}\.zip/);
