@@ -53,6 +53,7 @@ jobs:
           node tests/pwa_contract_tests.cjs
           node tests/question_bank_contract_tests.cjs
           node tests/runtime_auth_contract_tests.cjs
+          node tests/cloudflare_worker_tests.cjs
       - name: Test actual browser workflows
         working-directory: ${{ steps.app.outputs.root }}
         env:
@@ -84,6 +85,9 @@ jobs:
           if [ "$WEB_PATH" != "." ]; then
             BASE="$BASE/$WEB_PATH"
             TARGET="_site/$WEB_PATH"
+          fi
+          if [ -z "$API_BASE" ] && [ -s "$APP_ROOT/deploy/active-cloud-api.txt" ]; then
+            API_BASE="$(tr -d '\r\n' < "$APP_ROOT/deploy/active-cloud-api.txt")"
           fi
           if [ -z "$API_BASE" ] && [ -f "$APP_ROOT/deploy/active-phone-api.txt" ]; then
             API_BASE="$(tr -d '\r\n' < "$APP_ROOT/deploy/active-phone-api.txt")"

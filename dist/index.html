@@ -13,9 +13,9 @@
   <link rel="apple-touch-icon" href="icons/icon.svg">
   <link rel="stylesheet" href="vendor/katex/katex.min.css">
   <link rel="stylesheet" href="vendor/mathlive/mathlive-fonts.css">
-  <link rel="stylesheet" href="learning-ui.css?v=0.41.3">
-  <link rel="stylesheet" href="classroom.css?v=0.41.3">
-  <link rel="stylesheet" href="question-bank.css?v=0.41.3">
+  <link rel="stylesheet" href="learning-ui.css?v=0.41.4">
+  <link rel="stylesheet" href="classroom.css?v=0.41.4">
+  <link rel="stylesheet" href="question-bank.css?v=0.41.4">
   <style>
     :root { --ink:#0c1b33; --ink-2:#1a3152; --paper:#f6f8fb; --panel:#ffffff; --line:#d7e0eb; --muted:#64748b; --teal:#0f9f99; --teal-soft:#e1f7f4; --amber:#f2a33c; --amber-soft:#fff2d9; --red:#df5b62; --blue:#3f78d8; --shadow:0 10px 30px rgba(12,27,51,.09); }
     * { box-sizing:border-box; }
@@ -392,12 +392,12 @@
     }
     @media (max-width:460px) { .condition-grid,.condition-list { grid-template-columns:1fr; }.condition-grid .wide { grid-column:auto; } }
   </style>
-  <link rel="stylesheet" href="theme.css?v=0.41.3">
+  <link rel="stylesheet" href="theme.css?v=0.41.4">
 </head>
 <body>
   <main class="app">
     <header class="topbar">
-      <div class="brand"><span class="brand-mark">董</span><span class="brand-name">董解析</span><button class="version-button" id="versionButton" title="查看版本、更新记录和能力边界">v0.41.3 · 更新记录</button></div>
+      <div class="brand"><span class="brand-mark">董</span><span class="brand-name">董解析</span><button class="version-button" id="versionButton" title="查看版本、更新记录和能力边界">v0.41.4 · 更新记录</button></div>
       <div class="top-actions"><span class="top-note">内置符号解题 · 动态几何 · 可选智能增强 · 我的题本</span><button id="openQuestionBank" class="button secondary" type="button" aria-haspopup="dialog">高考真题题库</button><button id="cloudOutageShortcut" class="install-button" type="button" title="云端暂不可用，点击改用本机解题并保留题稿" hidden>云端中断 · 本机解题</button><button id="pwaInstall" class="install-button" hidden>安装到设备</button></div>
     </header>
     <section id="pwaBanner" class="pwa-banner" hidden role="status"><span id="pwaMessage"></span><button id="pwaUpdate" hidden>立即更新</button><button id="pwaDismiss">稍后</button></section>
@@ -582,23 +582,23 @@
   </dialog>
 
   <script src="runtime-config.js"></script>
-  <script src="runtime.js?v=0.41.3"></script>
+  <script src="runtime.js?v=0.41.4"></script>
   <script src="vendor/katex/katex.min.js"></script>
   <script src="vendor/katex/contrib/auto-render.min.js"></script>
-  <script src="math-input.js?v=0.41.3"></script>
-  <script src="number-display.js?v=0.41.3"></script>
-  <script src="tangent-solver.js?v=0.41.3"></script>
-  <script src="ellipse-distance.js?v=0.41.3"></script>
-  <script src="orthogonal-chord.js?v=0.41.3"></script>
-  <script src="ellipse-focal-chord.js?v=0.41.3"></script>
-  <script src="learning-ui.js?v=0.41.3"></script>
-  <script src="classroom.js?v=0.41.3"></script>
-  <script src="question-bank.js?v=0.41.3"></script>
-  <script src="construction-board.js?v=0.41.3"></script>
-  <script src="drag-board.js?v=0.41.3"></script>
-  <script src="equation-builder.js?v=0.41.3"></script>
-  <script src="math-keyboard.js?v=0.41.3"></script>
-  <script type="module" src="mathlive-adapter.js?v=0.41.3"></script>
+  <script src="math-input.js?v=0.41.4"></script>
+  <script src="number-display.js?v=0.41.4"></script>
+  <script src="tangent-solver.js?v=0.41.4"></script>
+  <script src="ellipse-distance.js?v=0.41.4"></script>
+  <script src="orthogonal-chord.js?v=0.41.4"></script>
+  <script src="ellipse-focal-chord.js?v=0.41.4"></script>
+  <script src="learning-ui.js?v=0.41.4"></script>
+  <script src="classroom.js?v=0.41.4"></script>
+  <script src="question-bank.js?v=0.41.4"></script>
+  <script src="construction-board.js?v=0.41.4"></script>
+  <script src="drag-board.js?v=0.41.4"></script>
+  <script src="equation-builder.js?v=0.41.4"></script>
+  <script src="math-keyboard.js?v=0.41.4"></script>
+  <script type="module" src="mathlive-adapter.js?v=0.41.4"></script>
   <script src="geogebra-bridge.js?v=0.7.0"></script>
   <script>
   (() => {
@@ -645,6 +645,7 @@
 
     function scalarValue(raw){try{return window.DongEquationBuilder.scalar(raw);}catch{return NaN;}}
     function browserStandardConic(s){
+      const expandedCircle=browserExpandedCircle(s);if(expandedCircle)return expandedCircle;
       const number='[+-]?(?:\\d+\\/\\d+|\\d+(?:\\.\\d+)?)',square=`(?:\\([xy][+-]${number}\\)\\^2|[xy]\\^2)`,match=s.match(new RegExp(`(${square})(?:\/(${number}))?([+-])(${square})(?:\/(${number}))?=1`));
       const term=value=>{const bare=value.match(/^([xy])\^2$/);if(bare)return{variable:bare[1],shift:0};const shifted=value.match(new RegExp(`^\\(([xy])([+-])(${number})\\)\\^2$`));if(!shifted)return null;const amount=scalarValue(shifted[3]);return{variable:shifted[1],shift:shifted[2]==='-'?amount:-amount};};
       if(match){const left=term(match[1]),right=term(match[4]),dl=match[2]?scalarValue(match[2]):1,dr=match[5]?scalarValue(match[5]):1;if(left&&right&&left.variable!==right.variable&&dl>0&&dr>0){const x2=left.variable==='x'?dl:dr,y2=left.variable==='y'?dl:dr,h=left.variable==='x'?left.shift:right.shift,k=left.variable==='y'?left.shift:right.shift;if(match[3]==='-')return{type:'hyperbola',a:Math.sqrt(dl),b:Math.sqrt(dr),orientation:left.variable==='x'?'horizontal':'vertical',h,k};if(Math.abs(x2-y2)<1e-10)return{type:'circle',r:Math.sqrt(x2),orientation:'horizontal',h,k};return{type:'ellipse',a:Math.sqrt(Math.max(x2,y2)),b:Math.sqrt(Math.min(x2,y2)),orientation:x2>=y2?'horizontal':'vertical',h,k};}}
@@ -658,6 +659,19 @@
       return null;
     }
     const conditionAtom='[+-]?(?:√?\\d+(?:\\.\\d+)?|π)',conditionGroup=atom=>`[+-]?(?:${atom}|\\(${atom}(?:[+*/-]${atom})*\\))`;
+    function browserExpandedCircle(s){
+      const unsigned='(?:\\d+(?:\\.\\d+)?(?:/\\d+(?:\\.\\d+)?)?)',term=`(?:(?:${unsigned})?(?:x\\^2|y\\^2|x|y)|${unsigned})`;
+      const match=s.match(new RegExp(`(?:^|[^a-z0-9^])([+-]?${term}(?:[+-]${term})*)=([+-]?${unsigned})(?![a-z0-9^])`));if(!match)return null;
+      const coefficients={'x^2':0,'y^2':0,x:0,y:0,constant:0};
+      for(const token of match[1].match(/[+-]?[^+-]+/g)||[]){
+        const variable=token.match(new RegExp(`^([+-]?)(${unsigned})?(x\\^2|y\\^2|x|y)$`));
+        if(variable)coefficients[variable[3]]+=(variable[1]==='-'?-1:1)*scalarValue(variable[2]||'1');else coefficients.constant+=scalarValue(token);
+      }
+      const A=coefficients['x^2'];if(!Number.isFinite(A)||Math.abs(A)<1e-12||Math.abs(A-coefficients['y^2'])>1e-12)return null;
+      const h=-coefficients.x/(2*A),k=-coefficients.y/(2*A),r2=h*h+k*k+(scalarValue(match[2])-coefficients.constant)/A;
+      if(!(r2>0)||![h,k,r2].every(Number.isFinite))return null;
+      return{type:'circle',r:Math.sqrt(r2),h,k,normalizedImplicit:true,derivation:[`将圆的一般方程按 x、y 分别配方，得到 $${browserShiftedSquare('x',h)}+${browserShiftedSquare('y',k)}=${exactNumber(r2)}$。`]};
+    }
     const conditionTerm=conditionGroup(conditionGroup(conditionAtom)),conditionNumber=`${conditionTerm}(?:/${conditionTerm})?`;
     function namedConditionPoint(s,names=['p','m','a']){for(const name of names){const match=s.match(new RegExp(`${name}\\((${conditionNumber}),(${conditionNumber})\\)`,'i'));if(match)return[scalarValue(match[1]),scalarValue(match[2])];}return null;}
     function conditionCenter(s){const match=s.match(new RegExp(`(?:圆心|中心点|中心)(?:为|是)?[a-z]?\\((${conditionNumber}),(${conditionNumber})\\)`,'i'));return match?[scalarValue(match[1]),scalarValue(match[2])]:[0,0];}
@@ -734,10 +748,12 @@
       browserDependentMotion(s,model);
       browserReflectedChord(sceneFromModel(model),s);
       browserPolygons(raw,model);
+      const tangentScene=sceneFromModel(model);
+      window.DongTangentSolver?.install(tangentScene,window.DongMathInput?.toPlain(raw)??raw,browserConicQuadratic(tangentScene));
       for(const part of result.parts||[])browserPolygons([part.answer,...(part.steps||[])].join('。'),model,part.index??null);
       return result;
     }
-    function sceneFromModel(model){return{model,values:{a:Number(model.a),b:Number(model.b),h:Number(model.h)||0,k:Number(model.k)||0,theta:Number(model.theta)||42,theta2:Number(model.theta2)||116}};}
+    function sceneFromModel(model){return{model,values:{a:Number(model.a),b:Number(model.b),r:Number(model.r),p:Number(model.p),direction:Number(model.direction)||1,h:Number(model.h)||0,k:Number(model.k)||0,theta:Number(model.theta)||42,theta2:Number(model.theta2)||116}};}
     function browserReflectedChord(scene,raw){
       const s=normalize(raw),m=scene.model,p=scene.values;
       if(!['ellipse','circle'].includes(m.type)||m.showDynamic===false)return null;
@@ -1511,6 +1527,6 @@ function motionStep(timestamp){if(!state.model){stopMotion(false);return;}const 
     document.getElementById('closeReleases').addEventListener('click',()=>dialog.close());
   })();
   </script>
-  <script src="pwa.js?v=0.41.3"></script>
+  <script src="pwa.js?v=0.41.4"></script>
 </body>
 </html>

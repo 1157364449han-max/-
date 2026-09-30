@@ -114,6 +114,8 @@
     modeToggle.addEventListener('click',()=>showModes(modePanel.hidden));
     modePanel.querySelectorAll('[data-solve-mode]').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.solveMode===solveMode)));
     let activeJob = null;
+    let streamController = null;
+    let cloudTransport = 'jobs';
     let processing = false;
     let imageURL = null;
     let draftTimer = null;
@@ -193,7 +195,7 @@
     const report = error => api.setStatus(error.message||String(error),true);
     function renderChat() {
       const solution=api.state.solution;
-      find('#followupPanel').hidden=!solution||solution.mode!=='local-ollama';
+      find('#followupPanel').hidden=!solution||!['local-ollama','cloud-ai'].includes(solution.mode);
       const conversation=solution?.conversation||[];
       find('#chatMessages').innerHTML=conversation.map(item=>`<div class="chat-bubble ${item.role==='user'?'user':'assistant'}"><strong>${item.role==='user'?'我的追问':'AI 解答'}</strong>${textBlock(item.content)}</div>`).join('');
       typeset(find('#chatMessages'));
@@ -289,6 +291,7 @@
         if(solveMode!==requestedMode)return;
         if(!data.engine||typeof data.engine!=='object')throw Object.assign(new Error('云端健康信息不完整，请联系管理员。'),{code:'invalid_response'});
         cloudPrimary=data.engine.remote===true;
+        cloudTransport=data.capabilities?.transport==='sse'?'sse':'jobs';
         visionAvailable=data.engine.vision!==false;
         find('#cloudVisionChoice').hidden=!(remote&&visionAvailable&&data.engine.available);
         const names=data.engine.models||[];
@@ -319,6 +322,11 @@
       activeJob='pending';find('#cancelJob').disabled=true;
       busy(true);find('#jobPhase').textContent='正在连接解题引擎…';
       try{
+        if(solveMode==='cloud'&&cloudTransport==='sse'&&['solve','chat'].includes(body.kind)){
+          streamController=new AbortController();activeJob='stream';find('#cancelJob').disabled=false;
+          const result=await runtime.streamJob(body,{signal:streamController.signal,onProgress:count=>{find('#jobPhase').textContent=`云端正在整理解答 · ${count} 字符`;}});
+          await done(result);return;
+        }
         const job=await request('/api/jobs',body);
         activeJob=job.id;
         find('#cancelJob').disabled=false;
@@ -331,8 +339,8 @@
         if(current.status==='failed')throw new Error(current.error||'解题任务未完成。');
         if(current.status==='cancelled'){if(body.kind==='solve')progress('error','本次解题已停止。');api.setStatus('任务已停止，已有题目和解析仍保留。');return;}
         await done(current.result);
-      }catch(error){if(body.kind==='solve')progress('error','解题未完成：'+(error.message||String(error)));cloudFailure(error);report(error);}
-      finally{activeJob=null;busy(false);refreshEngine();}
+      }catch(error){if(error.name==='AbortError'){if(body.kind==='solve')progress('error','本次解题已停止。');api.setStatus('任务已停止，当前题稿保留。');return;}if(body.kind==='solve')progress('error','解题未完成：'+(error.message||String(error)));cloudFailure(error);report(error);}
+      finally{streamController=null;activeJob=null;busy(false);refreshEngine();}
     }
     function snapshot() {
       return {format:'dongjiexi-lesson',version:1,id:crypto.randomUUID(),savedAt:new Date().toISOString(),title:api.state.solution?.title||api.question.value.slice(0,32)||'未命名图稿',question:api.question.value,scene:api.state.model?api.sceneData():null,solution:api.state.solution||null,activePart:api.state.activePart,exploring:!!api.state.exploring};
@@ -440,7 +448,7 @@
             if(corrected){
               result.completion={answered:result.parts.filter(part=>part.status==='answered').length,total:result.parts.length};
               if(result.parts.length===1){result.answer=result.parts[0].answer;result.steps=result.parts[0].steps;}
-              result.quality_notice='可精确求解的小问已由符号引擎独立复算并回代，最终结论以验证结果为准。';
+              result.quality_notice='已覆盖的小问由内置数学引擎独立复算，最终结论以该小问的核验结果为准。';
             }
           }
           if(exactScene&&(!result.scene||exactComplete||exactScene.inferredFromConditions||exactScene.inferred_from_conditions)){
@@ -558,7 +566,7 @@
     find('#clearButton').addEventListener('click',renderSolution);
     find('#modelName').addEventListener('change',event=>{lastModel=event.target.value;localStorage.setItem(modelKey,lastModel);renderEngineRoute();refreshEngine();});
     find('#pullModel').addEventListener('click',()=>runJob({kind:'pull',model:find('#modelName').value},result=>api.setStatus(result.message)));
-    find('#cancelJob').addEventListener('click',async()=>{if(activeJob){try{await request('/api/jobs/'+activeJob+'/cancel',{});find('#jobPhase').textContent='正在停止，请稍候…';}catch(error){report(error);}}});
+    find('#cancelJob').addEventListener('click',async()=>{if(streamController){streamController.abort();find('#jobPhase').textContent='正在停止，请稍候…';return;}if(activeJob){try{await request('/api/jobs/'+activeJob+'/cancel',{});find('#jobPhase').textContent='正在停止，请稍候…';}catch(error){report(error);}}});
     find('#recognizeButton').addEventListener('click',()=>recognize().catch(report));
     function selectImage(file){
       if(imageURL)URL.revokeObjectURL(imageURL);

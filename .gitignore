@@ -5,12 +5,17 @@ venv/
 node_modules/
 .env
 .env.*
+.dev.vars
+.dev.vars.*
+.wrangler/
+*.secrets.json
 !*.env.example
 deploy/cloud.env
 private.env
 private.env.backup.*
 cloudflared.token
 cloud-endpoint.txt
+wrangler.local.jsonc
 *.log
 *.zip
 _release/

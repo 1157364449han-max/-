@@ -1,0 +1,17 @@
+{
+  "name": "dongjiexi-api",
+  "main": "worker.mjs",
+  "compatibility_date": "2026-09-30",
+  "workers_dev": true,
+  "observability": {"enabled": false},
+  "vars": {
+    "DONGJIEXI_MODEL_ID": "deepseek-flash",
+    "DONGJIEXI_ALLOWED_MODELS": "deepseek-flash,deepseek-v4-pro",
+    "DONGJIEXI_ALLOWED_ORIGINS": "https://dongjiexi.github.io",
+    "DONGJIEXI_MAX_CONCURRENT": "2",
+    "DONGJIEXI_JOBS_PER_10_MINUTES": "4",
+    "DONGJIEXI_DAILY_JOBS": "50"
+  },
+  "triggers": {"crons": ["17 2 * * *"]},
+  "d1_databases": [{"binding": "DB", "database_name": "dongjiexi-guard", "database_id": "REPLACE_WITH_CREATED_D1_ID"}]
+}

@@ -2,7 +2,7 @@
   'use strict';
   const raw = window.DONGJIEXI_CONFIG || {};
   const config = Object.freeze({
-    version: String(raw.version || '0.41.3'),
+    version: String(raw.version || '0.41.4'),
     deployment: raw.deployment === 'web' ? 'web' : 'desktop',
     apiBase: String(raw.apiBase || '').trim().replace(/\/+$/, ''),
     apiEnabled: raw.apiEnabled !== false,
@@ -100,5 +100,58 @@
     return data;
   }
 
-  window.DongRuntime = Object.freeze({config, apiUrl, request, probeCloud, authenticate, clearSession, hasSession: () => !!readSession()});
+  async function streamJob(body, {signal, onProgress} = {}) {
+    const session=readSession();
+    if(config.requiresAuth&&!session)throw failure('session_expired','请先输入访问口令。',401);
+    const controller=new AbortController(),abort=()=>controller.abort(signal?.reason);
+    if(signal?.aborted)abort();else signal?.addEventListener('abort',abort,{once:true});
+    const timer=setTimeout(()=>controller.abort(),300000);
+    let reader;
+    try{
+      const response=await fetch(apiUrl('/api/stream'),{method:'POST',headers:{'Content-Type':'application/json',...(session?{Authorization:`Bearer ${session.token}`}:{})},body:JSON.stringify(body),signal:controller.signal});
+      if(!response.ok){
+        const data=(response.headers.get('content-type')||'').includes('application/json')?await response.json():null;
+        if(response.status===401)clearSession();
+        throw failure(response.status===401?'session_expired':response.status===429?'rate_limited':'service_unavailable',data?.error||'云端解题服务暂不可用。',response.status);
+      }
+      if(!(response.headers.get('content-type')||'').includes('text/event-stream')||!response.body)throw failure('invalid_response','云端没有返回流式答案。');
+      reader=response.body.getReader();const decoder=new TextDecoder('utf-8',{fatal:true});
+      let pending='',content='',complete=false,wireBytes=0;
+      const event=value=>{
+        const data=value.split(/\r?\n/).filter(line=>line.startsWith('data:')).map(line=>line.slice(5).trimStart()).join('\n');
+        if(!data||data==='[DONE]')return;
+        let item;try{item=JSON.parse(data);}catch{throw failure('invalid_response','云端答案片段格式无效。');}
+        if(item.error)throw failure('service_unavailable','云端模型中断了本次解题。');
+        for(const choice of item.choices||[]){
+          if(choice.finish_reason&&choice.finish_reason!=='stop')throw failure('incomplete_response','答案未完整生成，请分问解答或重试。');
+          complete=complete||choice.finish_reason==='stop';
+          const token=choice.delta?.content||'';
+          if(typeof token!=='string')throw failure('invalid_response','云端答案格式无效。');
+          content+=token;if(content.length>100000)throw failure('invalid_response','云端答案过长，请分问解答。');
+          if(token)onProgress?.(content.length);
+        }
+      };
+      while(true){
+        const {value,done}=await reader.read();if(done)break;
+        wireBytes+=value.byteLength;if(wireBytes>1500000)throw failure('invalid_response','云端响应过长，请分问解答。');
+        pending+=decoder.decode(value,{stream:true});let match;
+        while((match=/\r?\n\r?\n/.exec(pending))){event(pending.slice(0,match.index));pending=pending.slice(match.index+match[0].length);}
+        if(pending.length>100000)throw failure('invalid_response','云端响应片段过长。');
+      }
+      pending+=decoder.decode();if(pending.trim())event(pending);
+      if(!complete||!content.trim())throw failure('incomplete_response','云端响应中断；没有把不完整内容作为答案。');
+      if(body.kind==='chat')return {text:content};
+      let raw;try{raw=JSON.parse(content);}catch{throw failure('invalid_response','云端答案 JSON 不完整，请重试。');}
+      const {assemble}=await import('./cloud-contract.mjs');return assemble(raw,body.text,body.model);
+    }catch(error){
+      if(signal?.aborted)throw Object.assign(new Error('任务已停止。'),{name:'AbortError'});
+      if(controller.signal.aborted)throw failure('timeout','本题解答超时，请分问解答或选择本机解题。');
+      if(error.code)throw error;
+      throw failure('network','云端连接中断，请重试或选择本机解题。');
+    }finally{
+      clearTimeout(timer);signal?.removeEventListener('abort',abort);
+      if(reader){await reader.cancel().catch(()=>{});reader.releaseLock();}
+    }
+  }
+  window.DongRuntime = Object.freeze({config, apiUrl, request, streamJob, probeCloud, authenticate, clearSession, hasSession: () => !!readSession()});
 })();

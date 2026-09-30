@@ -23,8 +23,19 @@
   function install(scene,text,q){
     if(!['ellipse','circle'].includes(scene.model.type)||!/切线|相切|切于/.test(text))return null;
     const found=text.match(/(?:过|由|从)(?:定?点)?\s*([A-Za-z](?:[12])?)\s*(?:[（(][^）)]+[）)])?[^。；\n]{0,60}?(?:作|引|引出|作出|做)?[^。；\n]{0,12}(?:切线|相切|切于)/);
-    if(!found)return null;
-    const name=found[1].toUpperCase(),position=scene.model.points?.[name];
+    let name=found?.[1].toUpperCase();
+    if(!name){
+      const unnamed=text.match(/(?:过|由|从)(?:定?点)?\s*[（(]([^,，]+)[,，]([^）)]+)[）)]/);
+      if(!unnamed)return null;
+      try{
+        const coordinates=unnamed.slice(1).map(value=>window.DongEquationBuilder.scalar(value));
+        if(!coordinates.every(Number.isFinite))return null;
+        scene.model.points||={};
+        name=Object.keys(scene.model.points).find(key=>scene.model.points[key].every((value,i)=>Math.abs(value-coordinates[i])<1e-9));
+        if(!name){name=['P','U','V','P0'].find(key=>!scene.model.points[key]&&!scene.model.objects.some(o=>o.label===key));if(!name)return null;scene.model.points[name]=coordinates;}
+      }catch{return null;}
+    }
+    const position=scene.model.points?.[name];
     if(!position)return null;
     const source={x:position[0],y:position[1]},result=contactsFromQuadratic(q,source);if(!result)return null;
     const names=text.match(/(?:切点(?:分别)?(?:为|是)?|分别切于|切于|切点为)\s*([A-Za-z])\s*[、，,和与]\s*([A-Za-z])/);
@@ -50,7 +61,7 @@
   function solvePart(scene,part,c){
     if(!c)return null;
     const body=part.body||part.question;
-    const wantsTangents=/切线|切点/.test(body),wantsArea=/面积/.test(body),wantsLength=/切线长|切线段.*长/.test(body);
+    const wantsTangents=/切线|切点|相切/.test(body),wantsArea=/面积/.test(body),wantsLength=/切线长|切线段.*长/.test(body);
     if(!wantsTangents&&!wantsArea&&!wantsLength)return null;
     const steps=[
       `把曲线化为单位圆：令 $X=\\frac{x-${number(c.h)}}{${number(c.rx)}},\\ Y=\\frac{y-${number(c.k)}}{${number(c.ry)}}$，则 $X^2+Y^2=1$。下方小数结果为近似值。`,
@@ -58,6 +69,21 @@
       '设切点为 $(\\xi,\\eta)$。切线为 $\\xi X+\\eta Y=1$，过源点给出 $u\\xi+v\\eta=1$，另有 $\\xi^2+\\eta^2=1$。',
       '联立得到 $\\xi_{\\pm}=\\frac{u\\mp v\\sqrt{d-1}}d,\\quad\\eta_{\\pm}=\\frac{v\\pm u\\sqrt{d-1}}d$。因此 $d>1$ 有两条切线，$d=1$ 有一条，$d<1$ 无实切线。'
     ];
+    if(scene.model.type==='circle'&&c.points.length===2&&/夹角/.test(body)&&/sin|cos|tan|正弦|余弦|正切/i.test(body)&&!/证明|最大|最小|最值|范围|轨迹|面积|周长/.test(body)){
+      const tex=value=>window.DongNumber?.tex(value)||number(value),r2=c.rx*c.rx,d2=(c.source.x-c.h)**2+(c.source.y-c.k)**2;
+      const sine=2*Math.sqrt(r2*(d2-r2))/d2,cosine=Math.abs(d2-2*r2)/d2;
+      const answer=[];
+      if(/sin|正弦/i.test(body))answer.push(`$\\sin\\alpha=${tex(sine)}$`);
+      if(/cos|余弦/i.test(body))answer.push(`$\\cos\\alpha=${tex(cosine)}$`);
+      if(/tan|正切/i.test(body))answer.push(cosine<1e-12?'$\\alpha=90^\\circ$，正切值未定义':`$\\tan\\alpha=${tex(sine/cosine)}$`);
+      return{status:'answered',answer:answer.join('；')+'。',steps:[
+        `圆心 $O(${tex(c.h)},${tex(c.k)})$，半径平方 $r^2=${tex(r2)}$，外点 $${c.name}(${tex(c.source.x)},${tex(c.source.y)})$，$|O${c.name}|^2=${tex(d2)}>r^2$，因此有两条实切线。`,
+        '切点处半径垂直于切线，两条切线关于外点与圆心的连线对称。令一侧夹角为 $\\theta$，则 $\\sin\\theta=r/d$，$\\cos\\theta=\\sqrt{d^2-r^2}/d$。',
+        '两射线夹角为 $2\\theta$；若大于直角，取补角得到两直线夹角。二者正弦相同，余弦取绝对值。',
+        `$\\sin\\alpha=\\frac{2r\\sqrt{d^2-r^2}}{d^2}=${tex(sine)}$，$\\cos\\alpha=\\frac{|d^2-2r^2|}{d^2}=${tex(cosine)}$。正切用二者之比，分母为零时未定义。`,
+        '两条切线及切点已加入依赖画板，切点分别代入圆方程及过外点的切线条件进行数值核验。'
+      ],verification:{status:'locally-verified',verified:true,conflicts:[]}};
+    }
     if(/证明|定值|定点|最值|范围|轨迹|夹角|垂直|平行/.test(body))return {status:'partial',answer:'已建立外点切线模型，但本问的证明、范围或其它结论尚未完成。',steps};
     if(c.d<1-1e-10)return {status:'answered',answer:`点 ${c.name} 在曲线内部，d<1，不存在过该点的实切线${wantsArea?'，题述切线三角形不存在':''}。`,steps};
     const descriptions=c.points.map((p,i)=>{

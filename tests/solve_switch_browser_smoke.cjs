@@ -19,7 +19,8 @@ module.exports=async({page,context,assert})=>{
   assert.equal(await page.locator('#modelSelectorRow').evaluate(element=>!element.hidden),true,'Cloud model selector remains available');
   await page.locator('[data-quick-conic="ellipse"]').click();
   const before=await page.locator('#sceneJson').inputValue();
-  await page.locator('#question').fill('圆x²+y²=81，求半径。');
+  const examBank=await page.evaluate(async()=>await (await fetch('question-bank.json')).json());
+  await page.locator('#question').fill(examBank.items.find(item=>item.id==='2023-i-22').question);
   await page.locator('#solveButton').click();
   for(let i=0;!started&&i<50;i++)await new Promise(resolve=>setTimeout(resolve,20));
   assert(started,'Slow solve request must start');

@@ -20,6 +20,12 @@ git -C "$repo" remote set-url origin git@github.com:dongjiexi/-.git
 git -C "$repo" config user.name 'Dongjiexi phone endpoint sync'
 git -C "$repo" config user.email 'phone-endpoint@users.noreply.github.com'
 git -C "$repo" pull --ff-only origin main
+if [ -s "$repo/deploy/active-cloud-api.txt" ]; then
+  # The independently hosted API takes priority. Do not overwrite it or create
+  # needless web releases when this fallback tunnel receives a new address.
+  echo '已启用独立云端；保留当前服务，不更新网页正式接口。'
+  exit 0
+fi
 current="$(tr -d '\r\n' < "$repo/deploy/active-phone-api.txt")"
 if [ "$current" = "$endpoint" ]; then
   # The phone can also receive an audited release bundle from the maintainer

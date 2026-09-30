@@ -18,6 +18,7 @@ import zipfile
 ROOT = Path(__file__).resolve().parents[1]
 STATIC_SUFFIXES = {'.html', '.js', '.mjs', '.css', '.json', '.webmanifest', '.svg', '.png', '.jpg', '.jpeg', '.ico', '.woff', '.woff2', '.ttf', '.eot', '.txt', '.md', '.map'}
 APP_FILES = {
+    'deploy/cloudflare/worker.mjs', 'deploy/cloudflare/schema.sql', 'deploy/cloudflare/wrangler.jsonc', 'deploy/cloudflare/README.md',
     'cloud_inference.py', 'render.yaml',
     'server.py', 'learning_engine.py', 'verification_engine.py', 'requirements.txt', 'version.json',
     'Dockerfile', 'compose.yaml', '.dockerignore', '.gitignore', 'README.md', '使用说明.md', '更新日志.md',

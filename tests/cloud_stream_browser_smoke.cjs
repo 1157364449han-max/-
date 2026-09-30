@@ -1,0 +1,30 @@
+module.exports=async({page,context,assert})=>{
+  await context.route('**/runtime-config.js',r=>r.fulfill({contentType:'application/javascript',body:'window.DONGJIEXI_CONFIG={deployment:"web",apiEnabled:true,requiresAuth:false};'}));
+  await context.route('**/api/health',r=>r.fulfill({json:{app:'董解析',capabilities:{transport:'sse'},engine:{available:true,installed:true,remote:true,vision:false,models:['test-cloud']},default_model:'test-cloud'}}));
+  let jobs=0,streams=0,fail=false;
+  await context.route('**/api/jobs',r=>{jobs++;return r.fulfill({status:500,json:{error:'Stream mode must not submit polling jobs'}});});
+  await context.route('**/api/stream',r=>{
+    streams++;const raw={title:'边缘流式解题测试',parts:[{index:0,answer:'$e=\\frac{\\sqrt{3}}2$',steps:['由 $c^2=4-1=3$ 求离心率。'],status:'answered'}],scene:{type:'ellipse',a:2,b:1,h:0,k:0,dynamicLine:false,points:{},lines:[]}};
+    const body='data: '+JSON.stringify({choices:[{delta:{content:JSON.stringify(raw)}}]})+'\r\n\r\n'+(fail?'':'data: '+JSON.stringify({choices:[{delta:{},finish_reason:'stop'}]})+'\n\ndata: [DONE]\n\n');
+    return r.fulfill({contentType:'text/event-stream',body});
+  });
+  await page.evaluate(()=>localStorage.setItem('dongjiexi:solve-mode:v1','cloud'));await page.reload({waitUntil:'domcontentloaded'});
+  await page.waitForFunction(()=>document.querySelector('#engineStatus').classList.contains('ready'));
+  await page.locator('#question').fill('已知椭圆 $x^2/4+y^2=1$，求离心率。');await page.locator('#solveButton').click();
+  await page.waitForFunction(()=>document.querySelector('#solution').textContent.includes('边缘流式解题测试'));
+  assert.equal(jobs,0);assert.equal(streams,1);assert((await page.locator('#solution .katex').count())>0);
+  fail=true;await page.waitForFunction(()=>!document.querySelector('#solveButton').disabled);await page.locator('#solveButton').click();
+  await page.waitForFunction(()=>document.querySelector('#solveProgress').textContent.includes('不完整'));
+  assert.equal(jobs,0);assert.equal(streams,2,'Interrupted stream never falls back to a different solver');
+  assert.match(await page.locator('#solution').textContent(),/边缘流式解题测试/,'Previous complete solution remains after interrupted stream');
+  fail=false;
+  await page.waitForFunction(()=>!document.querySelector('#solveButton').disabled);
+  const bank=await page.evaluate(async()=>await (await fetch('question-bank.json')).json());
+  await page.locator('#question').fill(bank.items.find(item=>item.id==='2023-i-6').question);await page.locator('#solveButton').click();
+  await page.waitForFunction(()=>JSON.parse(document.querySelector('#sceneJson').value).type==='circle');
+  await page.waitForFunction(()=>!document.querySelector('#solveButton').disabled);
+  const corrected=JSON.parse(await page.locator('#sceneJson').inputValue());
+  assert.equal(corrected.type,'circle','题干的圆不能被错误的 AI 椭圆数据覆盖');
+  assert.equal(corrected.lines.filter(line=>line.role==='external_tangent').length,2,'未命名坐标外点也生成两条切线');
+  assert.match(await page.locator('#solution').textContent(),/sin/);
+};

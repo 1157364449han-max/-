@@ -31,7 +31,7 @@ class DeploymentTests(unittest.TestCase):
         environment.update(
             DONGJIEXI_CLOUD="1",
             DONGJIEXI_OLLAMA_URL="http://127.0.0.1:1",
-            DONGJIEXI_ACCESS_KEY="董老师666",
+            DONGJIEXI_ACCESS_KEY="课堂测试",
             DONGJIEXI_ALLOWED_MODELS="deepseek-r1-llama-8b",
             DONGJIEXI_ALLOWED_ORIGINS="https://app.example.test",
             DONGJIEXI_RULES_PER_MINUTE="1",
@@ -90,7 +90,7 @@ class DeploymentTests(unittest.TestCase):
             self.assertEqual(status, 401)
             status, _, _ = request("POST", "/api/session", {"access_key": "wrong"})
             self.assertEqual(status, 401)
-            status, _, session = request("POST", "/api/session", {"access_key": "董老师666"})
+            status, _, session = request("POST", "/api/session", {"access_key": "课堂测试"})
             self.assertEqual(status, 200)
             authorization = {"Authorization": "Bearer " + session["token"]}
 
