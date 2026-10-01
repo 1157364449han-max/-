@@ -87,7 +87,17 @@ module.exports=async({page,context,assert,screenshot})=>{
   assert.equal(await page.evaluate(()=>localStorage.getItem('dongjiexi:local-workflow:v1')),'native');
   // Once the website is cached, prompt generation and reply import need no network.
   await page.waitForFunction(()=>navigator.serviceWorker?.controller,null,{timeout:15000});
-  await page.evaluate(()=>localStorage.setItem('dongjiexi:local-workflow:v1','clipboard'));
+  await page.evaluate(async()=>{
+    localStorage.setItem('dongjiexi:local-workflow:v1','clipboard');localStorage.setItem('dongjiexi:solve-mode:v1','local');
+    // Retained-engine fixture only: a waiting public Worker can refresh the
+    // same-version shell during this test, so explicitly enable the archived
+    // clipboard page just before its offline run. Public PWA stays cloud-only.
+    for(const key of await caches.keys()){const cache=await caches.open(key);for(const request of await cache.keys()){
+      if(!['/','index.html'].some(end=>new URL(request.url).pathname.endsWith(end)))continue;
+      const response=await cache.match(request);if(!(response.headers.get('content-type')||'').includes('text/html'))continue;
+      await cache.put(request,new Response((await response.text()).replace('<body data-cloud-only="true">','<body data-cloud-only="false">'),{status:response.status,headers:response.headers}));
+    }}
+  });
   await context.setOffline(true);await page.reload({waitUntil:'domcontentloaded'});apiCalls=0;
   await page.locator('#question').fill(item.question);await page.locator('#solveButton').click();await page.locator('#externalAIDialog[open]').waitFor();
   const offlineRequest=await page.locator('#externalRequestText').inputValue();

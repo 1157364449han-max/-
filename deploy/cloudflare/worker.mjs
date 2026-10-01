@@ -1,6 +1,6 @@
 import {SOLVE_SYSTEM, splitParts} from '../../dist/cloud-contract.mjs';
 const encoder=new TextEncoder(), decoder=new TextDecoder();
-const VERSION='0.43.4';
+const VERSION='0.43.5';
 class PublicError extends Error {constructor(status,message,retry=0){super(message);this.status=status;this.retry=retry;}}
 const bytes=value=>encoder.encode(value);
 const b64=data=>btoa(String.fromCharCode(...data)).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
@@ -24,7 +24,8 @@ async function limit(env,key,maximum,seconds){
   const now=Math.floor(Date.now()/1000),bucket=Math.floor(now/seconds),id=key+':'+bucket;
   // Atomic conditional UPSERT: renewing a session never resets the per-IP/global counters.
   const row=await env.DB.prepare('INSERT INTO counters (id, count, expires) VALUES (?1, 1, ?2) ON CONFLICT(id) DO UPDATE SET count=count+1 WHERE count < ?3 RETURNING count').bind(id,(bucket+1)*seconds+86400,maximum).first();
-  if(!row)throw new PublicError(429,'本时段请求额度已满，请稍后重试或选择本机解题。',(bucket+1)*seconds-now);
+  if(!row)throw new PublicError(429,'本时段请求额度已满，请稍后重试。画板与题稿仍可使用。',(bucket+1)*seconds-now);
+  return id;
 }
 async function body(request){
   if(!(request.headers.get('Content-Type')||'').startsWith('application/json'))throw new PublicError(400,'请求必须为 JSON。');
@@ -88,23 +89,27 @@ export function createHandler(upstreamFetch=(...args)=>fetch(...args)){return as
     }
     const auth=await session(request,env);if(!auth)throw new PublicError(401,'在线解题授权已失效，请重新输入访问口令。');
     const input=await body(request),payload=modelPayload(input,env);
-    await limit(env,'solve:'+auth.sub,clamp(env.DONGJIEXI_JOBS_PER_10_MINUTES,4,20),600);
-    await limit(env,'global-day',clamp(env.DONGJIEXI_DAILY_JOBS,50,200),86400);
     const lease=crypto.randomUUID(),now=Math.floor(Date.now()/1000);
     const slot=await env.DB.prepare('INSERT INTO leases (id, expires) SELECT ?1, ?2 WHERE (SELECT count(*) FROM leases WHERE expires > ?3) < ?4 RETURNING id').bind(lease,now+310,now,clamp(env.DONGJIEXI_MAX_CONCURRENT,2,4)).first();
-    if(!slot)throw new PublicError(429,'云端正在处理其他题目，请稍后重试或选择本机解题。',10);
+    if(!slot)throw new PublicError(429,'云端正在处理其他题目，请稍后重试。画板与题稿仍可使用。',10);
     const release=()=>env.DB.prepare('DELETE FROM leases WHERE id=?1').bind(lease).run();
     const controller=new AbortController(),deadline=setTimeout(()=>controller.abort(),300000);
+    let dailyReservation=null;
     try{
+      // Busy rejections never consume quota. The IP limit still counts admitted
+      // attempts to prevent retry abuse; daily quota counts accepted SSE calls.
+      await limit(env,'solve:'+auth.sub,clamp(env.DONGJIEXI_JOBS_PER_10_MINUTES,4,20),600);
+      dailyReservation=await limit(env,'global-day',clamp(env.DONGJIEXI_DAILY_JOBS,50,200),86400);
       const response=await upstreamFetch('https://api.deepseek.com/chat/completions',{method:'POST',headers:{Authorization:'Bearer '+env.DONGJIEXI_MODEL_API_KEY,'Content-Type':'application/json'},body:JSON.stringify(payload),redirect:'manual',signal:controller.signal});
-      if(!response.ok||!response.body){await response.body?.cancel();throw new PublicError(response.status===429?429:502,'云端模型请求失败，请管理员检查额度与配置；也可选择本机解题。',response.status===429?10:0);}
+      if(!response.ok||!response.body){await response.body?.cancel();throw new PublicError(response.status===429?429:502,'云端模型请求失败，请稍后重试或联系管理员检查额度与配置。',response.status===429?10:0);}
       if(!(response.headers.get('Content-Type')||'').includes('text/event-stream')){await response.body.cancel();throw new PublicError(502,'云端模型未返回流式答案。');}
+      dailyReservation=null; // Upstream accepted: interrupted streams may already incur model usage.
       const stream=new TransformStream();
       // Native streaming: do not parse/serialize every token on the 10ms free CPU budget.
       const pump=response.body.pipeTo(stream.writable,{signal:controller.signal}).catch(()=>{}).finally(()=>{clearTimeout(deadline);return release();});
       ctx.waitUntil(pump);
       return new Response(stream.readable,{status:200,headers:{...headers,'Content-Type':'text/event-stream; charset=utf-8','X-Accel-Buffering':'no'}});
-    }catch(error){clearTimeout(deadline);await release();throw error;}
-  }catch(error){if(error instanceof PublicError)return json({error:error.message},error.status,error.retry?{'Retry-After':String(error.retry)}:{});return json({error:'云端服务暂不可用，请稍后重试或选择本机解题。'},503);}
+    }catch(error){clearTimeout(deadline);try{if(dailyReservation)await env.DB.prepare('UPDATE counters SET count=count-1 WHERE id=?1 AND count>0').bind(dailyReservation).run();}finally{await release();}throw error;}
+  }catch(error){if(error instanceof PublicError)return json({error:error.message},error.status,error.retry?{'Retry-After':String(error.retry)}:{});return json({error:'云端服务暂不可用，请稍后重试。画板与题稿仍可使用。'},503);}
 };}
 export default {fetch:createHandler(),async scheduled(event,env,ctx){ctx.waitUntil(env.DB.batch([env.DB.prepare('DELETE FROM counters WHERE expires < ?1').bind(Math.floor(Date.now()/1000)),env.DB.prepare('DELETE FROM leases WHERE expires < ?1').bind(Math.floor(Date.now()/1000))]));}};

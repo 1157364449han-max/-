@@ -888,7 +888,7 @@ def standard_conic(text: str) -> dict | None:
                         "orientation": "horizontal" if left[0] == "x" else "vertical",
                         "lineThrough": "focus2" if "焦点" in s else "center", "theta": 42,
                         "exact": {"a2": nice(x2), "b2": nice(y2)}}
-            if abs(x2-y2) < 1e-10:
+            if x2 == y2:
                 return {"type": "circle", "r": math.sqrt(float(x2)), "h": h, "k": k,
                         "lineThrough": "center", "theta": 42, "exact": {"r2": nice(x2)}}
             major2, minor2 = max(x2, y2), min(x2, y2)
@@ -911,7 +911,7 @@ def standard_conic(text: str) -> dict | None:
         x2_exact, y2_exact = exact(m.group("x")), exact(m.group("y")) if m.group("y") else sp.Rational(1)
         x2, y2 = float(x2_exact), float(y2_exact)
         if x2 > 0 and y2 > 0:
-            if abs(x2-y2) < 1e-10:
+            if x2_exact == y2_exact:
                 return {"type": "circle", "r": math.sqrt(x2), "h": 0, "k": 0, "lineThrough": "center", "theta": 42,
                         "exact": {"r2": nice(x2_exact)}}
             major2, minor2 = max(x2, y2), min(x2, y2)
@@ -922,15 +922,16 @@ def standard_conic(text: str) -> dict | None:
     m = re.search(r"x\^2\+y\^2=([0-9.]+)(\^2)?", s)
     if m:
         value = float(m.group(1)); radius = value if m.group(2) else math.sqrt(value)
-        return {"type": "circle", "r": radius, "h": 0, "k": 0, "lineThrough": "center", "theta": 42}
+        if radius > 0:
+            return {"type": "circle", "r": radius, "h": 0, "k": 0, "lineThrough": "center", "theta": 42}
     m = re.search(rf"y\^2=({number})\*?x", s)
-    if m:
+    if m and exact(m.group(1)) != 0:
         q_exact=exact(m.group(1));q=float(q_exact)
         return {"type": "parabola", "p": abs(q) / 4, "direction": -1 if q < 0 else 1,
                 "orientation": "horizontal", "h": 0, "k": 0, "lineThrough": "focus2", "theta": 42,
                 "exact": {"p": nice(abs(q_exact)/4)}, "equation": f"y²={nice(q_exact)}x"}
     m = re.search(rf"x\^2=({number})\*?y", s)
-    if m:
+    if m and exact(m.group(1)) != 0:
         q_exact=exact(m.group(1));q=float(q_exact)
         return {"type": "parabola", "p": abs(q) / 4, "direction": -1 if q < 0 else 1,
                 "orientation": "vertical", "h": 0, "k": 0, "lineThrough": "focus2", "theta": 42,
@@ -1025,6 +1026,51 @@ def scene_exact(scene: dict, key: str) -> sp.Expr:
     return sp.nsimplify(scene.get(key, 0))
 
 
+def generic_goal_covered(body: str, kind: str, labels: tuple[str, ...] | list[str] = (),
+                         conic_type: str | None = None) -> bool:
+    """A small result is complete only if it covers the *entire* stated goal.
+
+    These are bounded vocabularies for existing exact engines, not an attempt
+    to infer new goals from keyword occurrences anywhere in the conditions.
+    Unknown quantities, powers and unbound labels must remain pending.
+    """
+    body = re.sub(r"[（(]选取原题[^。；;\n]*问。?[）)]。?", "", body)
+    marker = re.search(r"求|写出|确定|计算|给出|证明|证实|验证", body)
+    if not marker:
+        return False
+    goal = normalise(body[marker.start():])
+    goal = re.sub(r"\\(?:left|right)|\\[()[\]]|[\s`$]", "", goal)
+    common = {"求", "写出", "确定", "计算", "给出", "的", "和", "与", "以及", "并", "及", "分别",
+              "两个", "两", "所有", "各", "该", "此", "点", "处", "在", "到", "曲线", "椭圆", "双曲线", "抛物线", "圆"}
+    vocabularies = {
+        "feature": {"焦点", "顶点", "准线", "渐近线", "离心率", "圆心", "半径", "轴长", "长轴长", "短轴长", "实轴长", "虚轴长", "长轴", "短轴", "实轴", "虚轴", "坐标", "方程"},
+        "metric": {"交点", "弦长", "弦", "长度", "距离", "中点", "坐标", "直线"},
+        "normal": {"法线", "标准", "方程", "直线"},
+        "tangent": {"切线", "标准", "方程", "直线", "证明", "证实", "验证", "互相", "相互", "垂直"},
+        "foot": {"垂足", "坐标", "直线"},
+        "equation": {"标准", "方程"},
+    }
+    words = vocabularies.get(kind)
+    if words is None:
+        return False
+    if kind == "feature":
+        unsupported = ({"焦点", "顶点", "准线", "渐近线", "离心率", "轴长", "长轴", "短轴", "实轴", "虚轴"}
+                       if conic_type == "circle" else {"圆心", "半径"})
+        if conic_type == "parabola":
+            unsupported |= {"渐近线", "轴长", "长轴", "短轴", "实轴", "虚轴"}
+        if conic_type == "ellipse":
+            unsupported |= {"渐近线", "实轴", "虚轴"}
+        if conic_type == "hyperbola":
+            unsupported |= {"长轴", "短轴"}
+        if any(word in goal for word in unsupported):
+            return False
+    for word in sorted(common | words, key=len, reverse=True):
+        goal = goal.replace(word, "")
+    for label in sorted({normalise(str(label)) for label in labels if label}, key=len, reverse=True):
+        goal = goal.replace(label, "")
+    return not re.sub(r"[,、。；;:：!?！？()（）\[\]{}]", "", goal)
+
+
 def conic_features(scene: dict) -> tuple[str, list[str]]:
     """给出与画板同源的焦点、顶点、离心率、准线或渐近线。"""
     typ, vertical = scene["type"], scene.get("orientation") == "vertical"
@@ -1044,10 +1090,12 @@ def conic_features(scene: dict) -> tuple[str, list[str]]:
                       f"由 c²={'a²-b²' if typ == 'ellipse' else 'a²+b²'}，得 c²={exact_text(c2)}，c={exact_text(c)}。",
                       f"离心率 e=c/a={exact_text(e)}。"])
         answer = f"顶点：{point_pair(vertices)}；焦点：{point_pair(foci)}；离心率 e={exact_text(e)}。"
-        if typ == "ellipse" and c != 0:
+        if c != 0:
             directrix = sp.simplify(a2/c)
             answer += f" 准线：{'y' if vertical else 'x'}={exact_text((k if vertical else h)-directrix)} 或 {exact_text((k if vertical else h)+directrix)}。"
             steps.append("准线到中心的距离为 a²/c。")
+        answer += (f" {'长轴' if typ == 'ellipse' else '实轴'}长为 {exact_text(2*a)}；"
+                   f"{'短轴' if typ == 'ellipse' else '虚轴'}长为 {exact_text(2*b)}。")
         if typ == "hyperbola":
             slope = sp.simplify(a/b if vertical else b/a)
             answer += f" 渐近线：y-{exact_text(k)}=±{exact_text(slope)}(x-{exact_text(h)})。"
@@ -1062,7 +1110,7 @@ def conic_features(scene: dict) -> tuple[str, list[str]]:
         focus=(h,k+direction*p); directrix=f"y={exact_text(k-direction*p)}"
     else:
         focus=(h+direction*p,k); directrix=f"x={exact_text(h-direction*p)}"
-    return (f"顶点 V({exact_text(h)},{exact_text(k)})，焦点 F({exact_text(focus[0])},{exact_text(focus[1])})，准线 {directrix}。",
+    return (f"顶点 V({exact_text(h)},{exact_text(k)})，焦点 F({exact_text(focus[0])},{exact_text(focus[1])})，准线 {directrix}，离心率 e=1。",
             [f"标准式中的焦参数 p={exact_text(p)}。", "焦点在开口方向距顶点 p 处，准线在反方向距顶点 p 处。"])
 
 
@@ -1714,13 +1762,35 @@ def install_ellipse_focal_chord_scene(scene: dict, text: str) -> dict | None:
     c2 = sp.simplify(a2 - b2)
     if c2 <= 0:
         return None
-    ratio_match = re.search(r"面积[^。；;]{0,35}?(\d+(?:\.\d+)?)倍", compact)
-    area_ratio = sp.nsimplify(ratio_match.group(1)) if ratio_match else None
+    ratio_match = re.search(rf"(?:△|\\triangle)?pqr的?面积(?:是|为|=)(?:△|\\triangle)?pfo的?面积的?{NUM}倍", compact)
+    try:
+        area_ratio = exact(ratio_match.group(1)) if ratio_match else None
+    except (ValueError, ZeroDivisionError):
+        return None
     if area_ratio is None or area_ratio <= 2:
         return None
     h, k = sp.nsimplify(scene.get("h", 0)), sp.nsimplify(scene.get("k", 0))
+    if h != 0 or k != 0 or not re.search(r"o(?:为|是)坐标原点", compact):
+        return None  # R=-P is only licensed by the stated origin-centred premise.
     c = sp.sqrt(c2)
     focus = (h - c, k)
+    for label, expected in (("F", focus), ("O", (h, k))):
+        provided = (scene.get("points") or {}).get(label)
+        if provided is not None and (not isinstance(provided, (list, tuple)) or len(provided) != 2
+                                     or any(abs(float(sp.N(sp.nsimplify(value)-target))) > 1e-10
+                                            for value, target in zip(provided, expected))):
+            return None
+        binding = (scene.get("pointBindings") or {}).get(label)
+        if binding is not None and binding != ("focus1" if label == "F" else "center"):
+            return None
+    if any(label in (scene.get("points") or {}) for label in ("P", "Q", "R")):
+        return None
+    owned_ids = {"ellipse-focal-r", "ellipse-focal-po", "ellipse-focal-qr"}
+    for item in scene.get("objects", []):
+        if item.get("id") in owned_ids and item.get("source") not in {"derived", "question"}:
+            return None
+        if item.get("label") in {"P", "Q", "R", "F", "O"} and item.get("id") not in owned_ids:
+            return None
     direction_ratio = sp.simplify(sp.Rational(2) / (area_ratio - 2))  # PF/QF
     cosine = sp.simplify(sp.sqrt(a2) * (direction_ratio - 1) / (c * (direction_ratio + 1)))
     if cosine.is_real is False or not (-1 < cosine < 1) or cosine <= 0:
@@ -1735,8 +1805,8 @@ def install_ellipse_focal_chord_scene(scene: dict, text: str) -> dict | None:
     scene["dynamicLineLabel"] = "l"
     scene["dynamicIntersectionLabels"] = ["Q", "P"]  # 沿正方向的交点是 P，负方向为第三象限 Q
     scene["theta"] = float(sp.N(sp.atan(slope) * 180 / sp.pi))
-    scene.setdefault("points", {})["F"] = [float(focus[0]), float(focus[1])]
-    scene.setdefault("pointBindings", {})["F"] = "focus1"
+    scene.setdefault("points", {}).setdefault("F", [float(focus[0]), float(focus[1])])
+    scene.setdefault("pointBindings", {}).setdefault("F", "focus1")
     objects = scene.setdefault("objects", [])
     lines = scene.setdefault("lines", [])
     polygons = scene.setdefault("polygons", [])
@@ -1786,17 +1856,23 @@ def ellipse_focal_chord_part_answer(scene: dict, part: dict, context: dict | Non
     if not context:
         return None
     body = part.get("body") or ""
-    if part.get("index") == 1 and re.search(r"求[^。；;]{0,16}(?:标准)?方程", body):
+    a2, b2, c2 = (context[key] for key in ("a2", "b2", "c2"))
+    a, b, c = sp.sqrt(a2), sp.sqrt(b2), sp.sqrt(c2)
+    e = sp.simplify(c/a)
+    curve = f"\\dfrac{{x^2}}{{{sp.latex(a2)}}}+\\dfrac{{y^2}}{{{sp.latex(b2)}}}=1"
+    if (part.get("index") == 1 and re.search(r"求[^。；;]{0,16}(?:标准)?方程", body)
+            and generic_goal_covered(body, "equation", ["C"])):
         return (
             f"椭圆 $C$ 的方程为 $\\dfrac{{x^2}}{{{exact_text(context['a2'])}}}+\\dfrac{{y^2}}{{{exact_text(context['b2'])}}}=1$。",
             [
-                f"左焦点为 $F(-1,0)$，故 $c=1$。",
-                "由 $e=c/a=1/2$，得 $a=2$，从而 $a^2=4$。",
-                "由 $b^2=a^2-c^2$，得 $b^2=3$。",
-                "因此 $C:\\dfrac{x^2}{4}+\\dfrac{y^2}{3}=1$；将 $F(-1,0)$ 与 $e=1/2$ 回代均成立。",
+                f"左焦点为 $F(-{sp.latex(c)},0)$，故 $c={sp.latex(c)}$。",
+                f"由 $e=c/a={sp.latex(e)}$，得 $a={sp.latex(a)}$，从而 $a^2={sp.latex(a2)}$。",
+                f"由 $b^2=a^2-c^2$，得 $b^2={sp.latex(b2)}$。",
+                f"因此 $C:{curve}$；将焦点与离心率回代均成立。",
             ],
         )
-    if "面积" in body and re.search(r"求[^。；;]{0,20}直线l|求l", normalise(body), re.I):
+    if ("面积" in body and re.search(r"求[^。；;]{0,20}直线l|求l", normalise(body), re.I)
+            and generic_goal_covered(body, "normal", ["l"])):
         slope, focus_x = context["slope"], context["focus"][0]
         shift = -focus_x
         line = f"y={sp.latex(slope)}(x{'+' if shift >= 0 else '-'}{sp.latex(abs(shift))})"
@@ -1806,21 +1882,26 @@ def ellipse_focal_chord_part_answer(scene: dict, part: dict, context: dict | Non
                 "因 $O$ 是椭圆的对称中心，直线 $PO$ 与椭圆的另一交点满足 $R=-P$，所以 $O$ 是 $PR$ 的中点。",
                 "三角形 $QOP$ 与 $QOR$ 等底等高，故 $S_{PQR}=2S_{PQO}$。",
                 "$△PQO$ 与 $△PFO$ 对同一直线 $l$ 有相同高，故 $S_{PQO}/S_{PFO}=PQ/PF$。",
-                "由 $S_{PQR}=3S_{PFO}$ 得 $2(PF+QF)/PF=3$，即 $PF=2QF$。",
-                "设从左焦点指向 $P$ 的方向角为 $\\theta$。左焦点极径公式给出 $PF=3/(2-\\cos\\theta)$、$QF=3/(2+\\cos\\theta)$。",
-                "代入 $PF=2QF$ 得 $\\cos\\theta=2/3$，又 $l$ 斜率为正，故 $\\tan\\theta=\\sqrt5/2$。",
-                f"因 $l$ 过 $F(-1,0)$，所以 ${line}$。",
+                f"由 $S_{{PQR}}={sp.latex(context['area_ratio'])}S_{{PFO}}$ 得 $2(PF+QF)/PF={sp.latex(context['area_ratio'])}$，即 $PF/QF={sp.latex(context['distance_ratio'])}$。",
+                f"设从左焦点指向 $P$ 的方向角为 $\\theta$。左焦点极径公式给出 $PF=\\dfrac{{{sp.latex(b2)}}}{{{sp.latex(a)}-{sp.latex(c)}\\cos\\theta}}$、$QF=\\dfrac{{{sp.latex(b2)}}}{{{sp.latex(a)}+{sp.latex(c)}\\cos\\theta}}$。",
+                f"代入焦半径比得 $\\cos\\theta={sp.latex(context['cosine'])}$，又 $l$ 斜率为正，故 $\\tan\\theta={sp.latex(slope)}$。",
+                f"因 $l$ 过 $F(-{sp.latex(c)},0)$，所以 ${line}$。",
             ],
         )
-    if re.search(r"tan|\\tan|正切", body, re.I) and re.search(r"最小", body):
+    goal = re.search(r"求.*", normalise(body), re.S)
+    angle_goal = re.sub(r"[\s$`{}]|\\(?:left|right)|\\[()[\]]", "", goal.group(0)) if goal else ""
+    if re.fullmatch(r"求(?:\\?tan(?:\\?angle|∠)pqr|(?:∠|\\angle)pqr的?正切(?:值)?)(?:的)?最小值[。；;]*", angle_goal):
+        product = sp.simplify(b2/a2)
+        coefficient = sp.simplify(a2/c2)
+        equality = sp.simplify(b/a)
         return (
             f"$\\tan\\angle PQR$ 的最小值为 ${sp.latex(context['tangent_min'])}$。",
             [
                 "设直线 $PQ$ 的斜率为 $k>0$，直线 $QR$ 的斜率为 $k'$ 。",
-                "把 $P,Q$ 代入 $x^2/4+y^2/3=1$，再用 $R=-P$ 消去坐标，得 $kk'=-3/4$。",
-                "由夹角公式，$\\tan\\angle PQR=(k-k')/(1+kk')=4(k-k')$。",
-                "令 $u=-k'>0$，则 $ku=3/4$。由基本不等式 $k+u\\ge 2\\sqrt{ku}=\\sqrt3$。",
-                "因此 $\\tan\\angle PQR=4(k+u)\\ge4\\sqrt3$；当 $k=u=\\sqrt3/2$ 时取等，该位置合法。",
+                f"把 $P,Q$ 代入 ${curve}$，再用 $R=-P$ 消去坐标，得 $kk'=-{sp.latex(product)}$。",
+                f"由夹角公式，$\\tan\\angle PQR=(k-k')/(1+kk')={sp.latex(coefficient)}(k-k')$。",
+                f"令 $u=-k'>0$，则 $ku={sp.latex(product)}$。由基本不等式 $k+u\\ge 2\\sqrt{{ku}}={sp.latex(2*equality)}$。",
+                f"因此 $\\tan\\angle PQR={sp.latex(coefficient)}(k+u)\\ge{sp.latex(context['tangent_min'])}$；当 $k=u={sp.latex(equality)}$ 时取等，该位置合法。",
             ],
         )
     return None
@@ -1829,6 +1910,11 @@ def ellipse_focal_chord_part_answer(scene: dict, part: dict, context: dict | Non
 def deterministic_parts(text: str, scene: dict, base_answer: str, base_steps: list[str]) -> list[dict]:
     parts=[]
     problem_parts = split_problem_parts(text)
+    conic_labels = [match.group(1) for match in re.finditer(
+        r"(?:椭圆|双曲线|抛物线|圆)([a-z])(?=[:：的过与为(])", normalise(text))]
+    def pending_result(result: tuple[str, list[str]]) -> tuple[str, list[str], str]:
+        return ("已完成部分精确计算，但本问还有尚未覆盖的目标，不能将整问标为完成。",
+                [*base_steps, "辅助计算（不代表完成本问）：" + result[0], *result[1]], "partial")
     focal_data_context = parabola_focal_data.decorate_scene(scene, text, problem_parts)
     focal_data_pending = (scene.get("type") == "parabola" and "焦点" in text
                           and re.search(r"中点[^。；;]{0,18}横坐标", text)
@@ -1856,8 +1942,9 @@ def deterministic_parts(text: str, scene: dict, base_answer: str, base_steps: li
         focus_chord_answer = parabola_focus_chord_part_answer(scene, part, focus_chord_context)
         ellipse_focal_answer = ellipse_focal_chord_part_answer(scene, part, ellipse_focal_context)
         metric=None
-        if re.search(r"交点|弦长|中点|坐标",body):
-            candidates=[line for line in scene.get("lines",[]) if line.get("part") in {None,part.get("index")}]
+        if re.search(r"交点|弦长|中点|坐标|长度|距离",body):
+            candidates=[line for line in scene.get("lines",[]) if line.get("part") in {None,part.get("index")}
+                        and (not isinstance(line.get("parts"), list) or part.get("index") in line["parts"])]
             metric=next((result for line in candidates if (result:=fixed_line_metrics(scene,line,body,part.get("index")))),None)
         if "切线" in body:
             for target in _gradient_target_names(body, "tangent"):
@@ -1891,6 +1978,8 @@ def deterministic_parts(text: str, scene: dict, base_answer: str, base_steps: li
             answer,steps=focus_chord_answer;status="answered"
         elif tangent:
             pending = tangent_proof_pending(text, body, len(_gradient_target_names(body, "tangent")))
+            if not generic_goal_covered(body, "tangent", [*conic_labels, *_gradient_target_names(body, "tangent")]):
+                pending = pending or "切线以外的附加目标尚未完成。"
             if pending:
                 answer="已构造题目涉及的切线，但" + pending
                 steps=[*base_steps, "切点回代和梯度切线构造已完成，可查看画板。", "单个当前位置的点积不能代替一般性证明；未覆盖的结论仍待推导。"]
@@ -1900,11 +1989,25 @@ def deterministic_parts(text: str, scene: dict, base_answer: str, base_steps: li
         elif "切线" in body:
             answer="内置引擎尚未得到可核验的切点，因此没有把其它方程冒充为切线。";steps=[*base_steps,"请确认切点坐标已给出且确实在曲线上；曲线外一点的两条切线需要另行求切点。"] ;status="partial"
         elif normal:
-            answer,steps=normal;status="answered"
+            targets = _gradient_target_names(body, "normal")
+            if len(targets) <= 1 and generic_goal_covered(body, "normal", [*conic_labels, *targets]):
+                answer,steps=normal;status="answered"
+            else:
+                answer,steps,status=pending_result(normal)
         elif "法线" in body:
             answer="内置引擎尚未得到可核验的曲线上点，因此没有把其它直线冒充为法线。";steps=[*base_steps,"请确认点坐标已给出且确实在曲线上。"] ;status="partial"
         elif foot:
-            answer,steps=foot;status="answered"
+            feet = [item for item in scene.get("objects", []) if item.get("role") == "perpendicular_foot"
+                    and item.get("part") in {None, part.get("index")}]
+            foot_labels = [item.get("label", "H") for item in feet]
+            for item in feet:
+                inputs = (item.get("construction") or {}).get("inputs", {})
+                foot_labels.append(str(inputs.get("point", "P")).removeprefix("feature:"))
+            foot_labels.extend(match.group(1) for match in re.finditer(r"(?:直线)?([a-z])(?:的?垂足|的?坐标|:)", normalise(body)))
+            if len(feet) == 1 and generic_goal_covered(body, "foot", [*conic_labels, *foot_labels]):
+                answer,steps=foot;status="answered"
+            else:
+                answer,steps,status=pending_result(foot)
         elif "垂足" in body:
             answer="内置引擎尚未唯一确定源点、目标直线和垂足。";steps=[*base_steps,"请明确点的坐标、直线方程和垂足名称。"] ;status="partial"
         elif locus:
@@ -1912,16 +2015,27 @@ def deterministic_parts(text: str, scene: dict, base_answer: str, base_steps: li
         elif "轨迹" in body:
             answer="内置引擎尚未得到可严格消元的轨迹关系，因此没有用采样点猜测轨迹方程。";steps=[*base_steps,"当前已支持“圆锥曲线上动点与固定点的中点轨迹”；其它轨迹会继续扩充。"] ;status="partial"
         elif metric:
-            answer,steps=metric;status="answered"
+            labels, middle_label = _fixed_line_labels(body, 2)
+            if generic_goal_covered(body, "metric", [*labels, middle_label]):
+                answer,steps=metric;status="answered"
+            else:
+                answer,steps,status=pending_result(metric)
         # Feature questions are checked before generic "方程" questions so
         # phrases such as "求焦点、离心率和准线方程" are not mistaken for a
         # request to repeat the conic equation.  A feature appearing only in a
         # known condition (for example "离心率为 1/2") is not a goal by itself.
         elif re.search(r"(?:求|写出|确定|计算)[^。；]{0,45}(?:焦点|顶点|准线|渐近线|离心率|圆心|半径|轴长)",body):
-            answer,steps=conic_features(scene);status="answered"
+            features = conic_features(scene)
+            if generic_goal_covered(body, "feature", conic_labels, scene.get("type")):
+                answer,steps=features;status="answered"
+            else:
+                answer,steps,status=pending_result(features)
         elif not re.search(r"定圆|相切|证明|面积|周长|最大|最小|轨迹",body) and (re.search(r"标准方程",body) or re.search(r"(?:求|写出|确定|建立)[^。；]{0,35}(?<!准线)(?<!渐近线)方程",body)):
-            answer,steps=base_answer,list(base_steps);status="answered"
-        elif len(split_problem_parts(text))==1 and "=" in text and not re.search(r"证明|定值|定点|最值|范围|轨迹",body):
+            if generic_goal_covered(body, "equation", conic_labels):
+                answer,steps=base_answer,list(base_steps);status="answered"
+            else:
+                answer,steps,status=pending_result((base_answer,list(base_steps)))
+        elif len(problem_parts)==1 and "=" in text and not re.search(r"求|写出|确定|计算|给出|证明|证实|验证|定值|定点|最值|最大|最小|范围|轨迹|面积|周长",body):
             answer,steps=base_answer,list(base_steps);status="answered"
         else:
             answer="内置确定性引擎已建立精确曲线，但这一问还需要继续完成符号推理。";steps=[*base_steps,"当前不会用未经验证的猜测补齐定值、最值、轨迹或证明结论。"] ;status="partial"

@@ -49,8 +49,8 @@ function extractReply(source) {
   return {raw:null,source};
 }
 
-export function safeExternalScene(raw) {
-  const graph=safeConstructionScene(raw);
+export function safeExternalScene(raw, options) {
+  const graph=safeConstructionScene(raw, options);
   if(graph.scene)graph.scene.provenance={...graph.scene.provenance,externalReply:true};
   return graph;
 }
@@ -68,7 +68,7 @@ export function parseReply(source, request) {
     const expected=new Set(request.parts.map(p=>p.index));
     for(const part of raw.parts||[])if(!expected.has(part.index))throw new Error('回复包含不属于本题的小问编号：'+part.index);
     result=assemble({...raw,scene:null},request.question,'外部 AI · 用户粘贴');
-    const graph=safeExternalScene(raw.scene);result.scene=graph.scene;warnings.push(...graph.warnings);graphValid=graph.valid;
+    const graph=safeExternalScene(raw.scene,{partIndexes:expected});result.scene=graph.valid?graph.scene:null;warnings.push(...graph.warnings);graphValid=graph.valid;
     if(result.parts.some(p=>p.status!=='answered'))warnings.push('部分小问未完整作答，不能视为全题已解决。');
   }else{
     requiresConfirmation=true;warnings.push('这是普通文字回复：保留原文和公式，不假定它已完成全部小问或包含可用作图数据。');

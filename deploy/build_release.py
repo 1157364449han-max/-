@@ -29,6 +29,7 @@ APP_FILES = {
     'deploy/0.44.0-验证记录.md', 'deploy/0.45.0-验证记录.md', 'parabola_locus.py',
     'deploy/0.46.0-验证记录.md', 'hyperbola_iteration.py',
     'deploy/0.47.0-验证记录.md', 'question_parts.py', 'parabola_focal_data.py',
+    'deploy/0.47.1-验证记录.md',
     'deploy/runtime-config.web.example.js', '.github/workflows/deploy-dongjiexi.yml',
     'deploy/phone/README.md', 'deploy/phone/start.sh', 'deploy/phone/configure.sh',
     'deploy/phone/download-model.sh', 'deploy/phone/download-deepseek.sh', 'deploy/phone/serve-only.sh',
@@ -75,6 +76,10 @@ def checked_version(source: Path) -> str:
     worker = (source / 'dist/service-worker.js').read_text(encoding='utf-8')
     if f"const VERSION = '{version}'" not in worker:
         raise ValueError('离线缓存版本不一致。')
+    if tuple(map(int, version.split('.'))) >= (0, 47, 1):
+        page = (source / 'dist/index.html').read_text(encoding='utf-8')
+        if f'<meta name="dongjiexi-version" content="{version}">' not in page:
+            raise ValueError('主页与离线缓存版本不一致。')
     return version
 
 

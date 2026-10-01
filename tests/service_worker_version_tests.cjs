@@ -4,7 +4,7 @@ const version=JSON.parse(fs.readFileSync(path.join(__dirname,'../version.json'),
 async function scenario(url,{mode='cors',offline=false,exact=false}={}){
   const events={},matches=[],opened=[],puts=[];
   const bucket={async match(request,options){matches.push({request:typeof request==='string'?request:request.url,options});if(typeof request==='string')return new Response('current-html');return options?.ignoreSearch||exact?new Response('current-shell'):undefined;},async put(request,response){puts.push(request.url);}};
-  const sandbox={URL,Request,Response,Promise,self:{location:{origin:'https://example.test'},addEventListener:(event,handler)=>events[event]=handler},caches:{async open(name){opened.push(name);return bucket;},match(){throw new Error('Cross-version global cache lookup is forbidden');}},fetch:async()=>{if(offline)throw new Error('offline');return new Response('fresh-network');}};
+  const sandbox={URL,Request,Response,Promise,self:{location:{origin:'https://example.test',href:'https://example.test/-/service-worker.js'},addEventListener:(event,handler)=>events[event]=handler},caches:{async open(name){opened.push(name);return bucket;},match(){throw new Error('Cross-version global cache lookup is forbidden');}},fetch:async()=>{if(offline)throw new Error('offline');return new Response('fresh-network');}};
   vm.runInNewContext(source,sandbox);
   let pending;events.fetch({request:{url,method:'GET',mode},respondWith:value=>pending=value});
   return {response:pending?await pending:null,matches,opened,puts};

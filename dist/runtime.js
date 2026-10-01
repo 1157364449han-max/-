@@ -21,6 +21,10 @@
   }
 
   function clearSession() { try { sessionStorage.removeItem(sessionKey); } catch {} }
+  function clearRejectedSession(sent) {
+    // A delayed rejection of an old token must not erase a freshly renewed one.
+    if (sent && readSession()?.token === sent.token) clearSession();
+  }
 
   function failure(code, message, status = 0) {
     const error = new Error(message); error.code = code; error.status = status; return error;
@@ -51,14 +55,14 @@
     const timer = controller ? setTimeout(() => controller.abort(), 20000) : null;
     try { response = await fetch(url, {...init, ...options, signal: options.signal || controller.signal}); }
     catch (error) {
-      if (controller?.signal.aborted) throw failure('timeout', path === '/api/session' ? '云端连接超时，访问口令尚未完成验证。' : '云端连接超时，请稍后重试或改用本机解题。');
+      if (controller?.signal.aborted) throw failure('timeout', path === '/api/session' ? '云端连接超时，访问口令尚未完成验证。' : '云端连接超时，请稍后重试。画板与题稿仍可使用。');
       if (error.name === 'AbortError') throw error;
       throw failure('network', '无法连接云端服务，请检查网络，或由管理员检查服务地址。这不表示访问口令错误。');
     }
     finally { if (timer) clearTimeout(timer); }
     const type = response.headers.get('content-type') || '';
     const data = type.includes('application/json') ? await response.json() : null;
-    if (response.status === 401) clearSession();
+    if (response.status === 401) clearRejectedSession(session);
     if (!response.ok) {
       const code = response.status === 401 ? (path === '/api/session' ? 'auth_rejected' : 'session_expired') :
         response.status === 429 ? 'rate_limited' : 'service_unavailable';
@@ -72,18 +76,19 @@
   async function probeCloud() {
     const url = apiUrl('/api/health'), session = readSession();
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 7000);
+    // Gateway model probing takes up to 7s; allow mobile network transit too.
+    const timer = setTimeout(() => controller.abort(), 12000);
     try {
       const response = await fetch(url, {method: 'GET', cache: 'no-store', credentials: 'omit',
         headers: session ? {Authorization: `Bearer ${session.token}`} : {}, signal: controller.signal});
-      if (response.status === 401) return {reachable: true, needsAuth: true};
+      if (response.status === 401) { clearRejectedSession(session); return {reachable: true, needsAuth: true}; }
       if (!response.ok) throw failure(response.status === 429 ? 'rate_limited' : 'service_unavailable', `云端服务暂不可用（HTTP ${response.status}）。`, response.status);
       const data = (response.headers.get('content-type') || '').includes('application/json') ? await response.json() : null;
       if (!data || !['董解析', '智几何'].includes(data.app) || !data.engine || typeof data.engine !== 'object')
         throw failure('invalid_response', '服务地址未返回董解析健康信息，请联系管理员。');
       return {reachable: true, needsAuth: config.requiresAuth && !session, data};
     } catch (error) {
-      if (controller.signal.aborted) throw failure('timeout', '云端连接超时，请稍后重试或改用本机解题。');
+      if (controller.signal.aborted) throw failure('timeout', '云端连接超时，请稍后重试。画板与题稿仍可使用。');
       if (error.code) throw error;
       throw failure('network', '无法连接云端服务。这不表示访问口令错误。');
     } finally { clearTimeout(timer); }
@@ -147,9 +152,9 @@
       const {assemble}=await import('./cloud-contract.mjs');return assemble(raw,body.text,body.model);
     }catch(error){
       if(signal?.aborted)throw Object.assign(new Error('任务已停止。'),{name:'AbortError'});
-      if(controller.signal.aborted)throw failure('timeout','本题解答超时，请分问解答或选择本机解题。');
+      if(controller.signal.aborted)throw failure('timeout','本题解答超时，请重试或分问解答。');
       if(error.code)throw error;
-      throw failure('network','云端连接中断，请重试或选择本机解题。');
+      throw failure('network','云端连接中断，请稍后重试。画板与题稿仍可使用。');
     }finally{
       clearTimeout(timer);signal?.removeEventListener('abort',abort);
       if(reader){await reader.cancel().catch(()=>{});reader.releaseLock();}

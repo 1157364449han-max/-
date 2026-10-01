@@ -7,7 +7,7 @@
     let drag = null, selection = null, mode = 'move', snap = false;
     const clone = value => JSON.parse(JSON.stringify(value));
     const $ = id => document.getElementById(id);
-    const snapshot = () => ({model:clone(state.model),p:clone(state.p),grid:state.grid,guides:state.guides});
+    const snapshot = () => ({model:clone(state.model),p:clone(state.p),grid:state.grid,guides:state.guides,exploring:state.exploring===true});
     const hint = message => { $('dragHint').textContent = message; };
     const fmt = value => Number(value.toFixed(4)).toString();
     const bounded = v => Math.max(-100000, Math.min(100000,v));
@@ -20,7 +20,7 @@
       if(JSON.stringify(before)===JSON.stringify(snapshot()))return;
       undo.push(before); if(undo.length>60)undo.shift(); redo.length=0; syncButtons();
     }
-    function restore(saved) { state.model=clone(saved.model);state.p=clone(saved.p);if(typeof saved.grid==='boolean')state.grid=saved.grid;if(typeof saved.guides==='boolean')state.guides=saved.guides;selection=null;api.changed();api.render(); }
+    function restore(saved) { state.model=clone(saved.model);state.p=clone(saved.p);if(typeof saved.grid==='boolean')state.grid=saved.grid;if(typeof saved.guides==='boolean')state.guides=saved.guides;if(typeof saved.exploring==='boolean')state.exploring=saved.exploring;selection=null;api.changed();api.render(); }
     function undoAction(){if(!undo.length)return;redo.push(snapshot());restore(undo.pop());syncButtons();hint('已撤销一次操作。');}
     function redoAction(){if(!redo.length)return;undo.push(snapshot());restore(redo.pop());syncButtons();hint('已重做一次操作。');}
     function resolvePoint(name) {

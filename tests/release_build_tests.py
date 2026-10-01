@@ -78,6 +78,20 @@ class ReleaseBuildTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 build_release(source, Path(directory) / 'release')
 
+    def test_new_release_requires_matching_homepage_version_marker(self):
+        with tempfile.TemporaryDirectory(prefix='dongjiexi-home-version-') as directory:
+            source=Path(directory)/'source'
+            shutil.copytree(ROOT/'dist',source/'dist')
+            (source/'version.json').write_text('{"version":"0.47.1"}',encoding='utf-8')
+            (source/'dist/app-version.json').write_text('{"version":"0.47.1"}',encoding='utf-8')
+            (source/'dist/releases.json').write_text('{"current":"0.47.1"}',encoding='utf-8')
+            (source/'dist/service-worker.js').write_text("const VERSION = '0.47.1';",encoding='utf-8')
+            (source/'dist/index.html').write_text('<!doctype html><h1>wrong version</h1>',encoding='utf-8')
+            with self.assertRaisesRegex(ValueError,'主页'):
+                checked_version(source)
+            (source/'dist/index.html').write_text('<meta name="dongjiexi-version" content="0.47.1">',encoding='utf-8')
+            self.assertEqual(checked_version(source),'0.47.1')
+
 
 if __name__ == '__main__':
     unittest.main()

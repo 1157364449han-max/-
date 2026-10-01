@@ -18,6 +18,18 @@ ROOT = Path(__file__).resolve().parent
 MAX_SIZE = 200 * 1024 * 1024
 
 
+def protected_path(parts):
+    """An application update never replaces credentials, models or user work."""
+    lowered = [part.lower() for part in parts]
+    directories = {".git", ".update-backups", "董解析数据", "models", "runtime", ".venv", "venv"}
+    if any(part in directories for part in lowered):
+        return True
+    name = lowered[-1]
+    return (name in {"private.env", "cloud.env", "cloudflared.token", "wrangler.local.jsonc"}
+            or name.startswith((".dev.vars", "private.env.backup.", "cloud.env.backup."))
+            or (name == ".env" or name.startswith(".env.")) and not name.endswith(".example"))
+
+
 def version_tuple(value):
     if not re.fullmatch(r"\d+\.\d+\.\d+", str(value)):
         raise ValueError("版本号格式必须为数字，例如 0.7.0。")
@@ -45,6 +57,8 @@ def install_archive(archive, root=ROOT):
                         or any(re.fullmatch(r"(?i)(con|prn|aux|nul|com[1-9]|lpt[1-9])(?:\..*)?", p) for p in parts)
                         or stat.S_ISLNK(info.external_attr >> 16)):
                     raise ValueError("更新包包含不安全的路径或链接。")
+                if protected_path(parts):
+                    raise ValueError("更新包包含私有配置、模型或用户数据，已取消以保护原有内容。")
                 key = "/".join(parts).lower()
                 if key in seen:
                     raise ValueError("更新包包含重复路径。")
@@ -70,6 +84,28 @@ def install_archive(archive, root=ROOT):
             raise ValueError("更新包缺少答案核验引擎或回归测试，已取消。")
         if version_tuple(config.get("version")) >= (0, 12, 0) and not all((source / name).is_file() for name in ("dist/manifest.webmanifest", "dist/service-worker.js", "dist/runtime-config.js", "dist/runtime.js", "dist/pwa.js", "dist/app-version.json", "tests/pwa_contract_tests.cjs")):
             raise ValueError("更新包缺少手机 PWA、统一版本配置或部署回归测试，已取消。")
+        added_modules = {
+            (0, 42, 0): ("dist/scene-contract.mjs", "dist/cloud-contract.mjs", "dist/external-contract.mjs", "dist/external-ai.js"),
+            (0, 44, 0): ("dist/scene-merge.js", "dist/label-layout.js", "dist/step-highlight.js"),
+            (0, 45, 0): ("parabola_locus.py", "dist/parabola-locus.js"),
+            (0, 46, 0): ("hyperbola_iteration.py", "dist/hyperbola-iteration.js"),
+            (0, 47, 0): ("question_parts.py", "parabola_focal_data.py", "dist/question-parts.js", "dist/parabola-focal-data.js"),
+            (0, 47, 1): ("dist/goal-coverage.js",),
+        }
+        for minimum, modules in added_modules.items():
+            if version_tuple(config.get("version")) >= minimum and not all((source / name).is_file() for name in modules):
+                raise ValueError("更新包缺少当前版本必需的数学或画板模块，已取消。")
+        if version_tuple(config.get("version")) >= (0, 12, 0):
+            app = json.loads((source / "dist/app-version.json").read_text(encoding="utf-8-sig"))
+            releases = json.loads((source / "dist/releases.json").read_text(encoding="utf-8-sig"))
+            worker = (source / "dist/service-worker.js").read_text(encoding="utf-8-sig")
+            if (app.get("version") != config["version"] or releases.get("current") != config["version"]
+                    or f"const VERSION = '{config['version']}'" not in worker):
+                raise ValueError("更新包的桌面、网页与离线缓存版本不一致，已取消。")
+            if version_tuple(config["version"]) >= (0, 47, 1):
+                page = (source / "dist/index.html").read_text(encoding="utf-8-sig")
+                if f'<meta name="dongjiexi-version" content="{config["version"]}">' not in page:
+                    raise ValueError("更新包的主页与离线缓存版本不一致，已取消。")
         if version_tuple(config.get("version")) < version_tuple(old_config.get("version", "0.0.0")):
             raise ValueError("不自动安装较旧版本，请保留当前程序。")
         files = sorted(p for p in source.rglob("*") if p.is_file())
@@ -77,6 +113,12 @@ def install_archive(archive, root=ROOT):
             target = root / item.relative_to(source)
             if not target.resolve().is_relative_to(root):
                 raise ValueError("目标目录包含指向程序外部的链接，已取消。")
+            for entry in (target, *target.parents):
+                if entry == root:
+                    break
+                if entry.is_symlink() or (entry.exists() and getattr(entry.lstat(), "st_file_attributes", 0)
+                                          & getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0)):
+                    raise ValueError("待更新目标包含符号链接或联接点，已取消以保护其它内容。")
             if target.is_dir() or any(p.exists() and not p.is_dir() for p in target.parents if p != root and p.is_relative_to(root)):
                 raise ValueError("目标存在同名文件与目录冲突，已取消。")
         # 从不删除旧备份，也不递归移除用户目录。

@@ -37,7 +37,7 @@ module.exports = async ({page, context, assert}) => {
   const offlineWeb = await page.evaluate(() => window.DongRuntime?.config);
   assert.equal(offlineWeb.deployment, 'web');
   assert.equal(offlineWeb.apiEnabled, false);
-  assert.match(await page.locator('#engineStatus').textContent(), /内置解题.*已就绪/);
+  assert.match(await page.locator('#engineStatus').textContent(), /云端服务尚未配置.*画板和草稿/);
   await context.setOffline(false);
 
   await context.unroute('**/runtime-config.js');
@@ -50,6 +50,6 @@ module.exports = async ({page, context, assert}) => {
   const degradedWeb = await page.evaluate(() => window.DongRuntime?.config);
   assert.equal(degradedWeb.deployment, 'web');
   assert.equal(degradedWeb.apiEnabled, false);
-  assert.match(await page.locator('#engineStatus').textContent(), /内置解题.*已就绪/);
+  assert.match(await page.locator('#engineStatus').textContent(), /云端服务尚未配置.*画板和草稿/);
   console.log('PASS: installable PWA, controlled service worker, offline reload and offline standard-equation board.');
 };

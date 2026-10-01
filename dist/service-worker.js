@@ -1,9 +1,9 @@
 'use strict';
 
-const VERSION = '0.47.0';
+const VERSION = '0.47.1';
 const CACHE = `dongjiexi-app-${VERSION}`;
 const CORE = [
-  './question-parts.js', './parabola-focal-data.js',
+  './question-parts.js', './parabola-focal-data.js', './goal-coverage.js',
   './hyperbola-iteration.js',
   './parabola-locus.js',
   './label-layout.js', './step-highlight.js',
@@ -55,23 +55,28 @@ self.addEventListener('fetch', event => {
   if (request.method !== 'GET') return;
   const url = new URL(request.url);
   if (url.pathname.includes('/api/')) return;
+  if (url.origin !== self.location.origin) return;
 
   if (request.mode === 'navigate') {
+    const base=new URL(self.registration?.scope||'./',self.location.href||self.location.origin+'/');
+    if(url.pathname!==base.pathname&&url.pathname!==base.pathname+'index.html')return;
     event.respondWith((async () => {
+      const cache = await caches.open(CACHE);
       try {
         const response = await fetch(request);
-        const cache = await caches.open(CACHE);
-        cache.put('./index.html', response.clone());
+        if(!response.ok)return (await cache.match('./index.html'))||response;
+        if((response.headers.get('Content-Type')||'').includes('text/html')){
+          const html=await response.clone().text(),advertised=html.match(/<meta\s+name=["']dongjiexi-version["']\s+content=["']([^"']+)["']/i)?.[1];
+          if(advertised===VERSION)await cache.put('./index.html',response.clone());
+        }
         return response;
       } catch {
-        const cache=await caches.open(CACHE);
-        return (await cache.match('./index.html')) || (await cache.match('./offline.html'));
+        return (await cache.match('./index.html')) || (await cache.match('./offline.html')) || Response.error();
       }
     })());
     return;
   }
 
-  if (url.origin !== self.location.origin) return;
   const alwaysFresh = /\/(?:runtime-config\.js|app-version\.json|service-worker\.js)$/.test(url.pathname);
   if (alwaysFresh) {
     event.respondWith((async () => {

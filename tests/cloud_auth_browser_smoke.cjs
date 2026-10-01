@@ -49,7 +49,7 @@ module.exports = async ({page, context, assert}) => {
   assert.match(await page.locator('#cloudConnectionText').textContent(),/口令错误|会话失效/);
   await page.locator('#cloudAccessKey').fill('　 课堂口令 \n');
   await page.locator('#cloudLogin').click();
-  await page.waitForFunction(() => document.querySelector('#engineStatus')?.textContent.includes('在线智能增强已就绪'));
+  await page.waitForFunction(() => document.querySelector('#engineStatus')?.textContent.includes('云端 AI 已就绪'));
   assert.equal(authorizedHealth, true);
   assert.equal(await page.locator('#solveButton').isDisabled(), false);
   assert.match(await page.locator('#cloudConnectionText').textContent(),/连接成功/);

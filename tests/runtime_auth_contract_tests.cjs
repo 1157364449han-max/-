@@ -51,6 +51,17 @@ async function run(){
   await assert.rejects(unrelated.api.probeCloud(),error=>error.code==='invalid_response');
   const html=runtime(async()=>response(200,null,false));
   await assert.rejects(html.api.probeCloud(),error=>error.code==='invalid_response');
+  const expired=runtime(async()=>response(401,{}));
+  expired.storage.set('dongjiexi:cloud-session',JSON.stringify({token:'expired-on-server',expiresAt:Date.now()+600000,apiBase:'https://api.example.test'}));
+  assert((await expired.api.probeCloud()).needsAuth);assert(!expired.api.hasSession(),'Rejected probe must clear the expired session rather than report offline');
+  let rejectOld;
+  const race=runtime(async()=>await new Promise(resolve=>{rejectOld=()=>resolve(response(401,{}));}));
+  const sessionValue=token=>JSON.stringify({token,expiresAt:Date.now()+600000,apiBase:'https://api.example.test'});
+  race.storage.set('dongjiexi:cloud-session',sessionValue('old'));
+  const oldRequest=race.api.request('/api/health');
+  race.storage.set('dongjiexi:cloud-session',sessionValue('fresh'));rejectOld();
+  await assert.rejects(oldRequest,error=>error.code==='session_expired');assert(race.api.hasSession());
+  assert.equal(JSON.parse(race.storage.get('dongjiexi:cloud-session')).token,'fresh','Late old-token errors must not erase a renewed session');
   console.log('PASS network/HTTP/auth/timeout classification, Chinese phrase trim, endpoint-bound sessions and invalid tokens');
 }
 run().catch(error=>{console.error(error);process.exitCode=1;});

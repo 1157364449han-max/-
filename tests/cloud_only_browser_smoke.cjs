@@ -1,0 +1,38 @@
+module.exports=async({page,context,assert,screenshot})=>{
+  await page.evaluate(async()=>{for(const r of await navigator.serviceWorker.getRegistrations())await r.unregister();for(const k of await caches.keys())await caches.delete(k);localStorage.setItem('dongjiexi:solve-mode:v1','local');localStorage.setItem('dongjiexi:local-workflow:v1','model');sessionStorage.clear();});
+  let state='ok',modelCalls=0,localCalls=0,staleResolve;
+  await context.route('**/runtime-config.js',r=>r.fulfill({contentType:'application/javascript',body:'window.DONGJIEXI_CONFIG={deployment:"web",apiEnabled:true,requiresAuth:true};'}));
+  await context.route('**/api/session',r=>r.fulfill(r.request().postDataJSON().access_key==='董老师666'?{json:{token:'cloud-only-token',expires_in:3600}}:{status:401,json:{error:'访问口令不正确。'}}));
+  await context.route('**/api/health',async r=>{
+    if(state==='network')return r.abort('failed');
+    if(state==='expired'&&r.request().headers().authorization)return r.fulfill({status:401,json:{error:'在线解题授权已失效。'}});
+    const ready=!!r.request().headers().authorization;
+    return r.fulfill({json:{app:'董解析',default_model:'test-cloud',capabilities:{transport:'sse'},engine:{available:ready,remote:true,models:ready?['test-cloud']:[],vision:false}}});
+  });
+  await context.route('**/api/solve',r=>{localCalls++;return r.fulfill({status:500,json:{error:'No silent local route'}});});
+  await context.route('**/api/stream',r=>{modelCalls++;return r.fulfill({contentType:'text/event-stream',body:'data: '+JSON.stringify({choices:[{delta:{content:JSON.stringify({title:'云端协议验收',parts:[{index:0,status:'answered',answer:'仅作连接协议测试',steps:['协议测试，不代表数学推理通过']}],scene:null})}}]})+'\n\ndata: '+JSON.stringify({choices:[{delta:{},finish_reason:'stop'}]})+'\n\ndata: [DONE]\n\n'});});
+  await page.reload({waitUntil:'domcontentloaded'});
+  assert.equal(await page.evaluate(()=>document.body.dataset.cloudOnly),'true');
+  assert.equal(await page.evaluate(()=>localStorage.getItem('dongjiexi:solve-mode:v1')),'cloud');
+  for(const selector of ['[data-solve-mode="local"]','#localWorkflowRow','#pullModel','#useLocalSolver','#cloudAuthUseLocal'])assert(!await page.locator(selector).isVisible(),selector);
+  await page.locator('#question').fill('求平面动点向量数量积的范围。');await page.locator('#solveButton').click();
+  await page.locator('#cloudAuthDialog[open]').waitFor();assert.equal(localCalls,0);assert.equal(modelCalls,0);
+  await page.locator('#cloudAccessKey').fill('董老师666');await page.locator('#cloudLogin').click();
+  await page.waitForFunction(()=>document.querySelector('#cloudConnection').dataset.state==='connected');
+  await page.locator('#cloudAuthDialog').waitFor({state:'hidden'});await page.locator('#solveButton').click();
+  await page.waitForFunction(()=>document.querySelector('#solution').textContent.includes('云端协议验收'));
+  assert.equal(modelCalls,1);assert.equal(localCalls,0);assert.match(await page.locator('#engineRouteTitle').innerText(),/云端/);
+  state='expired';await page.evaluate(()=>document.dispatchEvent(new Event('visibilitychange')));
+  await page.waitForFunction(()=>!window.DongRuntime.hasSession());
+  await page.waitForFunction(()=>document.querySelector('#cloudConnection').dataset.state==='disconnected');
+  assert(!await page.locator('#cloudOutage').isVisible(),'An expired session is not an outage');
+  await page.locator('#openCloudAuth').click();await page.locator('#cloudAccessKey').fill('董老师666');state='ok';await page.locator('#cloudLogin').click();
+  await page.waitForFunction(()=>document.querySelector('#cloudConnection').dataset.state==='connected');await page.locator('#cloudAuthDialog').waitFor({state:'hidden'});
+  state='network';await page.evaluate(()=>window.dispatchEvent(new Event('offline')));await page.locator('#cloudOutage').waitFor({state:'visible'});
+  assert.doesNotMatch(await page.locator('#cloudOutage').innerText(),/本机|本地/);
+  await page.setViewportSize({width:320,height:740});await page.locator('[data-mobile-panel="board"]').click();
+  await page.locator('#cloudOutageShortcut').click();assert.equal(await page.evaluate(()=>localStorage.getItem('dongjiexi:solve-mode:v1')),'cloud');
+  assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));await screenshot('cloud-only-mobile.png',null);
+  state='ok';await page.evaluate(()=>window.dispatchEvent(new Event('online')));await page.waitForFunction(()=>document.querySelector('#cloudConnection').dataset.state==='connected');
+  assert.equal(localCalls,0);assert.equal(modelCalls,1);
+};
