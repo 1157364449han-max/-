@@ -1,8 +1,16 @@
 module.exports = async ({page, context, assert}) => {
+  async function settled(){
+    const expected=await page.locator('#question').inputValue();
+    await page.waitForFunction(question=>{
+      const saved=JSON.parse(localStorage.getItem('zhigeometry:last')||'null');
+      return !document.querySelector('#solveButton').disabled&&saved?.solution?.restatement===question;
+    },expected);
+  }
   let jobRequests = 0;
   page.on('request', request => { if (request.url().includes('/api/jobs')) jobRequests++; });
   await page.locator('#question').fill('已知椭圆 C 的离心率 e=1/2，且过点 P(1,3/2)，求椭圆 C 的标准方程。');
   await page.locator('#solveButton').click();
+  await settled();
   await page.waitForFunction(() => document.querySelector('#solution')?.textContent.includes('董解析内置确定性解答'));
   assert.match(await page.locator('#solution').innerText(), /逐问作答：1 \/ 1/);
   assert.match(await page.locator('#solution').innerText(), /x²\/4\+y²\/3=1/);
@@ -14,6 +22,7 @@ module.exports = async ({page, context, assert}) => {
 
   await page.locator('#question').fill('已知椭圆x²/4+y²/3=1，求焦点坐标、离心率和准线方程。');
   await page.locator('#solveButton').click();
+  await settled();
   await page.waitForFunction(() => document.querySelector('#solution')?.textContent.includes('准线：x=-4 或 4'));
   const featureText = await page.locator('#solution').innerText();
   assert.match(featureText, /焦点：\(-1,0\)，\(1,0\)/);
@@ -22,6 +31,7 @@ module.exports = async ({page, context, assert}) => {
 
   await page.locator('#question').fill('已知圆 C：x²+y²=9，直线 l：y=0 与圆交于 A、B，求弦长 AB。');
   await page.locator('#solveButton').click();
+  await settled();
   await page.waitForFunction(() => document.querySelector('#solution')?.textContent.includes('|AB|=6'));
   assert.match(await page.locator('#solution').innerText(), /弦长 \|AB\|=6/);
   scene = JSON.parse(await page.locator('#sceneJson').inputValue());
@@ -38,6 +48,7 @@ module.exports = async ({page, context, assert}) => {
   await page.reload({waitUntil:'domcontentloaded'});
   await page.locator('#question').fill('已知抛物线的顶点为 V(1,2)，焦点为 F(3,2)，求抛物线的标准方程。');
   await page.locator('#solveButton').click();
+  await settled();
   await page.waitForFunction(() => document.querySelector('#solution')?.textContent.includes('董解析浏览器内置解答'));
   assert.match(await page.locator('#solution').innerText(), /逐问作答：1 \/ 1/);
   scene = JSON.parse(await page.locator('#sceneJson').inputValue());
@@ -48,6 +59,7 @@ module.exports = async ({page, context, assert}) => {
   assert.match(await page.locator('#engineStatus').innerText(), /内置解题.*已就绪/);
   await page.locator('#question').fill('已知双曲线 C 的右焦点为 F(3,0)，渐近线为 y=±√2x，求离心率。');
   await page.locator('#solveButton').click();
+  await settled();
   await page.waitForFunction(()=>!document.querySelector('#solveButton')?.disabled);
   const inferred=await page.locator('#solution').innerText();
   assert.match(inferred,/a²=.*=3/);
