@@ -517,6 +517,16 @@
             for(const key of ['theta','lineThrough','dynamicIntersectionLabels','showDynamic'])if(exactScene[key]!=null)result.scene[key]=exactScene[key];
             window.DongSceneMerge.mergeDerived(result.scene,exactScene);
           }
+          if(exactSolution.engineExtensions?.includes('parabola-locus')){
+            window.DongSceneMerge.mergeDerived(result.scene,exactScene);
+            for(const key of ['locusDefinition','rectangularParabola','curveLabel','pointParts'])if(exactScene[key]!=null)result.scene[key]=exactScene[key];
+            if(exactScene.rectangularParabola){
+              for(const name of exactScene.rectangularParabola.names)result.scene.points[name]=exactScene.points[name];
+              result.scene.polygons=[...(result.scene.polygons||[]).filter(item=>item.id!=='parabola-rectangle'),...(exactScene.polygons||[]).filter(item=>item.id==='parabola-rectangle')];
+              result.scene.showDynamic=false;
+              result.scene.example_notice='矩形是符合条件的一个演示构型，不是唯一或最优构型；证明以解析中的一般推导为准。';
+            }
+          }
           result.scene.exact=exactScene.exact||{};
           result.scene_notice='题面支持的主曲线参数已复算；AI 回复的关联构造保留，其它结论仍需核验。';
         }else if(result.mode!=='external-ai'&&exactScene&&(!result.scene||exactComplete||exactScene.inferredFromConditions||exactScene.inferred_from_conditions)){

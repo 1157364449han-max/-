@@ -1,8 +1,9 @@
 'use strict';
 
-const VERSION = '0.44.0';
+const VERSION = '0.45.0';
 const CACHE = `dongjiexi-app-${VERSION}`;
 const CORE = [
+  './parabola-locus.js',
   './label-layout.js', './step-highlight.js',
   './scene-merge.js',
   './conic-parameter.js',

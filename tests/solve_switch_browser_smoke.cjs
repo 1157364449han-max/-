@@ -20,7 +20,9 @@ module.exports=async({page,context,assert})=>{
   await page.locator('[data-quick-conic="ellipse"]').click();
   const before=await page.locator('#sceneJson').inputValue();
   const examBank=await page.evaluate(async()=>await (await fetch('question-bank.json')).json());
-  await page.locator('#question').fill(examBank.items.find(item=>item.id==='2023-i-22').question);
+  // Keep this race test on a genuinely uncovered sourced problem. The 2023
+  // definition/rectangle question is now solved locally without this request.
+  await page.locator('#question').fill(examBank.items.find(item=>item.id==='2024-ii-19').question);
   await page.locator('#solveButton').click();
   for(let i=0;!started&&i<50;i++)await new Promise(resolve=>setTimeout(resolve,20));
   assert(started,'Slow solve request must start');

@@ -23,6 +23,13 @@ module.exports=async({page,context,assert,screenshot})=>{
       for(const [key,value] of Object.entries(item.testOracle))if(key!=='slope')parameterChecks.push({key,passed:Math.abs(result.scene[key==='a2'?'a':'b']**2-value)<1e-8});
     }
     rows.push({id:item.id,source:item.sources||additions.source,completion:result.completion,parts:result.parts.map(p=>({index:p.index,status:p.status,answer:p.answer})),verification:result.verification,parameterChecks,diagram});
+    if(item.id==='2022-ii-21-1'&&!process.env.DONG_EXAM_BASELINE){assert.equal(result.completion.answered,1);assert(Math.abs(result.scene.a**2-2)<1e-9&&Math.abs(result.scene.b**2-2)<1e-9);}
+    if(item.id==='2023-i-22'&&!process.env.DONG_EXAM_BASELINE){
+      assert.equal(result.completion.answered,2,JSON.stringify(rows.at(-1)));
+      assert.equal(diagram.missing.length,0,JSON.stringify(diagram));
+      assert.match(result.parts.find(p=>p.index===2).steps.join(' '),/等号|取等/);
+      await screenshot('sourced-2023-i-22.png',null);
+    }
     if(item.id==='2022-beijing-12'&&!process.env.DONG_EXAM_BASELINE){
       assert.equal(result.completion.answered,1,JSON.stringify(rows.at(-1)));
       assert.match(result.parts[0].answer.replace(/[−–]/g,'-'),/m\s*=\s*-3/);

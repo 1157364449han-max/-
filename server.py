@@ -35,6 +35,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 from learning_engine import LearningEngine, EngineError, EngineBusy, OLLAMA_BASE_URL, ollama_headers
 from verification_engine import attach_trust_report, has_uncertainty
+import parabola_locus
 
 
 def load_config() -> dict:
@@ -324,8 +325,8 @@ def hyperbola_from_conditions(s: str) -> dict | None:
             c2 = sp.simplify(fx * fx)
         elif vertical and fy != 0 and fx == 0:
             c2 = sp.simplify(fy * fy)
-    asymptote = re.search(rf"(?:渐近线)[^。；]*?y=±?{NUM}x", s)
-    slope = abs(exact(asymptote.group(1))) if asymptote else None
+    asymptote = re.search(rf"(?:渐近线)[^。；]*?y=±?(?:{NUM})?x", s)
+    slope = abs(exact(asymptote.group(1) or "1")) if asymptote else None
     if e is None and slope is not None and slope > 0:
         e = sp.sqrt(1 + slope * slope) if horizontal else sp.sqrt(1 + 1/(slope*slope))
     if e is not None and e <= 1:
@@ -933,7 +934,7 @@ def standard_conic(text: str) -> dict | None:
                 "exact": {"p": nice(abs(q_exact)/4)}, "equation": f"x²={nice(q_exact)}y"}
     # 非标准式的确定条件依次交给各自的符号求解器；它们均只接受足以唯一确定曲线的条件。
     return (ellipse_from_conditions(s) or hyperbola_from_conditions(s)
-            or circle_from_conditions(s) or parabola_from_conditions(s))
+            or circle_from_conditions(s) or parabola_from_conditions(s) or parabola_locus.infer(text))
 
 
 def split_problem_parts(text: str) -> list[dict]:
@@ -1625,6 +1626,17 @@ def parabola_focus_chord_part_answer(scene: dict, part: dict, context: dict | No
     return None
 
 
+def tangent_proof_pending(text: str, body: str, count: int) -> str:
+    if count > 2:
+        return "三个及以上切点的完整结论尚待推导。"
+    if (re.search(r"定点|定值|定圆|最值|最大|最小|取值|范围|轨迹|面积|周长|夹角|角度|相切", body)
+            or re.search(r"证明|证实|验证", body) and "垂直" not in body):
+        return "本问的整体性质尚未证明；切线方程不等于完整解答。"
+    if re.search(r"证明|证实|验证|垂直", body) and re.search(r"动点|动直线|任意|恒|随着|变化|取遍", text):
+        return "关于可变位置的一般性证明尚未完成。"
+    return ""
+
+
 def tangent_answer(scene: dict, part: dict) -> tuple[str, list[str]] | None:
     body = part.get("body") or part.get("question") or ""
     requested = _gradient_target_names(body, "tangent")
@@ -1848,8 +1860,11 @@ def deterministic_parts(text: str, scene: dict, base_answer: str, base_steps: li
     parts=[]
     focus_chord_context = install_parabola_focus_chord_scene(scene, text)
     ellipse_focal_context = install_ellipse_focal_chord_scene(scene, text)
-    for part in split_problem_parts(text):
+    problem_parts = split_problem_parts(text)
+    parabola_locus.decorate_scene(scene, text, problem_parts)
+    for part in problem_parts:
         body=part.get("body") or part.get("question") or ""
+        parabola_answer = parabola_locus.solve_part(scene, text, part)
         focus_chord_answer = parabola_focus_chord_part_answer(scene, part, focus_chord_context)
         ellipse_focal_answer = ellipse_focal_chord_part_answer(scene, part, ellipse_focal_context)
         metric=None
@@ -1876,12 +1891,20 @@ def deterministic_parts(text: str, scene: dict, base_answer: str, base_steps: li
                 f"回代检验：$|AB|={hyperbola_chord['chordLength']}$，$|F_1A|={hyperbola_chord['farDistance']}$，均与题设一致。",
             ]
             status = "answered"
+        elif parabola_answer:
+            answer,steps=parabola_answer;status="answered"
         elif ellipse_focal_answer:
             answer,steps=ellipse_focal_answer;status="answered"
         elif focus_chord_answer:
             answer,steps=focus_chord_answer;status="answered"
         elif tangent:
-            answer,steps=tangent;status="answered"
+            pending = tangent_proof_pending(text, body, len(_gradient_target_names(body, "tangent")))
+            if pending:
+                answer="已构造题目涉及的切线，但" + pending
+                steps=[*base_steps, "切点回代和梯度切线构造已完成，可查看画板。", "单个当前位置的点积不能代替一般性证明；未覆盖的结论仍待推导。"]
+                status="partial"
+            else:
+                answer,steps=tangent;status="answered"
         elif "切线" in body:
             answer="内置引擎尚未得到可核验的切点，因此没有把其它方程冒充为切线。";steps=[*base_steps,"请确认切点坐标已给出且确实在曲线上；曲线外一点的两条切线需要另行求切点。"] ;status="partial"
         elif normal:
