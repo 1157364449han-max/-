@@ -60,6 +60,7 @@ jobs:
           node tests/step_highlight_tests.cjs
           node tests/service_worker_version_tests.cjs
           node tests/parabola_locus_tests.cjs
+          node tests/hyperbola_iteration_tests.cjs
       - name: Test actual browser workflows
         working-directory: ${{ steps.app.outputs.root }}
         env:

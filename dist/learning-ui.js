@@ -527,6 +527,12 @@
               result.scene.example_notice='矩形是符合条件的一个演示构型，不是唯一或最优构型；证明以解析中的一般推导为准。';
             }
           }
+          if(exactSolution.engineExtensions?.includes('hyperbola-iteration')){
+            window.DongSceneMerge.mergeDerived(result.scene,exactScene);
+            for(const key of ['hyperbolaIteration','pointParts','showDynamic','showFeatures'])if(exactScene[key]!=null)result.scene[key]=exactScene[key];
+            result.scene.polygons=[...(result.scene.polygons||[]).filter(item=>!String(item.id||'').startsWith('iteration-triangle-')),...(exactScene.polygons||[]).filter(item=>String(item.id||'').startsWith('iteration-triangle-'))];
+            result.scene.example_notice='当前序号只作联动演示；所有正整数序号的面积结论由解析中的一般性推导证明。';
+          }
           result.scene.exact=exactScene.exact||{};
           result.scene_notice='题面支持的主曲线参数已复算；AI 回复的关联构造保留，其它结论仍需核验。';
         }else if(result.mode!=='external-ai'&&exactScene&&(!result.scene||exactComplete||exactScene.inferredFromConditions||exactScene.inferred_from_conditions)){

@@ -2,6 +2,7 @@ module.exports=async({page,context,assert,screenshot})=>{
   await context.route('**/runtime-config.js',r=>r.fulfill({contentType:'application/javascript',body:'window.DONGJIEXI_CONFIG={deployment:"web",apiEnabled:true,requiresAuth:false};'}));
   await context.route('**/api/health',r=>r.fulfill({json:{app:'董解析',capabilities:{transport:'sse'},engine:{available:true,installed:true,remote:true,models:['test-cloud']},default_model:'test-cloud'}}));
   const bank=await page.evaluate(async()=>await(await fetch('question-bank.json')).json());
+  const fs=require('node:fs'),path=require('node:path'),source=JSON.parse(fs.readFileSync(path.join(__dirname,'fixtures/sourced-exam-additions.json'),'utf8'));
   let raw={title:'协议测试：不是实际模型正确率',parts:[{index:0,answer:'测试',steps:['仅供协议测试'],status:'answered'}],scene:{type:'circle',h:2,k:0,r:Math.sqrt(5),dynamicLine:false,points:{P:[0,-2]},constructions:[
     {id:'contactA',op:'ellipse_tangent_point',refs:['feature:P','$conic'],branch:0,label:'A'},
     {id:'contactB',op:'ellipse_tangent_point',refs:['feature:P','$conic'],branch:1,label:'B'},
@@ -27,7 +28,7 @@ module.exports=async({page,context,assert,screenshot})=>{
   await screenshot('cloud-tangent-no-extraneous-secant.png',null);
   await page.waitForFunction(()=>!document.querySelector('#solveButton').disabled);
   raw={title:'未覆盖求解测试',parts:[{index:0,status:'needs_information',answer:'动直线斜率未知，图形不唯一，因此条件不足',steps:['无法确定唯一图形']}],scene:null};
-  await page.locator('#question').fill(bank.items.find(q=>q.id==='2024-ii-19').question.replace(/[（(]\d+[）)]/g,''));await page.locator('#solveButton').click();
+  await page.locator('#question').fill(source.items.find(q=>q.id==='2022-beijing-10').question);await page.locator('#solveButton').click();
   await page.waitForFunction(()=>document.querySelector('#solution').textContent.includes('未覆盖求解测试'));
   assert.match(await page.locator('#solution').textContent(),/不代表原题缺少条件/);
   assert.equal(await page.locator('.answer-status').textContent(),'尚未完整解答');
@@ -36,7 +37,6 @@ module.exports=async({page,context,assert,screenshot})=>{
   assert.equal(await page.evaluate(()=>window.DongSceneAudit.visible({parts:[2,3]},1)),false);
   await page.waitForFunction(()=>!document.querySelector('#solveButton').disabled);
   raw={title:'故意错误的模型输出：独立复算测试',parts:[{index:0,status:'answered',answer:'$m=3$',steps:['错误地把未知分母假设成正数']}],scene:{type:'hyperbola',a:1,b:Math.sqrt(3),orientation:'horizontal',dynamicLine:false}};
-  const fs=require('node:fs'),path=require('node:path'),source=JSON.parse(fs.readFileSync(path.join(__dirname,'fixtures/sourced-exam-additions.json'),'utf8'));
   await page.locator('#question').fill(source.items.find(q=>q.id==='2022-beijing-12').question);await page.locator('#solveButton').click();
   await page.waitForFunction(()=>document.querySelector('#solution').textContent.includes('故意错误的模型输出'));
   const corrected=await page.evaluate(()=>JSON.parse(localStorage.getItem('zhigeometry:last')).solution);
@@ -59,4 +59,17 @@ module.exports=async({page,context,assert,screenshot})=>{
   assert.equal(projection.scene.objects.filter(n=>['M','N'].includes(n.label)).length,2);
   await page.getByRole('button',{name:'第（2）问',exact:true}).click();
   await screenshot('cloud-projection-complete-dependency-merge.png',null);
+  await page.waitForFunction(()=>!document.querySelector('#solveButton').disabled);
+  raw={title:'双曲线迭代独立纠正与依赖合并',parts:[1,2,3].map(index=>({index,status:'answered',answer:'错误的模型测试结论',steps:['仅为合并测试']})),scene:{type:'hyperbola',a:2,b:2,dynamicLine:false,points:{'P₁':[1,0]},lines:[{id:'ai-extra-line',kind:'slope',m:0,b:10,label:'模型额外辅助线'}]}};
+  await page.locator('#question').fill(bank.items.find(q=>q.id==='2024-ii-19').question);await page.locator('#solveButton').click();
+  await page.waitForFunction(()=>document.querySelector('#solution').textContent.includes('双曲线迭代独立纠正'));
+  const iteration=await page.evaluate(()=>JSON.parse(localStorage.getItem('zhigeometry:last')).solution);
+  assert.deepEqual(iteration.completion,{answered:3,total:3});
+  assert.equal(iteration.scene.hyperbolaIteration.m,9);
+  assert.deepEqual(iteration.scene.points['P₁'],[5,4]);
+  assert(iteration.scene.lines.some(n=>n.label==='模型额外辅助线'&&n.m===0&&n.b===10),'Additional model lines and their equations survive independent parameter correction');
+  assert(iteration.scene.objects.some(n=>n.op==='intersection')&&iteration.scene.objects.some(n=>n.op==='reflect_axis'));
+  assert.equal(iteration.sceneAudit.invalid.length,0,JSON.stringify(iteration.sceneAudit));
+  assert.match(iteration.parts[0].model_answer,/错误的模型测试/,'Original reply stays inspectable');
+  assert.equal(await page.locator('#solution .katex-error').count(),0);
 };

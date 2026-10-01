@@ -36,6 +36,7 @@ if str(ROOT) not in sys.path:
 from learning_engine import LearningEngine, EngineError, EngineBusy, OLLAMA_BASE_URL, ollama_headers
 from verification_engine import attach_trust_report, has_uncertainty
 import parabola_locus
+import hyperbola_iteration
 
 
 def load_config() -> dict:
@@ -934,7 +935,8 @@ def standard_conic(text: str) -> dict | None:
                 "exact": {"p": nice(abs(q_exact)/4)}, "equation": f"x²={nice(q_exact)}y"}
     # 非标准式的确定条件依次交给各自的符号求解器；它们均只接受足以唯一确定曲线的条件。
     return (ellipse_from_conditions(s) or hyperbola_from_conditions(s)
-            or circle_from_conditions(s) or parabola_from_conditions(s) or parabola_locus.infer(text))
+            or circle_from_conditions(s) or parabola_from_conditions(s) or parabola_locus.infer(text)
+            or hyperbola_iteration.infer(text))
 
 
 def split_problem_parts(text: str) -> list[dict]:
@@ -943,7 +945,12 @@ def split_problem_parts(text: str) -> list[dict]:
     嵌套编号用 ``父编号*100+罗马序号`` 作为稳定的内部 index，
     例如（2）(i)、（2）(ii) 分别是 201、202；显示标签仍保留原题编号。
     """
-    matches = list(re.finditer(r"[（(]\s*(\d{1,2})\s*[）)]", text))
+    def heading(match: re.Match) -> bool:
+        # sqrt(5), f(1), coefficients and arithmetic are not question numbers.
+        before, after = text[:match.start()], text[match.end():]
+        return not re.search(r"[A-Za-z0-9_√π*/^+=-]\s*$", before) and not re.match(r"\s*[+*/^=<>≤≥)]", after)
+
+    matches = [match for match in re.finditer(r"[（(]\s*(\d{1,2})\s*[）)]", text) if heading(match)]
     if not matches:
         return [{"index": 0, "label": "完整题目", "question": text.strip(), "body": text.strip()}]
     preamble = text[:matches[0].start()].strip()
@@ -1862,9 +1869,11 @@ def deterministic_parts(text: str, scene: dict, base_answer: str, base_steps: li
     ellipse_focal_context = install_ellipse_focal_chord_scene(scene, text)
     problem_parts = split_problem_parts(text)
     parabola_locus.decorate_scene(scene, text, problem_parts)
+    hyperbola_iteration.decorate_scene(scene, text, problem_parts)
     for part in problem_parts:
         body=part.get("body") or part.get("question") or ""
         parabola_answer = parabola_locus.solve_part(scene, text, part)
+        iteration_answer = hyperbola_iteration.solve_part(scene, text, part)
         focus_chord_answer = parabola_focus_chord_part_answer(scene, part, focus_chord_context)
         ellipse_focal_answer = ellipse_focal_chord_part_answer(scene, part, ellipse_focal_context)
         metric=None
@@ -1891,6 +1900,8 @@ def deterministic_parts(text: str, scene: dict, base_answer: str, base_steps: li
                 f"回代检验：$|AB|={hyperbola_chord['chordLength']}$，$|F_1A|={hyperbola_chord['farDistance']}$，均与题设一致。",
             ]
             status = "answered"
+        elif iteration_answer:
+            answer,steps=iteration_answer;status="answered"
         elif parabola_answer:
             answer,steps=parabola_answer;status="answered"
         elif ellipse_focal_answer:

@@ -30,6 +30,14 @@ module.exports=async({page,context,assert,screenshot})=>{
       assert.match(result.parts.find(p=>p.index===2).steps.join(' '),/等号|取等/);
       await screenshot('sourced-2023-i-22.png',null);
     }
+    if(item.id==='2024-ii-19'&&!process.env.DONG_EXAM_BASELINE){
+      assert.equal(result.completion.answered,3,JSON.stringify(rows.at(-1)));
+      assert.equal(diagram.missing.length,0,JSON.stringify(diagram));
+      assert.equal(diagram.invalid.length,0,JSON.stringify(diagram));
+      assert(Math.abs(result.scene.a**2-9)<1e-9&&Math.abs(result.scene.b**2-9)<1e-9);
+      assert(result.scene.objects.some(n=>n.op==='intersection')&&result.scene.objects.some(n=>n.op==='reflect_axis'));
+      assert.match(result.parts.find(p=>p.index===3).steps.join(' '),/与.*n.*无关|行列式|不随/);
+    }
     if(item.id==='2022-beijing-12'&&!process.env.DONG_EXAM_BASELINE){
       assert.equal(result.completion.answered,1,JSON.stringify(rows.at(-1)));
       assert.match(result.parts[0].answer.replace(/[−–]/g,'-'),/m\s*=\s*-3/);

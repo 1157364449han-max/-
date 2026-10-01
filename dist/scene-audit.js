@@ -1,12 +1,14 @@
 /* Data-only diagram coverage and part visibility; numerical checks are NOT proofs. */
 (function(root){
   'use strict';
-  const canonical=s=>String(s||'').replace(/\\(?:prime)/g,'′').replace(/'/g,'′').replace(/[_{}\s]/g,'').replace(/[₀₁₂₃]/g,c=>'₀₁₂₃'.indexOf(c)).toUpperCase();
+  const canonical=s=>String(s||'').replace(/\\(?:prime)/g,'′').replace(/'/g,'′').replace(/[_{}\s]/g,'').replace(/[₀₁₂₃₄₅₆₇₈₉]/g,c=>'₀₁₂₃₄₅₆₇₈₉'.indexOf(c)).toUpperCase();
   const plain=s=>String(s||'').replace(/\\(?:left|right|,|;|!)/g,'').replace(/\\(?:triangle|Delta)/g,'△').replace(/\\prime/g,'′').replace(/[_{}$\s]/g,'').replace(/'/g,'′');
   const pointOps=new Set(['point_on','midpoint','reflect_axis','reflect_center','foot','ellipse_tangent_point','intersection']);
   const finite=p=>p&&Number.isFinite(p.x)&&Number.isFinite(p.y);
   function declared(text){
-    const s=plain(text),names=new Set(),n="([A-Z](?:[0-9₀₁₂₃])?[′]?)";
+    // A symbolic family P_n is not a distinct point named P. Numeric indices
+    // remain concrete names, including multi-digit/subscripted ones.
+    const s=plain(text),names=new Set(),n="([A-Z](?:[0-9₀₁₂₃₄₅₆₇₈₉]+)?[′]?)(?![a-z0-9₀₁₂₃₄₅₆₇₈₉])";
     const add=value=>{if(value)names.add(canonical(value));};
     for(const re of [new RegExp('(?:定点|动点|点|焦点|顶点|中点|切点)'+n,'g'),new RegExp(n+'[（(][^()（）]{1,50}[,，][^()（）]{1,50}[）)]','g'),new RegExp('(?:交于(?:不同的)?(?:两点|点)?|切点(?:分别)?为|中点(?:记)?为|对称点(?:记)?为)'+n+'(?:[、,，和与及]'+n+')?','g'),new RegExp(n+'(?:为|是)(?:点|线段|弦|三角形)','g')])for(const m of s.matchAll(re)){add(m[1]);add(m[2]);}
     for(const m of s.matchAll(/(?:△|三角形|四边形|矩形|平行四边形|正方形)([A-Z]{3,4})(?![A-Z])/g))for(const c of m[1])add(c);
@@ -70,7 +72,7 @@
     if(!scene){report.missing=expected;return report;}
     const h=Number(scene.h)||0,k=Number(scene.k)||0,labels=new Set(Object.keys(scene.points||{}).map(canonical));
     for(const n of ['O',...(scene.type==='parabola'?['F','V']:scene.type==='circle'?[]:['F1','F2','A1','A2'])])labels.add(n);
-    for(const n of scene.objects||[])if(pointOps.has(n.op))labels.add(canonical(n.label));
+    for(const n of scene.objects||[])if(n.kind==='point'||pointOps.has(n.op))labels.add(canonical(n.label));
     if(scene.showDynamic!==false&&(scene.showDynamic===true||scene.dynamicLine===true))for(const n of scene.dynamicIntersectionLabels||['A','B'])labels.add(canonical(n));
     if(scene.pairedChord)for(const n of scene.pairedChord.labels||[])labels.add(canonical(n));
     if(scene.fixedPoint)labels.add(canonical(scene.fixedPoint.name||'T'));

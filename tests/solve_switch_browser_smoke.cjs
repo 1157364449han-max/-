@@ -19,10 +19,10 @@ module.exports=async({page,context,assert})=>{
   assert.equal(await page.locator('#modelSelectorRow').evaluate(element=>!element.hidden),true,'Cloud model selector remains available');
   await page.locator('[data-quick-conic="ellipse"]').click();
   const before=await page.locator('#sceneJson').inputValue();
-  const examBank=await page.evaluate(async()=>await (await fetch('question-bank.json')).json());
-  // Keep this race test on a genuinely uncovered sourced problem. The 2023
-  // definition/rectangle question is now solved locally without this request.
-  await page.locator('#question').fill(examBank.items.find(item=>item.id==='2024-ii-19').question);
+  const additions=JSON.parse(require('node:fs').readFileSync(require('node:path').join(__dirname,'fixtures/sourced-exam-additions.json'),'utf8'));
+  // This sourced planar-vector problem remains uncovered. Covered conic
+  // engines bypass the request, which would make the late-reply race vacuous.
+  await page.locator('#question').fill(additions.items.find(item=>item.id==='2022-beijing-10').question);
   await page.locator('#solveButton').click();
   for(let i=0;!started&&i<50;i++)await new Promise(resolve=>setTimeout(resolve,20));
   assert(started,'Slow solve request must start');

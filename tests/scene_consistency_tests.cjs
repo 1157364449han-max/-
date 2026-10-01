@@ -7,6 +7,9 @@ const audit=sandbox.window.DongSceneAudit,construct=sandbox.window.DongConstruct
   const {safeConstructionScene}=await import('../dist/scene-contract.mjs');
   const {safeExternalScene}=await import('../dist/external-contract.mjs');
   let count=0;const check=f=>{f();count++;},copy=x=>JSON.parse(JSON.stringify(x));
+  check(()=>assert.deepEqual(Array.from(audit.declared('点P_n与Q_{n-1}联动，初始点P₁(5,4)，点N₁₂(0,0)')),['P1','N12']));
+  check(()=>assert.equal(audit.canonical('P₁₂′'),'P12′'));
+  check(()=>assert.equal(audit.inspect({type:'circle',r:1,showDynamic:false,points:{},objects:[{id:'given-N',kind:'point',x:0,y:0,label:'N'}]},'点N(0,0)',[],construct).missing.length,0));
   const conic=sandbox.window.DongConicParameter;
   const target={objects:[{id:'ai-M',op:'midpoint',label:'M',refs:['feature:A','feature:B']},{id:'ai-extra',op:'segment',label:'AM',refs:['feature:A','ai-M']}],lines:[{id:'axis-clash',kind:'slope',m:1,b:3,label:'hiddenAxis'}]};
   const exact={objects:[{id:'verifiedM',op:'intersection',label:'M',refs:['verifiedAB','native-axis'],source:'derived'},{id:'verifiedAB',op:'line',label:'AB',refs:['feature:A','feature:B'],source:'derived'}],lines:[{id:'native-axis',kind:'slope',m:0,b:0,label:'hiddenAxis',visible:false}]};
