@@ -1,0 +1,15 @@
+.fold-controls { flex:none;padding:.55rem .75rem;border-bottom:1px solid #d4e3ed;background:#f1f8fb;font-size:.78rem; }
+.fold-controls[hidden],.fold-space[hidden] { display:none; }
+.fold-switch { display:flex;gap:.4rem;margin-bottom:.5rem; }
+.fold-switch button { padding:.38rem .7rem;border:1px solid #a8c5d7;border-radius:7px;background:#fff;color:#24526d;cursor:pointer; }
+.fold-switch button[aria-pressed="true"] { background:#245d79;color:white; }
+.fold-controls label { display:flex;align-items:center;gap:.5rem; }
+.fold-controls input { flex:1;min-width:40px; }
+.fold-controls output { min-width:42px; }
+#foldReadout { margin-top:.35rem;line-height:1.6;overflow-wrap:anywhere; }
+.fold-controls[data-admissible="false"] #foldReadout { color:#99552c; }
+.fold-space { position:absolute;inset:0;z-index:16;background:#f5fafc; }
+#foldCanvas { display:block;width:100%;height:100%;touch-action:none; }
+.fold-hint { position:absolute;bottom:.4rem;left:.5rem;right:.5rem;padding:.4rem;border-radius:6px;background:#ffffffde;color:#526b7d;font-size:.75rem;pointer-events:none; }
+.fold-active .drag-toolbar,.fold-active .native-toolbar,.fold-active #dragHint,.fold-active #snapStatus,.fold-active .legend { display:none!important; }
+.fold-active #toolboxToggle { visibility:hidden; }

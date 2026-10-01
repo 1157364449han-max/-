@@ -1,0 +1,36 @@
+module.exports=async({page,context,assert,screenshot})=>{
+  const raw=require('./fixtures/user-circle-fold.json').question;
+  await context.route('**/runtime-config.js',r=>r.fulfill({contentType:'application/javascript',body:'window.DONGJIEXI_CONFIG={deployment:"web",apiEnabled:true,requiresAuth:false};'}));
+  await context.route('**/api/health',r=>r.fulfill({json:{app:'董解析',default_model:'test-cloud',capabilities:{transport:'sse'},engine:{available:true,remote:true,models:['test-cloud']}}}));
+  // Cloud protocol regression: deliberately omitted third part, NOT a real model call.
+  const answer={title:'原图折叠题回归',parts:[{index:1,status:'answered',answer:'$(x-1)^2+y^2=4$',steps:['圆心为(1,0)。']},{index:2,status:'partial',answer:'待推导',steps:['尚未计算。']}],scene:null};
+  await context.route('**/api/stream',r=>r.fulfill({contentType:'text/event-stream',body:'data: '+JSON.stringify({choices:[{delta:{content:JSON.stringify(answer)}}]})+'\n\ndata: '+JSON.stringify({choices:[{delta:{},finish_reason:'stop'}]})+'\n\ndata: [DONE]\n\n'}));
+  await page.reload({waitUntil:'domcontentloaded'});await page.waitForFunction(()=>document.querySelector('#engineStatus').classList.contains('ready'));
+  await page.locator('#question').fill(raw);await page.locator('#solveButton').click();
+  await page.waitForFunction(()=>!document.querySelector('#solveButton').disabled&&document.querySelector('[data-study-part="3"]'));
+  await page.locator('[data-study-part="3"]').click();
+  await page.waitForFunction(()=>document.querySelector('#foldCanvas')?.offsetWidth>0&&document.querySelector('#solution').textContent.includes('上下界均取不到'));
+  const result=await page.evaluate(()=>JSON.parse(localStorage.getItem('zhigeometry:last')).solution);
+  assert.equal(result.completion.answered,3);assert.equal(result.completion.total,3);assert.equal(result.parts.length,3);assert.equal(result.parts[1].model_answer,'待推导');assert(result.parts[2].answer.includes('3<|MN|<4'));
+  assert.equal(result.scene.points.P.join(','),'0,0');assert.equal(result.scene.dynamicIntersectionLabels.join(''),'MN');
+  assert.equal(await page.locator('.katex-error').count(),0);
+  assert.match(await page.locator('#foldReadout').textContent(),/理论范围/);
+  const length=Number(await page.locator('.fold-space').getAttribute('data-length'));assert(Math.abs(length-Math.sqrt(12.5))<1e-9);
+  await screenshot('user-circle-fold-space.png','.board-shell');
+  await page.locator('#foldTheta').fill('90');await page.locator('#foldTheta').dispatchEvent('input');
+  assert.equal(await page.locator('.fold-controls').getAttribute('data-admissible'),'false');assert.match(await page.locator('#foldReadout').textContent(),/不是可取的最值/);
+  await page.locator('#foldTheta').fill('30');await page.locator('#foldTheta').dispatchEvent('input');assert.equal(await page.locator('.fold-controls').getAttribute('data-admissible'),'true');
+  await page.locator('[data-fold-mode="flat"]').click();assert(!await page.locator('.fold-space').isVisible());assert(await page.locator('#canvas').isVisible());
+  await page.locator('[data-study-part="all"]').click();await page.locator('[data-fold-mode="flat"]').click();
+  const labels=await page.evaluate(()=>window.DongBoardLabels.snapshot().placements.flatMap(n=>n.names||[]));for(const name of ['M','N','P','O'])assert(labels.includes(name),name);
+  await screenshot('user-circle-fold-plane.png','.board-shell');
+  await page.locator('[data-fold-mode="folded"]').click();
+  const board=await page.locator('#foldCanvas').boundingBox();await page.mouse.move(board.x+board.width/2,board.y+board.height/2);await page.mouse.down();await page.mouse.move(board.x+board.width/2+50,board.y+board.height/2+25);await page.mouse.up();
+  assert(Math.abs(Number(await page.locator('.fold-space').getAttribute('data-length'))-Math.sqrt(14.25))<1e-9,'View rotation must not change mathematical length');
+  await page.setViewportSize({width:390,height:844});await page.locator('[data-mobile-panel="board"]').click();
+  await page.waitForTimeout(100);assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));assert(await page.locator('#foldCanvas').isVisible());
+  await screenshot('user-circle-fold-mobile.png',null);
+  await page.reload({waitUntil:'domcontentloaded'});await page.waitForSelector('.fold-controls:not([hidden])',{state:'attached'});await page.locator('[data-mobile-panel="board"]').click();
+  assert.match(await page.locator('#foldReadout').textContent(),/理论范围/);
+  await page.locator('[data-mobile-panel="input"]').click();await page.locator('#clearButton').click();assert(!await page.locator('.fold-controls').isVisible());
+};

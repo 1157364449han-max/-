@@ -24,6 +24,7 @@
     return [solution.title,solution.restatement,solution.strategy,...(solution.parts||[]).flatMap(part=>[part.label,part.answer,...(part.steps||[])]),solution.external?.plain?solution.rawReply:'',solution.verification?.message].filter(Boolean).join('\n\n');
   }
   function attach(api) {
+    const foldView=window.DongCircleFoldView?.attach(api);
     const find = selector => document.querySelector(selector);
     const runtime = window.DongRuntime;
     // The public release has one solving entry. Retain the underlying local
@@ -308,6 +309,7 @@
     }
     function renderSolution() {
       const solution=api.state.solution;
+      foldView?.mount(solution);
       if(solution!==lastSolution||api.state.activePart!==lastStepPart||api.question.value!==lastStepQuestion)clearStepHighlight();
       lastStepPart=api.state.activePart;lastStepQuestion=api.question.value;
       if(solution!==lastSolution){lastSolution=solution;inspectorView=solution?.mode==='local-ollama'?'lesson':'geometry';inspector.scrollTop=0;}
@@ -536,6 +538,12 @@
         let exactSolution;
         try{exactSolution=api.solveDeterministic?.(original);}catch{}
         const exactScene=exactSolution?.scene,completion=exactSolution?.completion||{};
+        if(exactSolution?.engineExtensions?.includes('circle-fold')){
+          result.foldGeometry=exactSolution.foldGeometry;
+          result.model_parts=result.parts;
+          result.parts=exactSolution.parts.map(part=>result.model_parts.find(old=>Number(old.index)===Number(part.index))||{...part,source:'symbolic-verified-override'});
+          if(installGraph)result.scene=exactScene;
+        }
         const exactComplete=Number(completion.total)>0&&Number(completion.answered)===Number(completion.total)&&exactSolution.parts?.length===Number(completion.total)&&exactSolution.parts.every(completed);
         if(exactSolution?.parts?.length){
           const exactByIndex=new Map(exactSolution.parts.filter(completed).map(part=>[Number(part.index),part]));
@@ -783,7 +791,7 @@
     classroom=window.DongClassroom.attach({...api,renderSolution,sendFeedback:followup,showLearning:()=>setInspectorView('lesson'),saveStudy(){if(api.state.solution&&api.question.value.trim()===api.state.solution.restatement.trim()){try{saveLesson(true);}catch(error){report(error);}}}});
     window.DongQuestionBank?.attach({...api,restoreLesson,saveCurrent:()=>saveLesson(true),showLearning:()=>setInspectorView('lesson')});
     renderDraftRecovery();
-    return {refreshEngine,renderSolution,solve,clearStepHighlight};
+    return {refreshEngine,renderSolution,solve,clearStepHighlight,refreshFold:()=>foldView?.refresh()};
   }
   window.DongLearning={attach,questionRepairSuggestion};
 })();
