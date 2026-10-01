@@ -1,13 +1,13 @@
 'use strict';
 
-const VERSION = '0.47.1';
+const VERSION = '0.47.2';
 const CACHE = `dongjiexi-app-${VERSION}`;
 const CORE = [
   './question-parts.js', './parabola-focal-data.js', './goal-coverage.js',
   './hyperbola-iteration.js',
   './parabola-locus.js',
   './label-layout.js', './step-highlight.js',
-  './scene-merge.js',
+  './scene-merge.js', './answer-geometry.js',
   './conic-parameter.js',
   './math-input.js', './number-display.js', './tangent-solver.js', './ellipse-distance.js', './orthogonal-chord.js', './ellipse-focal-chord.js', './axis-intercept-chord.js',
   './', './index.html', './offline.html', './manifest.webmanifest', './app-version.json',

@@ -38,7 +38,7 @@ module.exports = async ({page, context, assert}) => {
   for(const mode of ['network','unavailable']){
     transport=mode;await page.locator('#cloudLogin').click();
     await page.waitForFunction(()=>document.querySelector('#cloudAuthFeedback')?.dataset.state==='error');
-    assert.match(await page.locator('#cloudConnectionText').textContent(),/服务连接失败.*口令尚未验证/);
+    assert.match(await page.locator('#cloudConnectionText').textContent(),mode==='network'?/服务连接失败.*口令尚未验证/:/服务暂不可用/);
     assert.doesNotMatch(await page.locator('#cloudConnectionText').textContent(),/口令错误|会话失效/);
   }
   transport='ok';

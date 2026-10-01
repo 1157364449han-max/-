@@ -55,7 +55,8 @@
     if(runtime.config.deployment==='web'||runtime.config.apiBase)workflowSelect.querySelector('[value="model"]').disabled=true;
     const modePanel = find('#solveModePanel'), modeToggle = find('#solveModeToggle');
     const cloudDialog=find('#cloudAuthDialog'),cloudFeedback=find('#cloudAuthFeedback');
-    let cloudCheckPending=false, lastCloudCheck=0, cloudUnavailable=false;
+    let cloudCheckPending=false, cloudCheckQueued=false, lastCloudCheck=0, cloudUnavailable=false;
+    let cloudNetworkOffline=navigator.onLine===false, cloudConnectionEpoch=0;
     function showCloudFallback(show,message=''){
       cloudUnavailable=show;
       const warning=find('#cloudOutage');
@@ -72,28 +73,39 @@
     }
     function cloudFailure(error){
       if(solveMode!=='cloud')return;
-      if(['auth_rejected','session_expired'].includes(error.code)){showCloudFallback(false);return;}
+      if(['auth_rejected','session_expired'].includes(error.code)){
+        showCloudFallback(false);engineReady=false;find('#engineStatus').classList.remove('ready');find('#cloudVisionChoice').hidden=true;
+        setCloudConnection('disconnected',error.code==='auth_rejected'?'云端：口令错误，请重新输入':'云端：会话已过期，请重新输入访问口令');
+        find('#engineStatus').textContent='在线解题需要重新授权 · 不是云端掉线';renderEngineRoute();return;
+      }
       if(['network','timeout','service_unavailable','invalid_response','rate_limited'].includes(error.code)){
-        const message=cloudOnly?(error.code==='rate_limited'?'云端当前请求较多，请稍后重试。题目、草稿和画板仍保留。':navigator.onLine===false?'当前设备已离线，无法连接云端。题目、草稿和画板仍保留；恢复网络后重试。':'云端暂时无法连接，可能是网络或服务中断。题目、草稿和画板仍保留；请稍后重试。'):error.code==='rate_limited'?'云端当前请求较多，建议稍后重试或改用本机解题。':navigator.onLine===false?'当前设备已离线，无法连接云端。推荐改用本机解题。':'云端暂时无法连接，可能是网络或服务中断。推荐改用本机解题。';
+        const offline=cloudNetworkOffline||navigator.onLine===false;
+        const detail=error.code==='rate_limited'?(error.message||'云端当前请求较多，请稍后重试。'):offline?'当前设备已离线，恢复网络后重试。':error.code==='timeout'?'云端连接超时，请稍后重试。':error.code==='invalid_response'?'云端返回信息异常，请重试或联系管理员。':error.code==='service_unavailable'?'云端服务暂不可用，请稍后重试。':'当前网络无法连接云端。Wi-Fi 下持续失败时，可切换移动数据对比；这不表示口令错误。';
+        const message=detail+(cloudOnly?'题目、草稿和画板仍保留。':'题目、草稿和画板仍保留，推荐改用本机解题。');
         const firstFailure=!cloudUnavailable;
         engineReady=false;showCloudFallback(true,message);
         find('#engineStatus').classList.remove('ready');find('#engineStatus').textContent=cloudOnly?'云端暂不可用 · 画板和草稿仍可使用':'云端增强暂不可用 · 可改用本机内置解题';
         find('#cloudVisionChoice').hidden=true;renderEngineRoute();
         if(firstFailure)api.setStatus(message,true);
-        setCloudConnection('failed',error.code==='rate_limited'?'云端：请求过于频繁':runtime.hasSession()?'云端：已授权，但服务连接失败':'云端：服务连接失败，口令尚未验证');
+        setCloudConnection(error.code==='rate_limited'?'busy':'failed',error.code==='rate_limited'?'云端：暂时限流 · 请稍后重试':offline?'云端：设备已离线':error.code==='timeout'?'云端：连接超时':error.code==='invalid_response'?'云端：返回信息异常':error.code==='service_unavailable'?'云端：服务暂不可用':runtime.hasSession()?'云端：已授权，但服务连接失败':'云端：服务连接失败，口令尚未验证');
       }
     }
     async function checkCloudConnection(force=false){
-      if(solveMode!=='cloud'||!runtime.config.apiEnabled||processing||cloudCheckPending||document.hidden||(!force&&Date.now()-lastCloudCheck<45000))return;
+      if(solveMode!=='cloud'||!runtime.config.apiEnabled||processing||document.hidden||(!force&&Date.now()-lastCloudCheck<45000))return;
+      // Explicit retry checks actual connectivity even when a browser missed an
+      // online event after waking; never bypass a currently offline navigator.
+      if(force&&navigator.onLine!==false&&cloudNetworkOffline){cloudNetworkOffline=false;cloudConnectionEpoch++;}
+      if(cloudCheckPending){if(force)cloudCheckQueued=true;return;}
+      const epoch=cloudConnectionEpoch;
       cloudCheckPending=true;lastCloudCheck=Date.now();
       try{
-        if(navigator.onLine===false)throw Object.assign(new Error('设备已离线'),{code:'network'});
+        if(cloudNetworkOffline||navigator.onLine===false)throw Object.assign(new Error('设备已离线'),{code:'network'});
         const result=await runtime.probeCloud();
-        if(solveMode!=='cloud')return;
+        if(solveMode!=='cloud'||epoch!==cloudConnectionEpoch)return;
         if(result.needsAuth&&!runtime.hasSession()){showCloudFallback(false);await refreshEngine();setCloudConnection('disconnected','云端：服务可达，请输入访问口令');}
         else await refreshEngine(false,result.data);
-      }catch(error){cloudFailure(error);}
-      finally{cloudCheckPending=false;}
+      }catch(error){if(epoch===cloudConnectionEpoch)cloudFailure(error);}
+      finally{cloudCheckPending=false;if(cloudCheckQueued){cloudCheckQueued=false;void checkCloudConnection(true);}}
     }
     function setCloudConnection(state,message){
       const panel=find('#cloudConnection'),text=find('#cloudConnectionText');
@@ -119,8 +131,8 @@
     find('#cloudAuthUseLocal').addEventListener('click',useLocalSolver);
     find('#cloudOutageShortcut').addEventListener('click',useLocalSolver);
     find('#retryCloudConnection').addEventListener('click',()=>checkCloudConnection(true));
-    window.addEventListener('offline',()=>cloudFailure({code:'network'}));
-    window.addEventListener('online',()=>checkCloudConnection(true));
+    window.addEventListener('offline',()=>{cloudNetworkOffline=true;cloudConnectionEpoch++;engineRefreshId++;cloudFailure({code:'network'});});
+    window.addEventListener('online',()=>{cloudNetworkOffline=false;cloudConnectionEpoch++;void checkCloudConnection(true);});
     document.addEventListener('visibilitychange',()=>{if(!document.hidden)void checkCloudConnection(true);});
     setInterval(()=>checkCloudConnection(),45000);
     modePanel.querySelectorAll('[data-solve-mode]').forEach(button=>button.addEventListener('click',()=>selectMode(button.dataset.solveMode)));
@@ -279,7 +291,10 @@
       const modelDetails=model?`<details class="problem-model"><summary>结构化题目模型 · ${model.curve?escapeText(model.curve.kind):'曲线未确定'} · ${model.parts?.length||0} 问</summary><p>输入确认：${model.source?.confirmed?'已确认':'存在模糊字段'}；点 ${model.points?.length||0} 个；直线 ${model.lines?.length||0} 条。</p>${model.source?.ambiguities?.length?`<p class="verification-conflict">未确认：${escapeText(model.source.ambiguities.join('、'))}</p>`:''}</details>`:'';
       const checkList=(part)=>{const checks=(report.checks||[]).filter(item=>item.part==null||Number(item.part)===Number(part.index));if(!checks.length)return '';return `<details class="verification-details"><summary>查看本问机器核验（${checks.length} 项）</summary><ul>${checks.map(item=>`<li class="check-${escapeText(item.status)}"><strong>${escapeText(checkNames[item.status]||item.status)}</strong> · ${escapeText(item.label)}：${escapeText(item.detail)}${item.formula?textBlock('$'+item.formula+'$'):''}</li>`).join('')}</ul></details>`;};
       const audit=solution.sceneAudit;
-      const diagramReport=audit?`<details class="diagram-audit"><summary>图形核对 · 缺失点 ${audit.missing?.length||0} · 缺失线 ${audit.missingLines?.length||0} · 无效构造 ${audit.invalid?.length||0}</summary><p>${escapeText(audit.note)}</p>${!all?'<button type="button" class="button secondary" data-diagram-recheck>重新核对当前图形</button>':''}${audit.missing?.length?`<p class="verification-conflict">题目声明但未找到的点：${escapeText(audit.missing.join('、'))}。请补充构造或复制修正请求。</p>`:''}${audit.missingLines?.length?`<p class="verification-conflict">尚未找到的直线或切线：${escapeText(audit.missingLines.join('、'))}。</p>`:''}${audit.invalid?.length?`<p class="verification-conflict">当前无法构造：${escapeText(audit.invalid.join('、'))}。</p>`:''}<ul>${(audit.checks||[]).filter(c=>all||window.DongSceneAudit.visible(c,active)).map(c=>`<li>${c.passed?'✓':'未通过'} ${escapeText(c.label)}：${escapeText(c.detail)}</li>`).join('')}</ul></details>`:'';
+      const graphIssues=audit?[...(audit.missing||[]),...(audit.answerMissing||[]),...(audit.missingLines||[]),...(audit.answerMissingLines||[]),...(audit.unavailable||[]),...(audit.missingPolygons||[]),...(audit.invalid||[]),...(audit.answerConflicts||[]).map(n=>n.label+'（关系冲突）')]:[];
+      const graphNotice=graphIssues.length?`<p class="verification-conflict geometry-notice" role="status">图形尚未完整呈现：${escapeText([...new Set(graphIssues)].slice(0,12).join('、'))}。展开“图形核对”查看原因；文字作答完成不代表画板完整。</p>`:'';
+      const auditRows=audit?[['题目声明但未找到的点',audit.missing],['答案中尚未呈现的点',audit.answerMissing],['尚未找到的直线或切线',audit.missingLines],['答案中尚未呈现的切线',audit.answerMissingLines],['当前构型无法定位的点',audit.unavailable],['顶点不完整、暂未绘制的多边形',audit.missingPolygons],['当前无法构造',audit.invalid],['已有同名点的关系冲突',(audit.answerConflicts||[]).map(n=>n.label+'：'+n.reason)]].filter(([,items])=>items?.length).map(([label,items])=>`<p class="verification-conflict">${escapeText(label)}：${escapeText(items.join('、'))}。</p>`).join(''):'';
+      const diagramReport=audit?`${graphNotice}<details class="diagram-audit"><summary>图形核对 · 缺失点 ${(audit.missing?.length||0)+(audit.answerMissing?.length||0)} · 缺失线 ${(audit.missingLines?.length||0)+(audit.answerMissingLines?.length||0)} · 无效构造 ${audit.invalid?.length||0}</summary><p>${escapeText(audit.note)}</p>${!all?'<button type="button" class="button secondary" data-diagram-recheck>重新核对当前图形</button>':''}${auditRows}${audit.answerUnresolved?.length?'<p>'+escapeText(audit.answerUnresolved.map(n=>n.label+'：'+n.reason).join('；'))+'</p>':''}<ul>${(audit.checks||[]).filter(c=>all||window.DongSceneAudit.visible(c,active)).map(c=>`<li>${c.passed?'✓':'未通过'} ${escapeText(c.label)}：${escapeText(c.detail)}</li>`).join('')}</ul></details>`:'';
       const stepLinks=!all&&typeof api.highlightStep==='function';
       const linkToolbar=stepLinks?'<div class="step-graph-toolbar" hidden><span data-step-graph-status role="status" aria-live="polite"></span><button type="button" data-step-graph-clear>清除高亮</button></div>':'';
       const partMarkup=visible.map(part=>{const partTrust=part.verification||(solution.mode==='symbolic-fallback'&&part.status==='answered'?{status:report.status||'generated',message:'内置确定性复算'}:{status:'generated',message:'仅生成'});const derivation=part.derivation||{};const obligations=derivation.proof_obligations||[];return `<section class="part-body" data-part-index="${escapeText(part.index)}"><h3>${escapeText(part.label||'本问')}</h3><span class="answer-status ${['answered','partial','needs_information'].includes(part.status)?part.status:'partial'}">${escapeText(statusNames[part.status]||'请核对解答')}</span><span class="verification-status ${escapeText(partTrust.status||'generated')}">${escapeText(verificationNames[partTrust.status]||partTrust.message||'待核验')}</span><div class="answer-summary">${textBlock(part.answer)}</div><ol>${(part.steps||[]).map((step,index)=>'<li>'+textBlock(step)+(stepLinks?`<button type="button" class="step-graph-link" data-step-graph-part="${Number(part.index)||0}" data-step-graph-index="${index}" aria-pressed="false" aria-label="高亮第 ${index+1} 步对应图形">对应图形</button>`:'')+'</li>').join('')}</ol>${obligations.length?`<details class="proof-obligations"><summary>尚需完成的证明义务（${obligations.length}）</summary><ul>${obligations.map(item=>'<li>'+textBlock(item)+'</li>').join('')}</ul></details>`:''}${part.quality_notice?`<p class="verification-conflict">${escapeText(part.quality_notice)}</p>`:''}${part.model_answer?`<details><summary>查看 AI 原始判断（未证实）</summary>${textBlock(part.model_answer)}</details>`:''}${checkList(part)}</section>`;}).join('');
@@ -305,6 +320,8 @@
       panel.querySelector('[data-diagram-recheck]')?.addEventListener('click',()=>{
         if(!api.state.model||!solution.scene)return;
         solution.sceneAudit=window.DongSceneAudit.inspect(api.sceneData(),solution.restatement,solution.parts,window.DongConstruct);
+        const relationCheck=window.DongAnswerGeometry?.install(JSON.parse(JSON.stringify(api.sceneData())),solution.parts,window.DongConstruct);
+        if(relationCheck?.conflicts?.length)solution.sceneAudit.answerConflicts=relationCheck.conflicts;
         solution.sceneAudit.note=api.state.exploring?'当前已调整参数；这是当前图形的数值核对，不验证原题答案及一般性证明。':'已核对当前图形的数值构造，不是一般性证明。';
         renderSolution();find('#solution .diagram-audit').open=true;api.remember();
       });
@@ -352,6 +369,7 @@
         renderEngineRoute();return;
       }
       const needsLogin=remote&&runtime.config.requiresAuth&&!runtime.hasSession();
+      if(remote&&solveMode==='cloud'&&(cloudNetworkOffline||navigator.onLine===false)){cloudFailure({code:'network'});return;}
       find('#cloudAuth').hidden=!remote||!runtime.config.requiresAuth||solveMode!=='cloud';
       if(needsLogin){
         engineReady=false;
@@ -409,6 +427,7 @@
     }
     async function runJob(body,done) {
       if(activeJob)return;
+      let rateLimited=false;
       activeJob='pending';find('#cancelJob').disabled=true;
       busy(true);find('#jobPhase').textContent='正在连接解题引擎…';
       try{
@@ -429,8 +448,8 @@
         if(current.status==='failed')throw new Error(current.error||'解题任务未完成。');
         if(current.status==='cancelled'){if(body.kind==='solve')progress('error','本次解题已停止。');api.setStatus('任务已停止，已有题目和解析仍保留。');return;}
         await done(current.result);
-      }catch(error){if(error.name==='AbortError'){if(body.kind==='solve')progress('error','本次解题已停止。');api.setStatus('任务已停止，当前题稿保留。');return;}if(body.kind==='solve')progress('error','解题未完成：'+(error.message||String(error)));cloudFailure(error);report(error);}
-      finally{streamController=null;activeJob=null;busy(false);refreshEngine();}
+      }catch(error){if(error.name==='AbortError'){if(body.kind==='solve')progress('error','本次解题已停止。');api.setStatus('任务已停止，当前题稿保留。');return;}rateLimited=error.code==='rate_limited';if(body.kind==='solve')progress('error','解题未完成：'+(error.message||String(error)));cloudFailure(error);report(error);}
+      finally{streamController=null;activeJob=null;busy(false);if(!rateLimited)refreshEngine();}
     }
     function snapshot() {
       return {format:'dongjiexi-lesson',version:1,id:crypto.randomUUID(),savedAt:new Date().toISOString(),title:api.state.solution?.title||api.question.value.slice(0,32)||'未命名图稿',question:api.question.value,scene:api.state.model?api.sceneData():null,solution:api.state.solution||null,activePart:api.state.activePart,exploring:!!api.state.exploring};
@@ -700,14 +719,15 @@
       const input=find('#cloudAccessKey');
       try{
         find('#cloudLogin').disabled=true;
+        cloudConnectionEpoch++;engineRefreshId++;
         cloudFeedback.dataset.state='checking';cloudFeedback.textContent='正在验证口令并检测云端服务…';setCloudConnection('checking','云端：正在验证访问口令…');
         await runtime.authenticate(input.value);
-        await runtime.request('/api/health');
+        const health=await runtime.request('/api/health');
         input.value='';
         for(const id of ['solveButton','recognizeButton','engineRefresh'])find('#'+id).disabled=false;
         cloudFeedback.dataset.state='success';cloudFeedback.textContent='授权成功，正在确认云端模型状态。';setCloudConnection('connected','云端：连接成功 · 正在读取模型');
         api.setStatus('在线解题授权成功，本次浏览器会话内有效。');
-        await refreshEngine();
+        await refreshEngine(false,health);
         cloudFeedback.dataset.state=engineReady?'success':'error';cloudFeedback.textContent=engineReady?'连接成功。云端模型已就绪。':cloudOnly?'授权成功，但云端模型暂不可用。题目和画板保留，请稍后重试。':'授权成功，但云端模型暂不可用。可以改用本机解题。';
         if(engineReady)setTimeout(()=>{if(cloudDialog.open)cloudDialog.close();},500);
       }catch(error){cloudFeedback.dataset.state='error';cloudFeedback.textContent=error.message||'连接失败，请检查网络或服务状态。';const label=error.code==='auth_rejected'?'云端：口令错误':error.code==='session_expired'?'云端：会话失效':error.code==='rate_limited'?'云端：尝试过于频繁':error.code==='empty_key'?'云端：请输入口令':runtime.hasSession()?'云端：已授权，但服务连接失败':'云端：服务连接失败，口令尚未验证';setCloudConnection('failed',label);cloudFailure(error);report(error);input.focus();input.select();}

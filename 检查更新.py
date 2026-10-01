@@ -91,6 +91,7 @@ def install_archive(archive, root=ROOT):
             (0, 46, 0): ("hyperbola_iteration.py", "dist/hyperbola-iteration.js"),
             (0, 47, 0): ("question_parts.py", "parabola_focal_data.py", "dist/question-parts.js", "dist/parabola-focal-data.js"),
             (0, 47, 1): ("dist/goal-coverage.js",),
+            (0, 47, 2): ("dist/answer-geometry.js",),
         }
         for minimum, modules in added_modules.items():
             if version_tuple(config.get("version")) >= minimum and not all((source / name).is_file() for name in modules):

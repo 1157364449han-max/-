@@ -62,6 +62,20 @@ async function run(){
   race.storage.set('dongjiexi:cloud-session',sessionValue('fresh'));rejectOld();
   await assert.rejects(oldRequest,error=>error.code==='session_expired');assert(race.api.hasSession());
   assert.equal(JSON.parse(race.storage.get('dongjiexi:cloud-session')).token,'fresh','Late old-token errors must not erase a renewed session');
+  const oldStream=race.api.streamJob({kind:'solve',text:'protocol fixture'});
+  race.storage.set('dongjiexi:cloud-session',sessionValue('newest'));rejectOld();
+  await assert.rejects(oldStream,error=>error.code==='session_expired');
+  assert.equal(JSON.parse(race.storage.get('dongjiexi:cloud-session')).token,'newest','A late stream 401 must also preserve the renewed token');
+  const malformed=runtime(async()=>({...response(200,{}),json:async()=>{throw new SyntaxError('Invalid JSON');}}));
+  await assert.rejects(malformed.api.probeCloud(),error=>error.code==='invalid_response');
+  await assert.rejects(malformed.api.authenticate('课堂口令'),error=>error.code==='invalid_response');
+  const stalled=runtime(async(url,init)=>({...response(200,{}),json:()=>new Promise((resolve,reject)=>init.signal.addEventListener('abort',()=>reject(Object.assign(new Error('Aborted body'),{name:'AbortError'}))))}),
+    {setTimeout:fn=>setTimeout(fn,10)});
+  await assert.rejects(stalled.api.authenticate('课堂口令'),error=>error.code==='timeout','The deadline covers JSON reading, not just the arrival of headers');
+  const invalidStored=runtime(async()=>response(200,{}));
+  for(const value of [{token:42,expiresAt:Date.now()+600000},{token:'x',expiresAt:'invalid'},{token:' ',expiresAt:Date.now()+600000}]){
+    invalidStored.storage.set('dongjiexi:cloud-session',JSON.stringify(value));assert(!invalidStored.api.hasSession());
+  }
   console.log('PASS network/HTTP/auth/timeout classification, Chinese phrase trim, endpoint-bound sessions and invalid tokens');
 }
 run().catch(error=>{console.error(error);process.exitCode=1;});

@@ -1,0 +1,45 @@
+module.exports=async({page,context,assert,screenshot})=>{
+  const fs=require('node:fs'),path=require('node:path');
+  const input=JSON.parse(fs.readFileSync(path.join(__dirname,'fixtures/sourced-exam-additions.json'),'utf8')).items.find(n=>n.id==='2022-beijing-10');
+  await page.evaluate(async()=>{for(const r of await navigator.serviceWorker.getRegistrations())await r.unregister();for(const k of await caches.keys())await caches.delete(k);});
+  await context.route('**/runtime-config.js',r=>r.fulfill({contentType:'application/javascript',body:'window.DONGJIEXI_CONFIG={deployment:"web",apiEnabled:true,requiresAuth:false};'}));
+  await context.route('**/api/health',r=>r.fulfill({json:{app:'董解析',default_model:'test-cloud',capabilities:{transport:'sse'},engine:{available:true,remote:true,models:['test-cloud']}}}));
+  // Original 2022 Beijing question; explicit reply fixtures exercise integration,
+  // not a paid model call, automatic proof, or new production lookup answer.
+  let answer={title:'原卷题答案构造协议回归',parts:[{index:0,status:'answered',answer:'$[-4,6]$',steps:['取C为原点、A(3,0)、B(0,4)，由PC=1知P在单位圆上。','设N为AB的中点。点P到直线AB的垂足为H，连接PH。作点P处的切线。','向量数量积等于 $1-3x-4y$，由 $x^2+y^2=1$ 得范围 $[-4,6]$。观察△PAB。']}],scene:{type:'circle',h:0,k:0,r:1,dynamicLine:false,points:{A:[3,0],B:[0,4],C:[0,0]},curvePoints:[{name:'P',t:.9}]}};
+  await context.route('**/api/stream',r=>r.fulfill({contentType:'text/event-stream',body:'data: '+JSON.stringify({choices:[{delta:{content:JSON.stringify(answer)}}]})+'\n\ndata: '+JSON.stringify({choices:[{delta:{},finish_reason:'stop'}]})+'\n\ndata: [DONE]\n\n'}));
+  await page.evaluate(()=>localStorage.setItem('dongjiexi:solve-mode:v1','cloud'));await page.reload({waitUntil:'domcontentloaded'});
+  await page.waitForFunction(()=>document.querySelector('#engineStatus').classList.contains('ready'));
+  await page.locator('#question').fill(input.question);await page.locator('#solveButton').click();
+  await page.waitForFunction(()=>!document.querySelector('#solveButton').disabled&&document.querySelector('#solution').textContent.includes('原卷题答案构造协议回归'));
+  const result=await page.evaluate(()=>JSON.parse(localStorage.getItem('zhigeometry:last')).solution);
+  assert(result.scene.objects.some(n=>n.label==='N'&&n.op==='midpoint'));
+  assert(result.scene.objects.some(n=>n.label==='H'&&n.op==='foot'));
+  assert(result.scene.objects.some(n=>n.label==='P 点切线'&&n.op==='tangent'));
+  assert(result.scene.objects.some(n=>n.label==='PH'&&n.op==='segment'));
+  assert(result.scene.polygons.some(n=>n.label==='△PAB'));
+  assert.equal(result.sceneAudit.answerMissing.length,0,JSON.stringify(result.sceneAudit));
+  assert.equal(result.sceneAudit.answerMissingLines.length,0);
+  assert.equal(result.sceneAudit.invalid.length,0);
+  assert(!await page.locator('.geometry-notice').isVisible());
+  const visibleLabels=await page.evaluate(()=>window.DongBoardLabels.snapshot().placements.flatMap(n=>n.names||[]));
+  for(const name of ['A','B','P','N','H'])assert(visibleLabels.includes(name),'Auto-fit must display '+name+', not crop it outside the conic-only viewport');
+  await page.locator('.diagram-audit summary').click();
+  assert.match(await page.locator('.diagram-audit').textContent(),/切点在曲线上/);
+  await page.locator('[data-step-graph-index="1"]').click();
+  assert.match(await page.locator('[data-step-graph-status]').textContent(),/高亮/);
+  await screenshot('answer-auxiliary-point-foot-tangent.png',null);
+  answer.parts[0].steps.push('作点A处的切线。设点Z为未知线段UV的中点。观察△PAZ。');
+  await page.locator('#solveButton').click();
+  await page.waitForFunction(()=>!document.querySelector('#solveButton').disabled&&document.querySelector('.geometry-notice')?.textContent.includes('A 点切线'));
+  const gap=await page.evaluate(()=>JSON.parse(localStorage.getItem('zhigeometry:last')).solution);
+  assert(!gap.scene.objects.some(n=>n.label==='A 点切线'));
+  assert(gap.sceneAudit.answerMissing.includes('Z'));
+  assert(gap.sceneAudit.missingPolygons.includes('△PAZ'));
+  assert.match(await page.locator('.geometry-notice').textContent(),/文字作答完成不代表画板完整/);
+  await page.setViewportSize({width:390,height:844});await page.locator('[data-mobile-panel="lesson"]').click();
+  assert(await page.locator('.geometry-notice').isVisible());
+  assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));
+  assert.equal(await page.locator('#solution .katex-error').count(),0);
+  await screenshot('answer-geometry-gap-mobile.png',null);
+};

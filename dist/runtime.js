@@ -14,7 +14,7 @@
   function readSession() {
     try {
       const value = JSON.parse(sessionStorage.getItem(sessionKey) || 'null');
-      if (!value?.token || Number(value.expiresAt || 0) <= Date.now() + 5000) return null;
+      if (typeof value?.token !== 'string' || !value.token.trim() || !Number.isFinite(value.expiresAt) || value.expiresAt <= Date.now() + 5000) return null;
       if (value.apiBase != null && value.apiBase !== config.apiBase) return null;
       return value;
     } catch { return null; }
@@ -41,7 +41,7 @@
   async function request(path, body, options = {}) {
     const session = readSession();
     if (config.requiresAuth && path !== '/api/session' && !session) {
-      throw new Error('在线解题尚未授权，请先输入访问口令。');
+      throw failure('session_expired', '在线解题尚未授权，请先输入访问口令。', 401);
     }
     const init = body === undefined ? {} : {
       method: 'POST',
@@ -50,19 +50,25 @@
     };
     init.headers = {...(init.headers || {}), ...(session ? {Authorization: `Bearer ${session.token}`} : {})};
     const url = apiUrl(path);
-    let response;
+    let response, data;
     const controller = options.signal ? null : new AbortController();
     const timer = controller ? setTimeout(() => controller.abort(), 20000) : null;
-    try { response = await fetch(url, {...init, ...options, signal: options.signal || controller.signal}); }
+    try {
+      response = await fetch(url, {...init, ...options, signal: options.signal || controller.signal});
+      if (response.status === 401) clearRejectedSession(session);
+      data = null;
+      if ((response.headers.get('content-type') || '').includes('application/json')) {
+        try { data = await response.json(); }
+        catch (error) { if (error.name === 'AbortError') throw error; if (response.ok) throw failure('invalid_response', '云端返回的数据格式无效，请重试或联系管理员。'); }
+      }
+    }
     catch (error) {
       if (controller?.signal.aborted) throw failure('timeout', path === '/api/session' ? '云端连接超时，访问口令尚未完成验证。' : '云端连接超时，请稍后重试。画板与题稿仍可使用。');
       if (error.name === 'AbortError') throw error;
+      if (error.code) throw error;
       throw failure('network', '无法连接云端服务，请检查网络，或由管理员检查服务地址。这不表示访问口令错误。');
     }
     finally { if (timer) clearTimeout(timer); }
-    const type = response.headers.get('content-type') || '';
-    const data = type.includes('application/json') ? await response.json() : null;
-    if (response.status === 401) clearRejectedSession(session);
     if (!response.ok) {
       const code = response.status === 401 ? (path === '/api/session' ? 'auth_rejected' : 'session_expired') :
         response.status === 429 ? 'rate_limited' : 'service_unavailable';
@@ -82,8 +88,12 @@
       const response = await fetch(url, {method: 'GET', cache: 'no-store', credentials: 'omit',
         headers: session ? {Authorization: `Bearer ${session.token}`} : {}, signal: controller.signal});
       if (response.status === 401) { clearRejectedSession(session); return {reachable: true, needsAuth: true}; }
-      if (!response.ok) throw failure(response.status === 429 ? 'rate_limited' : 'service_unavailable', `云端服务暂不可用（HTTP ${response.status}）。`, response.status);
-      const data = (response.headers.get('content-type') || '').includes('application/json') ? await response.json() : null;
+      let data = null;
+      if ((response.headers.get('content-type') || '').includes('application/json')) {
+        try { data = await response.json(); }
+        catch (error) { if (error.name === 'AbortError') throw error; if(response.ok)throw failure('invalid_response', '云端健康信息格式无效，请重试或联系管理员。'); }
+      }
+      if (!response.ok) throw failure(response.status === 429 ? 'rate_limited' : 'service_unavailable', data?.error || `云端服务暂不可用（HTTP ${response.status}）。`, response.status);
       if (!data || !['董解析', '智几何'].includes(data.app) || !data.engine || typeof data.engine !== 'object')
         throw failure('invalid_response', '服务地址未返回董解析健康信息，请联系管理员。');
       return {reachable: true, needsAuth: config.requiresAuth && !session, data};
@@ -116,7 +126,7 @@
       const response=await fetch(apiUrl('/api/stream'),{method:'POST',headers:{'Content-Type':'application/json',...(session?{Authorization:`Bearer ${session.token}`}:{})},body:JSON.stringify(body),signal:controller.signal});
       if(!response.ok){
         const data=(response.headers.get('content-type')||'').includes('application/json')?await response.json():null;
-        if(response.status===401)clearSession();
+        if(response.status===401)clearRejectedSession(session);
         throw failure(response.status===401?'session_expired':response.status===429?'rate_limited':'service_unavailable',data?.error||'云端解题服务暂不可用。',response.status);
       }
       if(!(response.headers.get('content-type')||'').includes('text/event-stream')||!response.body)throw failure('invalid_response','云端没有返回流式答案。');

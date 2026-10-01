@@ -13,6 +13,8 @@
     for(const re of [new RegExp('(?:定点|动点|点|焦点|顶点|中点|切点)'+n,'g'),new RegExp(n+'[（(][^()（）]{1,50}[,，][^()（）]{1,50}[）)]','g'),new RegExp('(?:交于(?:不同的)?(?:两点|点)?|切点(?:分别)?为|中点(?:记)?为|对称点(?:记)?为)'+n+'(?:[、,，和与及]'+n+')?','g'),new RegExp(n+'(?:为|是)(?:点|线段|弦|三角形)','g')])for(const m of s.matchAll(re)){add(m[1]);add(m[2]);}
     for(const m of s.matchAll(/(?:△|三角形|四边形|矩形|平行四边形|正方形)([A-Z]{3,4})(?![A-Z])/g))for(const c of m[1])add(c);
     for(const m of s.matchAll(new RegExp('(?:连接|连结|直线|线段)'+n+n,'g'))){add(m[1]);add(m[2]);}
+    for(const m of s.matchAll(new RegExp(n+'(?:为|是)(?:线段|弦)?'+n+n+'的?中点','g'))){add(m[1]);add(m[2]);add(m[3]);}
+    for(const m of s.matchAll(new RegExp('(?:垂足|交点)(?:记为|为|是)(?:点)?'+n,'g')))add(m[1]);
     return [...names];
   }
   function visible(item,active){
@@ -20,6 +22,36 @@
     if(active==null||Number(active)===0)return true;
     if(item?.part!=null)return Number(item.part)===Number(active);
     return !Array.isArray(item?.parts)||!item.parts.length||item.parts.some(p=>Number(p)===Number(active));
+  }
+  // Use the same named features and moving intersections as the board, including
+  // translated centres and secondary chords. This is a frame, never a proof.
+  function frame(scene,construct){
+    const h=Number(scene.h)||0,k=Number(scene.k)||0,v=scene.orientation==='vertical';
+    const curve=scene.type==='circle'?{q:{A:1,B:0,C:1,D:-2*h,E:-2*k,F:h*h+k*k-scene.r**2},pointAt:t=>({x:h+scene.r*Math.cos(t),y:k+scene.r*Math.sin(t)})}:construct.conicShape({...scene,conicType:scene.type});
+    if(!curve?.q)return null;
+    const fs=[],add=(name,x,y,kind='point')=>{const index=fs.findIndex(p=>p.name===name),p={name,x,y,kind};if(index>=0)fs[index]=p;else fs.push(p);};
+    if(scene.type==='parabola'){
+      const c=scene.p*(scene.direction||1);add('O',0,0);add('V',h,k,'vertex');add('F',h+(v?0:c),k+(v?c:0),'focus');
+    }else{
+      add('O',h,k,'center');
+      if(scene.type!=='circle'){
+        const c=scene.type==='ellipse'?Math.sqrt(scene.a**2-scene.b**2):Math.hypot(scene.a,scene.b);
+        for(const [name,d,kind] of [['F₁',-c,'focus'],['F₂',c,'focus'],['A₁',-scene.a,'vertex'],['A₂',scene.a,'vertex']])add(name,h+(v?0:d),k+(v?d:0),kind);
+      }
+    }
+    for(const [name,p] of Object.entries(scene.points||{}))if(!scene.pointBindings?.[name])add(name,p[0],p[1]);
+    let origin={x:h,y:k};
+    if(scene.lineThrough?.startsWith('point:'))origin=fs.find(p=>p.name===scene.lineThrough.slice(6))||origin;
+    else if(scene.lineThrough==='focus1'||scene.lineThrough==='focus2')origin=fs.find(p=>p.name===(scene.lineThrough==='focus1'?'F₁':'F₂'))||fs.find(p=>p.name==='F')||origin;
+    else if(scene.lineThrough==='vertex')origin=fs.find(p=>p.name==='V')||origin;
+    const theta=Number.isFinite(scene.theta)?scene.theta:42,theta2=Number.isFinite(scene.theta2)?scene.theta2:116;
+    if(scene.orthogonalChord&&root.DongOrthogonalChord)origin=root.DongOrthogonalChord.origin(scene,scene,theta);
+    const secant=(angle,names)=>{const rad=angle*Math.PI/180;construct.intersect({type:'line',o:origin,d:{x:Math.cos(rad),y:Math.sin(rad)}},{type:'conic',q:curve.q}).slice(0,2).forEach((p,i)=>{if(!fs.some(f=>f.name===names[i]))add(names[i],p.x,p.y);});};
+    if(scene.showDynamic!==false&&(scene.showDynamic===true||scene.dynamicLine===true))secant(theta,scene.dynamicIntersectionLabels||['A','B']);
+    if(scene.pairedChord)secant(theta2,scene.pairedChord.labels||['C','D']);
+    if(finite(scene.fixedPoint))add(scene.fixedPoint.name||'T',scene.fixedPoint.x,scene.fixedPoint.y);
+    const engine=construct.createEngine({model:()=>scene,features:()=>fs,coeffs:()=>curve.q,origin:()=>origin,angle:()=>theta,angle2:()=>theta2,conicPoint:curve.pointAt,conicProject:curve.project});
+    return {curve,features:fs,origin,engine};
   }
   function prepare(scene,question,parts=[]){
     if(!scene)return scene;
@@ -68,8 +100,9 @@
     return scene;
   }
   function inspect(scene,question,parts=[],construct){
-    const expected=declared(question),report={expected,missing:[],missingLines:[],invalid:[],checks:[],note:'生成时当前位置的数值核对，不是一般性证明；拖动后需重新核对。'};
-    if(!scene){report.missing=expected;return report;}
+    const answerText=parts.map(p=>[p.answer,...(p.steps||[])].filter(s=>typeof s==='string').join('。')).join('。');
+    const expected=declared(question),report={expected,missing:[],answerMissing:[],missingLines:[],answerMissingLines:[],unavailable:[],missingPolygons:[],invalid:[],checks:[],note:'生成时当前位置的数值核对，不是一般性证明；拖动后需重新核对。'};
+    if(!scene){report.missing=expected;report.answerMissing=declared(answerText).filter(n=>!expected.includes(n));return report;}
     const h=Number(scene.h)||0,k=Number(scene.k)||0,labels=new Set(Object.keys(scene.points||{}).map(canonical));
     for(const n of ['O',...(scene.type==='parabola'?['F','V']:scene.type==='circle'?[]:['F1','F2','A1','A2'])])labels.add(n);
     for(const n of scene.objects||[])if(n.kind==='point'||pointOps.has(n.op))labels.add(canonical(n.label));
@@ -77,6 +110,7 @@
     if(scene.pairedChord)for(const n of scene.pairedChord.labels||[])labels.add(canonical(n));
     if(scene.fixedPoint)labels.add(canonical(scene.fixedPoint.name||'T'));
     report.missing=expected.filter(n=>!labels.has(n));
+    report.answerMissing=declared(answerText).filter(n=>!labels.has(n)&&!expected.includes(n));
     const all=[...(scene.objects||[]),...(scene.lines||[])],qs=plain(question);
     const lineNames=[...qs.matchAll(/直线([a-zA-Z][0-9₀₁₂₃′]?|[A-Z][′]?[A-Z][′]?)(?![a-zA-Z])/g)].map(m=>canonical(m[1]));
     const present=new Set(all.filter(n=>['line','slope','vertical','through_points'].includes(n.kind)||['line','segment','ray','tangent','normal','parallel','perpendicular','line_angle'].includes(n.op)).map(n=>canonical(n.label).replace(/^(直线|线段|连接)/,'')));
@@ -85,23 +119,22 @@
     report.missingLines=[...new Set(lineNames)].filter(n=>!present.has(n));
     const contacts=new Map(all.filter(n=>n.op==='ellipse_tangent_point').map(n=>[n.id,n]));
     const tangents=all.filter(n=>n.op==='tangent'||n.role==='tangent'||n.op==='line'&&n.refs?.some(ref=>contacts.has(ref)&&n.refs.includes(contacts.get(ref).refs?.[0])));
+    const tangentPoints=new Set(tangents.map(n=>n.point||((n.refs?.[0]||'').startsWith('feature:')?n.refs[0].slice(8):all.find(p=>p.id===n.refs?.[0])?.label)).filter(Boolean).map(canonical));
+    const answerPlain=plain(answerText),pointToken='([A-Z](?:[0-9₀₁₂₃₄₅₆₇₈₉]+)?[′]?)',answerTargets=new Set();
+    for(const m of answerPlain.matchAll(new RegExp('(?:在)?(?:点)?'+pointToken+'(?:点)?处(?:的)?切线','g')))answerTargets.add(canonical(m[1]));
+    for(const m of answerPlain.matchAll(new RegExp('(?:在)?(?:点)?'+pointToken+'[、,，和与]'+pointToken+'(?:两点|点)?(?:处)?(?:的)?切线','g'))){answerTargets.add(canonical(m[1]));answerTargets.add(canonical(m[2]));}
+    report.answerMissingLines=[...answerTargets].filter(n=>!tangentPoints.has(n)).map(n=>n+' 点切线');
     if(/(?:两条|两点|两切线|[A-Z][、,，和与][A-Z][^。；]{0,15})(?:[^。；]{0,20})切线|相切的两条直线/.test(qs)&&tangents.length<2)report.missingLines.push('两条切线（当前仅找到 '+tangents.length+' 条）');
     if(!construct)return report;
     try{
-      const curve=scene.type==='circle'?{q:{A:1,B:0,C:1,D:-2*h,E:-2*k,F:h*h+k*k-scene.r**2},pointAt:t=>({x:h+scene.r*Math.cos(t),y:k+scene.r*Math.sin(t)})}:construct.conicShape({...scene,conicType:scene.type});
-      if(!curve?.q)return report;
-      const fs=Object.entries(scene.points||{}).map(([name,p])=>({name,x:p[0],y:p[1]}));
-      const add=(name,x,y)=>{if(!fs.some(p=>canonical(p.name)===canonical(name)))fs.push({name,x,y});};
-      add('O',scene.type==='circle'?h:0,scene.type==='circle'?k:0);add('V',h,k);
-      const c=scene.type==='ellipse'?Math.sqrt(scene.a**2-scene.b**2):scene.type==='hyperbola'?Math.hypot(scene.a,scene.b):(scene.p||0)*(scene.direction||1),v=scene.orientation==='vertical';
-      add('F₁',h-(v?0:c),k-(v?c:0));add('F₂',h+(v?0:c),k+(v?c:0));add('F',h+(v?0:c),k+(v?c:0));
-      let origin={x:h,y:k};
-      if(scene.lineThrough?.startsWith('point:'))origin=fs.find(p=>p.name===scene.lineThrough.slice(6))||origin;
-      else if(scene.lineThrough==='focus1')origin=fs.find(p=>p.name==='F₁');
-      else if(scene.lineThrough==='focus2')origin=fs.find(p=>p.name==='F₂');
-      const theta=Number.isFinite(scene.theta)?scene.theta:42,rad=theta*Math.PI/180;
-      if(scene.showDynamic!==false&&(scene.showDynamic===true||scene.dynamicLine===true))construct.intersect({type:'line',o:origin,d:{x:Math.cos(rad),y:Math.sin(rad)}},{type:'conic',q:curve.q}).slice(0,2).forEach((p,i)=>add((scene.dynamicIntersectionLabels||['A','B'])[i],p.x,p.y));
-      const engine=construct.createEngine({model:()=>scene,features:()=>fs,coeffs:()=>curve.q,origin:()=>origin,angle:()=>theta,conicPoint:curve.pointAt,conicProject:curve.project});
+      const current=frame(scene,construct);if(!current)return report;
+      const {engine}=current;
+      const locate=name=>{
+        const object=all.find(n=>canonical(n.label)===canonical(name)&&(n.kind==='point'||pointOps.has(n.op)));
+        return object?object.id?engine.resolve(object.id):object:current.features.find(p=>canonical(p.name)===canonical(name));
+      };
+      report.unavailable=[...new Set([...expected,...declared(answerText)])].filter(n=>labels.has(n)&&!finite(locate(n)));
+      report.missingPolygons=(scene.polygons||[]).filter(n=>n.visible!==false&&(n.labels||[]).some(name=>!finite(locate(name)))).map(n=>n.label||n.id);
       for(const node of [...(scene.lines||[]),...(scene.objects||[])]){
         if(!node.id)continue;
         const value=engine.resolve(node.id);
@@ -117,10 +150,19 @@
           const a=engine.resolve(node.refs[0]),b=engine.resolve(node.refs[1]);
           if(finite(a)&&finite(b))report.checks.push({label:node.label||node.id,kind:'midpoint',passed:Math.hypot(value.x-(a.x+b.x)/2,value.y-(a.y+b.y)/2)<1e-7*(1+Math.hypot(a.x,a.y,b.x,b.y)),part:node.part,parts:node.parts,detail:'与两端点坐标平均值一致（当前位置）'});
         }
+        if(node.op==='foot'){
+          const source=engine.resolve(node.refs[0]),line=engine.resolve(node.refs[1]),d=line?.d;
+          if(finite(source)&&finite(line?.o)&&finite(d)){
+            const length=Math.hypot(d.x,d.y),scale=1+Math.hypot(source.x,source.y,value.x,value.y,line.o.x,line.o.y);
+            const incidence=Math.abs((value.x-line.o.x)*d.y-(value.y-line.o.y)*d.x)/length;
+            const orthogonal=Math.abs((source.x-value.x)*d.x+(source.y-value.y)*d.y)/length;
+            report.checks.push({label:node.label||node.id,kind:'foot',passed:incidence<1e-7*scale&&orthogonal<1e-7*scale,part:node.part,parts:node.parts,detail:'垂足在目标直线上，投影连线与目标直线垂直（当前位置）'});
+          }
+        }
       }
     }catch{report.invalid.push('部分构造无法核对');}
     report.invalid=[...new Set(report.invalid)];
     return report;
   }
-  root.DongSceneAudit={canonical,declared,visible,prepare,inspect};
+  root.DongSceneAudit={canonical,declared,visible,prepare,inspect,frame};
 })(typeof window==='object'?window:globalThis);

@@ -13,7 +13,7 @@ fs.mkdirSync(output,{recursive:true});
 const suites=process.argv.slice(2);
 if(!suites.length)suites.push('question_bank','solve_progress_implicit','mobile_panels','orthogonal_chord','ellipse_focal_chord','hyperbola_focal_chord_condition','hyperbola_conditions','cloud_auth','cloud_outage','cloud_primary','cloud_primary_hyperbola','cloud_vision','latex_tangent','curve_edit_tangent','additive_conic_snap','focus_chord','derived_construction','one_stop_solver','desktop_layout','dependent_motion','named_points','reflected_chord','structured_input','conic_quick_tools','viewport_quick_draw','polygon_problem_sweep','ellipse_distance','parameter_selection','pwa','mobile_touch','solve_switch','photo_ocr','extreme_highlight','mathlive_input','point_hover');
 const delay=ms=>new Promise(resolve=>setTimeout(resolve,ms));
-if(process.argv.length===2)suites.unshift('cloud_only','draft_lifecycle','generic_goal_scope','parabola_focal_data','hyperbola_iteration','parabola_locus','proof_scope','label_layout','step_graph_link','scene_consistency','sourced_exam_sweep','external_ai','cloud_stream');
+if(process.argv.length===2)suites.unshift('cloud_mobile_health','answer_geometry','cloud_only','draft_lifecycle','generic_goal_scope','parabola_focal_data','hyperbola_iteration','parabola_locus','proof_scope','label_layout','step_graph_link','scene_consistency','sourced_exam_sweep','external_ai','cloud_stream');
 async function port(){const probe=net.createServer();await new Promise((resolve,reject)=>probe.once('error',reject).listen(0,'127.0.0.1',resolve));const value=probe.address().port;await new Promise(resolve=>probe.close(resolve));return value;}
 async function run(){
   let service,browser,baseURL=process.env.DONG_TEST_BASE_URL;
@@ -30,7 +30,7 @@ async function run(){
     for(const suite of suites){
       const filename=suite.endsWith('.cjs')?suite:suite+'_browser_smoke.cjs';
       if(path.basename(filename)!==filename)throw new Error('Use a test filename within tests/');
-      const publicCloud=new Set(['cloud_only','cloud_auth','cloud_stream','cloud_primary','cloud_primary_hyperbola','pwa']).has(suite.replace(/_browser_smoke\.cjs$/,''));
+      const publicCloud=new Set(['cloud_mobile_health','answer_geometry','cloud_only','cloud_auth','cloud_stream','cloud_primary','cloud_primary_hyperbola','pwa']).has(suite.replace(/_browser_smoke\.cjs$/,''));
       const legacyOffline=suite.replace(/_browser_smoke\.cjs$/,'')==='external_ai';
       const context=await browser.newContext({viewport:{width:1600,height:1050},acceptDownloads:true,serviceWorkers:publicCloud||legacyOffline?'allow':'block'});
       // Native/clipboard engines remain regression-tested, but are not publicly exposed.

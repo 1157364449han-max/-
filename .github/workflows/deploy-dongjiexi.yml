@@ -67,6 +67,7 @@ jobs:
           node tests/cloud_admission_tests.cjs
           node tests/ai_result_integration_tests.cjs
           node tests/goal_coverage_tests.cjs
+          node tests/answer_geometry_tests.cjs
       - name: Test actual browser workflows
         working-directory: ${{ steps.app.outputs.root }}
         env:
