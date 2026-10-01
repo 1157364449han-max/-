@@ -93,6 +93,7 @@ def install_archive(archive, root=ROOT):
             (0, 47, 1): ("dist/goal-coverage.js",),
             (0, 47, 2): ("dist/answer-geometry.js",),
             (0, 48, 0): ("dist/circle-fold.js", "dist/circle-fold-view.js", "dist/circle-fold.css"),
+            (0, 49, 0): ("dist/recognition-contract.mjs",),
         }
         for minimum, modules in added_modules.items():
             if version_tuple(config.get("version")) >= minimum and not all((source / name).is_file() for name in modules):

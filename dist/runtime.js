@@ -123,7 +123,7 @@
     const timer=setTimeout(()=>controller.abort(),300000);
     let reader;
     try{
-      const response=await fetch(apiUrl('/api/stream'),{method:'POST',headers:{'Content-Type':'application/json',...(session?{Authorization:`Bearer ${session.token}`}:{})},body:JSON.stringify(body),signal:controller.signal});
+      const response=await fetch(apiUrl(body.kind==='recognize'?'/api/recognize':'/api/stream'),{method:'POST',headers:{'Content-Type':'application/json',...(session?{Authorization:`Bearer ${session.token}`}:{})},body:JSON.stringify(body),signal:controller.signal});
       if(!response.ok){
         const data=(response.headers.get('content-type')||'').includes('application/json')?await response.json():null;
         if(response.status===401)clearRejectedSession(session);
@@ -159,6 +159,10 @@
       if(!complete||!content.trim())throw failure('incomplete_response','云端响应中断；没有把不完整内容作为答案。');
       if(body.kind==='chat')return {text:content};
       let raw;try{raw=JSON.parse(content);}catch{throw failure('invalid_response','云端答案 JSON 不完整，请重试。');}
+      if(body.kind==='recognize'){
+        const {recognitionResult}=await import('./recognition-contract.mjs');
+        try{return recognitionResult(raw,body.model);}catch(error){throw failure('invalid_response',error.message);}
+      }
       const {assemble}=await import('./cloud-contract.mjs');return assemble(raw,body.text,body.model);
     }catch(error){
       if(signal?.aborted)throw Object.assign(new Error('任务已停止。'),{name:'AbortError'});

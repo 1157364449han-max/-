@@ -1,6 +1,7 @@
 import {SOLVE_SYSTEM, splitParts} from '../../dist/cloud-contract.mjs';
+import {VISION_MODEL, VISION_SYSTEM, validateImage} from '../../dist/recognition-contract.mjs';
 const encoder=new TextEncoder(), decoder=new TextDecoder();
-const VERSION='0.43.5';
+const VERSION='0.44.0';
 class PublicError extends Error {constructor(status,message,retry=0){super(message);this.status=status;this.retry=retry;}}
 const bytes=value=>encoder.encode(value);
 const b64=data=>btoa(String.fromCharCode(...data)).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
@@ -27,17 +28,22 @@ async function limit(env,key,maximum,seconds){
   if(!row)throw new PublicError(429,'本时段请求额度已满，请稍后重试。画板与题稿仍可使用。',(bucket+1)*seconds-now);
   return id;
 }
-async function body(request){
+async function body(request,maximum=65536){
   if(!(request.headers.get('Content-Type')||'').startsWith('application/json'))throw new PublicError(400,'请求必须为 JSON。');
   const reader=request.body?.getReader();if(!reader)throw new PublicError(400,'请求为空。');const chunks=[];let size=0;
-  try{while(true){const {value,done}=await reader.read();if(done)break;size+=value.byteLength;if(size>65536){await reader.cancel();throw new PublicError(413,'题目和追问过长，请分题输入。');}chunks.push(value);}}
+  try{while(true){const {value,done}=await reader.read();if(done)break;size+=value.byteLength;if(size>maximum){await reader.cancel();throw new PublicError(413,maximum>65536?'题图过大，请裁剪或缩小后上传。':'题目和追问过长，请分题输入。');}chunks.push(value);}}
   finally{reader.releaseLock();}
   const joined=new Uint8Array(size);let offset=0;for(const chunk of chunks){joined.set(chunk,offset);offset+=chunk.length;}
   try{const value=JSON.parse(decoder.decode(joined));if(!value||typeof value!=='object'||Array.isArray(value))throw new Error();return value;}catch{throw new PublicError(400,'请求 JSON 格式无效。');}
 }
 export function modelPayload(input,env){
   const kind=input.kind||'solve',text=typeof input.text==='string'?input.text.trim():'';
-  if(!['solve','chat'].includes(kind))throw new PublicError(400,kind==='recognize'?'此云端模型仅支持文字。请先用页面图片识题并核对，再点击解题。':'云端不提供模型下载或启动操作。');
+  if(kind==='recognize'){
+    if(input.model!==VISION_MODEL||!models(env).includes(VISION_MODEL))throw new PublicError(400,'云端识图需要可用的 DeepSeek Flash 视觉模型。');
+    let image;try{image=validateImage(input.image);}catch(error){throw new PublicError(400,error.message);}
+    return {model:VISION_MODEL,messages:[{role:'system',content:VISION_SYSTEM},{role:'user',content:[{type:'text',text:'请完整转录这张数学题图片。仅返回题面 JSON，不解题。'},{type:'image_url',image_url:{url:image,detail:'original'}}]}],stream:true,max_tokens:6000,thinking:{type:'disabled'},response_format:{type:'json_object'}};
+  }
+  if(!['solve','chat'].includes(kind))throw new PublicError(400,'云端不提供模型下载或启动操作。');
   if(!text||text.length>18000||input.image)throw new PublicError(400,'请先识别并核对题目文字，题目须在 18000 字以内。');
   if(!models(env).includes(input.model))throw new PublicError(400,'所选模型不在云端允许列表中。');
   const deep=input.depth==='deep';let messages;
@@ -77,9 +83,10 @@ export function createHandler(upstreamFetch=(...args)=>fetch(...args)){return as
           console.warn(JSON.stringify({code:probeError,error_type:['Error','TypeError','AbortError','TimeoutError'].includes(error.name)?error.name:'other',location:(String(error.stack).match(/worker\.mjs:\d+:\d+|index\.js:\d+:\d+/g)||[]).slice(0,3)}));
         }
       }
-      return json({app:'董解析',version:VERSION,deployment:'cloud',auth_required:true,auth_configured:configured,default_model:env.DONGJIEXI_MODEL_ID||'deepseek-flash',capabilities:{transport:'sse',symbolic_verification:'browser-supported-types',vision:false},engine:{available:available.length>0,models:available,installed:configured,remote:true,provider:'chat-completions',vision:false,...(authorized&&probeError?{error_code:probeError}:{})}});
+      const vision=available.includes(VISION_MODEL);
+      return json({app:'董解析',version:VERSION,deployment:'cloud',auth_required:true,auth_configured:configured,default_model:env.DONGJIEXI_MODEL_ID||'deepseek-flash',capabilities:{transport:'sse',symbolic_verification:'browser-supported-types',vision},engine:{available:available.length>0,models:available,installed:configured,remote:true,provider:'chat-completions',vision,vision_model:vision?VISION_MODEL:null,...(authorized&&probeError?{error_code:probeError}:{})}});
     }
-    if(request.method!=='POST'||!['/api/session','/api/stream'].includes(url.pathname))throw new PublicError(404,'接口不存在。');
+    if(request.method!=='POST'||!['/api/session','/api/stream','/api/recognize'].includes(url.pathname))throw new PublicError(404,'接口不存在。');
     requireConfig(env);
     if(url.pathname==='/api/session'){
       const ip=await identity(request,env);await limit(env,'auth:'+ip,8,60);const input=await body(request);
@@ -88,7 +95,10 @@ export function createHandler(upstreamFetch=(...args)=>fetch(...args)){return as
       return json({token:token+'.'+b64(await hmac(env.SESSION_SECRET,token)),expires_in:3600});
     }
     const auth=await session(request,env);if(!auth)throw new PublicError(401,'在线解题授权已失效，请重新输入访问口令。');
-    const input=await body(request),payload=modelPayload(input,env);
+    const recognizing=url.pathname==='/api/recognize';
+    const input=await body(request,recognizing?3*1024*1024:65536);
+    if((input.kind==='recognize')!==recognizing)throw new PublicError(400,'图片识别与文字解题须使用各自接口。');
+    const payload=modelPayload(input,env);
     const lease=crypto.randomUUID(),now=Math.floor(Date.now()/1000);
     const slot=await env.DB.prepare('INSERT INTO leases (id, expires) SELECT ?1, ?2 WHERE (SELECT count(*) FROM leases WHERE expires > ?3) < ?4 RETURNING id').bind(lease,now+310,now,clamp(env.DONGJIEXI_MAX_CONCURRENT,2,4)).first();
     if(!slot)throw new PublicError(429,'云端正在处理其他题目，请稍后重试。画板与题稿仍可使用。',10);

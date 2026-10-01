@@ -153,6 +153,7 @@
     let engineReady = false;
     let cloudPrimary = false;
     let visionAvailable = true;
+    let visionModel = '';
     let engineRefreshId = 0;
     let selectedImage = null;
     let ocrScriptPromise = null;
@@ -393,6 +394,7 @@
         cloudPrimary=data.engine.remote===true;
         cloudTransport=data.capabilities?.transport==='sse'?'sse':'jobs';
         visionAvailable=data.engine.vision!==false;
+        visionModel=data.engine.vision_model||data.default_model||'';
         find('#cloudVisionChoice').hidden=!(remote&&visionAvailable&&data.engine.available);
         const names=data.engine.models||[];
         const recommended='hf.co/bartowski/DeepSeek-R1-Distill-Llama-8B-GGUF:Q4_K_M';
@@ -433,9 +435,9 @@
       activeJob='pending';find('#cancelJob').disabled=true;
       busy(true);find('#jobPhase').textContent='正在连接解题引擎…';
       try{
-        if(solveMode==='cloud'&&cloudTransport==='sse'&&['solve','chat'].includes(body.kind)){
+        if(solveMode==='cloud'&&cloudTransport==='sse'&&['solve','chat','recognize'].includes(body.kind)){
           streamController=new AbortController();activeJob='stream';find('#cancelJob').disabled=false;
-          const result=await runtime.streamJob(body,{signal:streamController.signal,onProgress:count=>{find('#jobPhase').textContent=`云端正在整理解答 · ${count} 字符`;}});
+          const result=await runtime.streamJob(body,{signal:streamController.signal,onProgress:count=>{find('#jobPhase').textContent=`${body.kind==='recognize'?'DeepSeek 正在读取原图与公式':'云端正在整理解答'} · ${count} 字符`;}});
           await done(result);return;
         }
         const job=await request('/api/jobs',body);
@@ -678,14 +680,52 @@
         api.setStatus(`内置引擎已完成 ${completion.answered}/${completion.total} 问；其余小问待推导。${solveMode==='cloud'?'云端服务当前未就绪，请检查连接。':'如需智能增强，请在电脑本机版下载模型。'}`);
       }
     }
+    function previewRecognition(){
+      window.DongMathInput?.preview(find('#recognizedText'),find('#recognitionFormulaPreview'));
+    }
+    function showRecognition(text,{cloud=false,uncertainties=[]}={}){
+      if(typeof text!=='string'||text.length>18000)throw new Error('识别题面格式无效或过长，请换一张题图。');
+      find('#recognizedText').value=text;
+      find('#recognitionFeedback').textContent='';
+      find('#recognitionOriginal').src=imageURL;
+      find('#recognitionHelp').textContent=cloud?'DeepSeek 直接读取原图。请对照原图核对公式、点名、角度和全部小问；识图也可能有误，确认后才会写入题目。':'当前使用浏览器 OCR，未上传原图；它不擅长数学公式，请对照原图补全分数、向量和上下标后确认。';
+      const warnings=find('#recognitionWarnings');warnings.replaceChildren();
+      for(const warning of uncertainties.slice(0,30)){const item=document.createElement('li');item.textContent=String(warning).slice(0,500);warnings.append(item);}
+      find('#recognitionReview').hidden=warnings.childElementCount===0;
+      find('#recognitionReviewed').checked=false;
+      previewRecognition();
+      if(!find('#recognitionDialog').open)find('#recognitionDialog').showModal();
+    }
+    async function prepareVisionImage(file){
+      const bitmap=await createImageBitmap(file);
+      try{
+        const scale=Math.min(1,2200/Math.max(bitmap.width,bitmap.height));
+        const canvas=document.createElement('canvas');canvas.width=Math.max(1,Math.round(bitmap.width*scale));canvas.height=Math.max(1,Math.round(bitmap.height*scale));
+        const ctx=canvas.getContext('2d');ctx.fillStyle='#fff';ctx.fillRect(0,0,canvas.width,canvas.height);ctx.drawImage(bitmap,0,0,canvas.width,canvas.height);
+        let image=canvas.toDataURL('image/png');
+        if(image.length>2796240)image=canvas.toDataURL('image/jpeg',.9);
+        if(image.length>2796240)throw new Error('题图压缩后仍过大，请裁剪到单道题再上传。');
+        return image;
+      }finally{bitmap.close();}
+    }
     async function recognize() {
+      if(processing)return;
       const file=selectedImage;
       if(!file){report(new Error('请先添加题图。'));return;}
       if(file.size>8*1024*1024){report(new Error('题图请压缩至 8 MB 以内。'));return;}
+      if(cloudOnly&&runtime.config.apiEnabled&&find('#preferCloudVision').checked&&find('#cloudVisionChoice').hidden){
+        find('#cloudVisionChoice').hidden=false;
+        if(runtime.config.requiresAuth&&!runtime.hasSession())openCloudAuthDialog('DeepSeek 图片识题需要先连接云端；验证口令后再点击识别。');
+        else report(new Error('云端识图尚未就绪，请先检测连接；如需浏览器 OCR，请取消勾选“DeepSeek 直接识图”。'));
+        return;
+      }
       if(find('#preferCloudVision').checked&&!find('#cloudVisionChoice').hidden){
-        const image=await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(reader.result);reader.onerror=reject;reader.readAsDataURL(file);});
-        if(selectedImage!==file){api.setStatus('题图已更换，旧图片的识别任务未提交。');return;}
-        await runJob({kind:'recognize',image,model:find('#modelName').value},result=>{if(selectedImage!==file){api.setStatus('题图已更换，旧图片的识别结果未应用。');return;}find('#recognizedText').value=result.text;find('#recognitionDialog').showModal();api.setStatus('云端视觉识题已完成，请逐字核对公式与小问编号。');});
+        busy(true);find('#jobPhase').textContent='正在准备题图，保留公式细节…';
+        try{
+          const image=await prepareVisionImage(file);
+          if(selectedImage!==file){api.setStatus('题图已更换，旧图片的识别任务未提交。');return;}
+          await runJob({kind:'recognize',image,model:visionModel||find('#modelName').value},result=>{if(selectedImage!==file){api.setStatus('题图已更换，旧图片的识别结果未应用。');return;}showRecognition(result.text,{cloud:true,uncertainties:Array.isArray(result.uncertainties)?result.uncertainties:[]});api.setStatus('DeepSeek 原图识题完成，请对照原图核对后确认。');});
+        }finally{busy(false);}
         return;
       }
       busy(true);
@@ -702,8 +742,7 @@
         }
         const recognized=String(result.data?.text||'').trim();
         if(selectedImage!==file){api.setStatus('题图已更换，旧图片的识别结果未应用。');return;}
-        find('#recognizedText').value=recognized;
-        find('#recognitionDialog').showModal();
+        showRecognition(recognized);
         api.setStatus(recognized?`题图已在浏览器内识别（文字置信度约 ${Math.round(result.data?.confidence||0)}%）。请认真核对数学公式后确认。`:'图片未识别出文字；可在核对框中手动输入，或换更清晰的照片。',!recognized);
       } finally {
         if(worker)await worker.terminate();
@@ -752,6 +791,7 @@
     find('#cancelJob').addEventListener('click',async()=>{if(streamController){streamController.abort();find('#jobPhase').textContent='正在停止，请稍候…';return;}if(activeJob){try{await request('/api/jobs/'+activeJob+'/cancel',{});find('#jobPhase').textContent='正在停止，请稍候…';}catch(error){report(error);}}});
     find('#recognizeButton').addEventListener('click',()=>recognize().catch(report));
     function selectImage(file){
+      if(find('#recognitionDialog').open)find('#recognitionDialog').close();
       if(imageURL)URL.revokeObjectURL(imageURL);
       selectedImage=file||null;imageURL=file?URL.createObjectURL(file):null;
       find('#imagePreview').hidden=!file;
@@ -760,7 +800,10 @@
     }
     for(const id of ['imageFile','cameraFile'])find('#'+id).addEventListener('change',event=>selectImage(event.target.files[0]));
     find('#removeImage').addEventListener('click',()=>{find('#imageFile').value='';find('#cameraFile').value='';selectImage(null);});
-    find('#confirmRecognition').addEventListener('click',()=>{const recognized=find('#recognizedText').value;if(hasUncertainty(recognized)){report(new Error('识别结果仍含“[看不清]”或其它未确认字段。请在此窗口补正后再确认。'));return;}clearStepHighlight();api.question.value=recognized;find('#recognitionDialog').close();api.remember();api.setStatus('题面已确认，可以开始解题。');});
+    find('#recognizedText').addEventListener('input',previewRecognition);
+    const recognitionFeedback=document.createElement('p');recognitionFeedback.id='recognitionFeedback';recognitionFeedback.setAttribute('role','alert');find('#confirmRecognition').before(recognitionFeedback);
+    const rejectRecognition=message=>{recognitionFeedback.textContent=message;report(new Error(message));};
+    find('#confirmRecognition').addEventListener('click',()=>{const recognized=find('#recognizedText').value.trim();if(!recognized||recognized.length>18000){rejectRecognition('请填写核对后的题目，长度须在 18000 字以内。');return;}if(hasUncertainty(recognized)){rejectRecognition('识别结果仍含“[看不清]”或其它未确认字段。请在此窗口补正后再确认。');return;}if(!find('#recognitionReview').hidden&&!find('#recognitionReviewed').checked){rejectRecognition('请对照原图补正模糊位置，并勾选“已核对上述位置”。');return;}clearStepHighlight();api.question.value=recognized;api.question.dispatchEvent(new Event('input',{bubbles:true}));find('#recognitionDialog').close();api.remember();api.setStatus('题面已确认，可以开始解题。');});
     document.querySelectorAll('[data-close-dialog]').forEach(button=>button.addEventListener('click',()=>button.closest('dialog').close()));
     find('#openNotebook').addEventListener('click',()=>{try{renderNotebook();find('#notebookDialog').showModal();}catch(error){report(error);}});
     find('#saveLesson').addEventListener('click',()=>{try{saveLesson();}catch(error){report(error);}});
