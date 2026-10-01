@@ -8,6 +8,13 @@ class D1 {
 (async()=>{
   const {createHandler,modelPayload}=await import('../deploy/cloudflare/worker.mjs');
   const {assemble,safeScene,splitParts}=await import('../dist/cloud-contract.mjs');
+  const referenced='已知抛物线C：y^2=2px（p>0）的焦点为F。\n（1）若|AB|=8，中点横坐标为3，求C的方程；\n（2）在（1）的条件下，若倾斜角为45°，求|AB|；\n（3）在（1）（2）的条件下，设M为准线上一点，且MA⊥MB，求M的坐标。';
+  const referencedPayload=modelPayload({kind:'solve',text:referenced,model:'deepseek-flash'},{});
+  assert.deepEqual(splitParts(referenced).map(p=>p.index),[1,2,3]);
+  assert(referencedPayload.messages[1].content.includes('原题：\n'+referenced),'Gateway preserves references and source question');
+  const sentParts=JSON.parse(referencedPayload.messages[1].content.split('\n小问编号：')[1].split('\n请先完整作答')[0]);
+  assert.deepEqual(sentParts.map(p=>p.index),[1,2,3]);assert(sentParts[2].body.includes('（1）（2）'));
+  assert.throws(()=>modelPayload({kind:'solve',text:'（1）求x；（1）求y。',model:'deepseek-flash'},{}),/重复小问/);
   const env={DB:new D1(),SESSION_SECRET:'test-signing-secret-not-used-in-production-000',DONGJIEXI_ACCESS_KEY:'课堂测试',DONGJIEXI_MODEL_API_KEY:'fixture-api-key',DONGJIEXI_DAILY_JOBS:'3'};
   let calls=0,pending=[];
   const context={waitUntil(promise){pending.push(promise);}};

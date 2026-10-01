@@ -1,8 +1,9 @@
 'use strict';
 
-const VERSION = '0.46.0';
+const VERSION = '0.47.0';
 const CACHE = `dongjiexi-app-${VERSION}`;
 const CORE = [
+  './question-parts.js', './parabola-focal-data.js',
   './hyperbola-iteration.js',
   './parabola-locus.js',
   './label-layout.js', './step-highlight.js',

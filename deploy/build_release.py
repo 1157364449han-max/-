@@ -28,6 +28,7 @@ APP_FILES = {
     'tests/fixtures/sourced-exam-additions.json', 'deploy/0.43.1-验证记录.md', 'deploy/0.43.2-验证记录.md', 'deploy/0.43.3-验证记录.md',
     'deploy/0.44.0-验证记录.md', 'deploy/0.45.0-验证记录.md', 'parabola_locus.py',
     'deploy/0.46.0-验证记录.md', 'hyperbola_iteration.py',
+    'deploy/0.47.0-验证记录.md', 'question_parts.py', 'parabola_focal_data.py',
     'deploy/runtime-config.web.example.js', '.github/workflows/deploy-dongjiexi.yml',
     'deploy/phone/README.md', 'deploy/phone/start.sh', 'deploy/phone/configure.sh',
     'deploy/phone/download-model.sh', 'deploy/phone/download-deepseek.sh', 'deploy/phone/serve-only.sh',

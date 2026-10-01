@@ -37,6 +37,8 @@ from learning_engine import LearningEngine, EngineError, EngineBusy, OLLAMA_BASE
 from verification_engine import attach_trust_report, has_uncertainty
 import parabola_locus
 import hyperbola_iteration
+import parabola_focal_data
+import question_parts
 
 
 def load_config() -> dict:
@@ -936,51 +938,12 @@ def standard_conic(text: str) -> dict | None:
     # 非标准式的确定条件依次交给各自的符号求解器；它们均只接受足以唯一确定曲线的条件。
     return (ellipse_from_conditions(s) or hyperbola_from_conditions(s)
             or circle_from_conditions(s) or parabola_from_conditions(s) or parabola_locus.infer(text)
-            or hyperbola_iteration.infer(text))
+            or hyperbola_iteration.infer(text) or parabola_focal_data.infer(text))
 
 
 def split_problem_parts(text: str) -> list[dict]:
-    """拆分数字小问，并将（2）(i)(ii) 这类嵌套小问展平。
-
-    嵌套编号用 ``父编号*100+罗马序号`` 作为稳定的内部 index，
-    例如（2）(i)、（2）(ii) 分别是 201、202；显示标签仍保留原题编号。
-    """
-    def heading(match: re.Match) -> bool:
-        # sqrt(5), f(1), coefficients and arithmetic are not question numbers.
-        before, after = text[:match.start()], text[match.end():]
-        return not re.search(r"[A-Za-z0-9_√π*/^+=-]\s*$", before) and not re.match(r"\s*[+*/^=<>≤≥)]", after)
-
-    matches = [match for match in re.finditer(r"[（(]\s*(\d{1,2})\s*[）)]", text) if heading(match)]
-    if not matches:
-        return [{"index": 0, "label": "完整题目", "question": text.strip(), "body": text.strip()}]
-    preamble = text[:matches[0].start()].strip()
-    parts: list[dict] = []
-    roman_values = {"i": 1, "ii": 2, "iii": 3, "iv": 4, "v": 5, "vi": 6, "vii": 7, "viii": 8}
-    roman_pattern = re.compile(r"[（(]\s*(viii|vii|vi|iv|v|iii|ii|i)\s*[）)]", re.I)
-    for i, match in enumerate(matches):
-        end = matches[i + 1].start() if i + 1 < len(matches) else len(text)
-        segment = text[match.end():end]
-        number = int(match.group(1))
-        nested = list(roman_pattern.finditer(segment))
-        if nested:
-            parent_setup = segment[:nested[0].start()].strip(" \n，。；;")
-            for j, submatch in enumerate(nested):
-                sub_end = nested[j + 1].start() if j + 1 < len(nested) else len(segment)
-                sub_body = segment[submatch.end():sub_end].strip(" \n，。；;")
-                roman = submatch.group(1).lower()
-                body = (parent_setup + "\n" + sub_body).strip() if parent_setup else sub_body
-                parts.append({
-                    "index": number * 100 + roman_values[roman],
-                    "label": f"第（{number}）（{roman}）问",
-                    "question": (preamble + "\n" + body).strip(),
-                    "body": body,
-                    "parent_index": number,
-                    "sub_index": roman,
-                })
-            continue
-        body = segment.strip(" \n，。；;")
-        parts.append({"index": number, "label": f"第（{number}）问", "question": (preamble + "\n" + body).strip(), "body": body})
-    return parts
+    """Use the same heading/reference distinction as the browser and edge gateway."""
+    return question_parts.split_problem_parts(text)
 
 
 def fallback_parts(text: str, answer: str, steps: list[str]) -> list[dict]:
@@ -1865,13 +1828,29 @@ def ellipse_focal_chord_part_answer(scene: dict, part: dict, context: dict | Non
 
 def deterministic_parts(text: str, scene: dict, base_answer: str, base_steps: list[str]) -> list[dict]:
     parts=[]
-    focus_chord_context = install_parabola_focus_chord_scene(scene, text)
-    ellipse_focal_context = install_ellipse_focal_chord_scene(scene, text)
     problem_parts = split_problem_parts(text)
+    focal_data_context = parabola_focal_data.decorate_scene(scene, text, problem_parts)
+    focal_data_pending = (scene.get("type") == "parabola" and "焦点" in text
+                          and re.search(r"中点[^。；;]{0,18}横坐标", text)
+                          and re.search(r"\|[A-Za-z]{2}\|\s*=|(?:长度|弦长)[为是=]", text)
+                          and not focal_data_context)
+    if focal_data_pending:
+        return [{**part, "status": "partial",
+                 "answer": "本题包含焦点弦长与中点的共同约束，当前内置规则尚未完成全部条件核验；不能仅重复已给方程就把整问标为已解答。",
+                 "steps": ["题面和前问引用均已保留。", "需检查弦长、中点、原方程和后问角度是否同时成立；未覆盖的附加条件或复合目标交由后续推理。"]}
+                for part in problem_parts]
+    focus_chord_context = None if focal_data_context else install_parabola_focus_chord_scene(scene, text)
+    ellipse_focal_context = install_ellipse_focal_chord_scene(scene, text)
     parabola_locus.decorate_scene(scene, text, problem_parts)
     hyperbola_iteration.decorate_scene(scene, text, problem_parts)
     for part in problem_parts:
         body=part.get("body") or part.get("question") or ""
+        focal_data_answer = parabola_focal_data.solve_part(scene, text, part)
+        if focal_data_context and not focal_data_answer:
+            parts.append({**part, "status": "partial",
+                          "answer": "焦点弦的这一问尚未完成：需同时满足前问约束、指定角度及本问目标，不能用单条参考线的交点计算代替完整解答。",
+                          "steps": ["前问引用和附加条件已保留。", "请检查条件是否相容；未覆盖的角度、附加条件或复合目标仍待推导，不等于原题条件不足。"]})
+            continue
         parabola_answer = parabola_locus.solve_part(scene, text, part)
         iteration_answer = hyperbola_iteration.solve_part(scene, text, part)
         focus_chord_answer = parabola_focus_chord_part_answer(scene, part, focus_chord_context)
@@ -1900,6 +1879,8 @@ def deterministic_parts(text: str, scene: dict, base_answer: str, base_steps: li
                 f"回代检验：$|AB|={hyperbola_chord['chordLength']}$，$|F_1A|={hyperbola_chord['farDistance']}$，均与题设一致。",
             ]
             status = "answered"
+        elif focal_data_answer:
+            answer,steps=focal_data_answer;status="answered"
         elif iteration_answer:
             answer,steps=iteration_answer;status="answered"
         elif parabola_answer:
