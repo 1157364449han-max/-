@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="dongjiexi-version" content="0.47.2">
+  <meta name="dongjiexi-version" content="0.47.3">
   <meta name="description" content="高中解析几何动态图形工作台：从题干识别标准圆锥曲线，调节参数，观察交点与定值。">
   <meta name="theme-color" content="#0c1b33">
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -14,9 +14,9 @@
   <link rel="apple-touch-icon" href="icons/icon.svg">
   <link rel="stylesheet" href="vendor/katex/katex.min.css">
   <link rel="stylesheet" href="vendor/mathlive/mathlive-fonts.css">
-  <link rel="stylesheet" href="learning-ui.css?v=0.47.2">
-  <link rel="stylesheet" href="classroom.css?v=0.47.2">
-  <link rel="stylesheet" href="question-bank.css?v=0.47.2">
+  <link rel="stylesheet" href="learning-ui.css?v=0.47.3">
+  <link rel="stylesheet" href="classroom.css?v=0.47.3">
+  <link rel="stylesheet" href="question-bank.css?v=0.47.3">
   <style>
     :root { --ink:#0c1b33; --ink-2:#1a3152; --paper:#f6f8fb; --panel:#ffffff; --line:#d7e0eb; --muted:#64748b; --teal:#0f9f99; --teal-soft:#e1f7f4; --amber:#f2a33c; --amber-soft:#fff2d9; --red:#df5b62; --blue:#3f78d8; --shadow:0 10px 30px rgba(12,27,51,.09); }
     * { box-sizing:border-box; }
@@ -399,12 +399,12 @@
     body[data-cloud-only="true"] #pullModel,body[data-cloud-only="true"] #useLocalSolver,
     body[data-cloud-only="true"] #cloudAuthUseLocal { display:none!important; }
   </style>
-  <link rel="stylesheet" href="theme.css?v=0.47.2">
+  <link rel="stylesheet" href="theme.css?v=0.47.3">
 </head>
 <body data-cloud-only="true">
   <main class="app">
     <header class="topbar">
-      <div class="brand"><span class="brand-mark">董</span><span class="brand-name">董解析</span><button class="version-button" id="versionButton" title="查看版本、更新记录和能力边界">v0.47.2 · 更新记录</button></div>
+      <div class="brand"><span class="brand-mark">董</span><span class="brand-name">董解析</span><button class="version-button" id="versionButton" title="查看版本、更新记录和能力边界">v0.47.3 · 更新记录</button></div>
       <div class="top-actions"><span class="top-note">云端解题 · 动态几何 · 我的题本</span><button id="openQuestionBank" class="button secondary" type="button" aria-haspopup="dialog">高考真题题库</button><button id="cloudOutageShortcut" class="install-button" type="button" title="云端暂不可用，点击查看连接状态；题稿会保留" hidden>云端中断 · 查看状态</button><button id="pwaInstall" class="install-button" hidden>安装到设备</button></div>
     </header>
     <section id="pwaBanner" class="pwa-banner" hidden role="status"><span id="pwaMessage"></span><button id="pwaUpdate" hidden>立即更新</button><button id="pwaDismiss">稍后</button></section>
@@ -589,36 +589,36 @@
   </dialog>
 
   <script src="runtime-config.js"></script>
-  <script src="runtime.js?v=0.47.2"></script>
+  <script src="runtime.js?v=0.47.3"></script>
   <script src="vendor/katex/katex.min.js"></script>
   <script src="vendor/katex/contrib/auto-render.min.js"></script>
-  <script src="math-input.js?v=0.47.2"></script>
-  <script src="number-display.js?v=0.47.2"></script>
-  <script src="label-layout.js?v=0.47.2"></script>
-  <script src="step-highlight.js?v=0.47.2"></script>
-  <script src="scene-audit.js?v=0.47.2"></script>
-  <script src="answer-geometry.js?v=0.47.2"></script>
-  <script src="scene-merge.js?v=0.47.2"></script>
-  <script src="tangent-solver.js?v=0.47.2"></script>
-  <script src="ellipse-distance.js?v=0.47.2"></script>
-  <script src="orthogonal-chord.js?v=0.47.2"></script>
-  <script src="axis-intercept-chord.js?v=0.47.2"></script>
-  <script src="parabola-locus.js?v=0.47.2"></script>
-  <script src="question-parts.js?v=0.47.2"></script>
-  <script src="goal-coverage.js?v=0.47.2"></script>
-  <script src="parabola-focal-data.js?v=0.47.2"></script>
-  <script src="hyperbola-iteration.js?v=0.47.2"></script>
-  <script src="conic-parameter.js?v=0.47.2"></script>
-  <script src="ellipse-focal-chord.js?v=0.47.2"></script>
-  <script src="external-ai.js?v=0.47.2"></script>
-  <script src="learning-ui.js?v=0.47.2"></script>
-  <script src="classroom.js?v=0.47.2"></script>
-  <script src="question-bank.js?v=0.47.2"></script>
-  <script src="construction-board.js?v=0.47.2"></script>
-  <script src="drag-board.js?v=0.47.2"></script>
-  <script src="equation-builder.js?v=0.47.2"></script>
-  <script src="math-keyboard.js?v=0.47.2"></script>
-  <script type="module" src="mathlive-adapter.js?v=0.47.2"></script>
+  <script src="math-input.js?v=0.47.3"></script>
+  <script src="number-display.js?v=0.47.3"></script>
+  <script src="label-layout.js?v=0.47.3"></script>
+  <script src="step-highlight.js?v=0.47.3"></script>
+  <script src="scene-audit.js?v=0.47.3"></script>
+  <script src="answer-geometry.js?v=0.47.3"></script>
+  <script src="scene-merge.js?v=0.47.3"></script>
+  <script src="tangent-solver.js?v=0.47.3"></script>
+  <script src="ellipse-distance.js?v=0.47.3"></script>
+  <script src="orthogonal-chord.js?v=0.47.3"></script>
+  <script src="axis-intercept-chord.js?v=0.47.3"></script>
+  <script src="parabola-locus.js?v=0.47.3"></script>
+  <script src="question-parts.js?v=0.47.3"></script>
+  <script src="goal-coverage.js?v=0.47.3"></script>
+  <script src="parabola-focal-data.js?v=0.47.3"></script>
+  <script src="hyperbola-iteration.js?v=0.47.3"></script>
+  <script src="conic-parameter.js?v=0.47.3"></script>
+  <script src="ellipse-focal-chord.js?v=0.47.3"></script>
+  <script src="external-ai.js?v=0.47.3"></script>
+  <script src="learning-ui.js?v=0.47.3"></script>
+  <script src="classroom.js?v=0.47.3"></script>
+  <script src="question-bank.js?v=0.47.3"></script>
+  <script src="construction-board.js?v=0.47.3"></script>
+  <script src="drag-board.js?v=0.47.3"></script>
+  <script src="equation-builder.js?v=0.47.3"></script>
+  <script src="math-keyboard.js?v=0.47.3"></script>
+  <script type="module" src="mathlive-adapter.js?v=0.47.3"></script>
   <script src="geogebra-bridge.js?v=0.7.0"></script>
   <script>
   (() => {
@@ -784,6 +784,16 @@
       const tangentScene=sceneFromModel(model);
       const importedContacts=model.provenance?.validatedConstructions||model.provenance?.externalReply?model.objects.filter(o=>o.op==='ellipse_tangent_point'):[];
       const importedTangents=importedContacts.length>=2&&importedContacts.every(c=>model.objects.some(o=>o.op==='tangent'&&o.refs?.[0]===c.id||o.op==='line'&&o.refs?.includes(c.id)&&o.refs?.includes(c.refs?.[0])));
+      if(importedContacts.length>=2&&/切线|相切/.test(raw)){
+        const ids=new Set([...model.objects,...model.lines].map(n=>n.id));
+        for(const contact of importedContacts){
+          if([...model.objects,...model.lines].some(n=>n.op==='tangent'&&n.refs?.[0]===contact.id||n.op==='line'&&n.refs?.includes(contact.id)&&n.refs?.includes(contact.refs?.[0])))continue;
+          let id='answer-contact-tangent-'+contact.id,i=1;while(ids.has(id))id='answer-contact-tangent-'+contact.id+'-'+i++;
+          const line={id,kind:'construction',op:'tangent',refs:[contact.id,contact.refs[1]],label:contact.label+' 点切线',role:'tangent',source:'derived',visible:true,...(contact.part!=null?{part:contact.part}:{}),...(contact.parts?.length?{parts:contact.parts.slice()}:{} )};
+          model.lines.push(line);
+          if(!window.DongSceneAudit.frame(model,window.DongConstruct)?.engine.resolve(id))model.lines.pop();else ids.add(id);
+        }
+      }
       if(!importedTangents&&importedContacts.length<2)window.DongTangentSolver?.install(tangentScene,window.DongMathInput?.toPlain(raw)??raw,browserConicQuadratic(tangentScene));
       result.answerGeometry=window.DongAnswerGeometry?.install(model,result.parts,window.DongConstruct);
       for(const part of result.parts||[])browserPolygons([part.answer,...(part.steps||[])].join('。'),model,part.index??null);
@@ -1692,6 +1702,6 @@ function motionStep(timestamp){if(!state.model){stopMotion(false);return;}const 
     document.getElementById('closeReleases').addEventListener('click',()=>dialog.close());
   })();
   </script>
-  <script src="pwa.js?v=0.47.2"></script>
+  <script src="pwa.js?v=0.47.3"></script>
 </body>
 </html>

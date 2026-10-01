@@ -27,6 +27,15 @@ module.exports=async({page,context,assert,screenshot})=>{
   assert.equal(await page.locator('#solution .katex-error').count(),0);
   await screenshot('cloud-tangent-no-extraneous-secant.png',null);
   await page.waitForFunction(()=>!document.querySelector('#solveButton').disabled);
+  raw.scene.constructions=raw.scene.constructions.filter(n=>n.op!=='tangent');
+  raw.title='外点切点已给出但切线漏写回归';
+  await page.locator('#solveButton').click();
+  await page.waitForFunction(()=>!document.querySelector('#solveButton').disabled&&document.querySelector('#solution').textContent.includes('外点切点已给出但切线漏写回归'));
+  const contactsOnly=JSON.parse(await page.locator('#sceneJson').inputValue());
+  const allContactNodes=[...(contactsOnly.objects||[]),...(contactsOnly.lines||[])];
+  assert.equal(allContactNodes.filter(n=>n.op==='ellipse_tangent_point').length,2,'Reuse provided contacts rather than adding default T₁/T₂ contacts');
+  assert.equal(allContactNodes.filter(n=>n.op==='tangent').length,2,'The original question needs both tangents even if steps omit their names');
+  await screenshot('cloud-provided-contacts-missing-tangents.png',null);
   raw={title:'未覆盖求解测试',parts:[{index:0,status:'needs_information',answer:'动直线斜率未知，图形不唯一，因此条件不足',steps:['无法确定唯一图形']}],scene:null};
   await page.locator('#question').fill(source.items.find(q=>q.id==='2022-beijing-10').question);await page.locator('#solveButton').click();
   await page.waitForFunction(()=>document.querySelector('#solution').textContent.includes('未覆盖求解测试'));
