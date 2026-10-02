@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '0.50.0';
+const VERSION = '0.50.1';
 const CACHE = `dongjiexi-app-${VERSION}`;
 const CORE = [
   './question-parts.js', './parabola-focal-data.js', './goal-coverage.js',

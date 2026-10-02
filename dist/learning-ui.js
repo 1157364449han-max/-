@@ -88,7 +88,7 @@
         if(error.code==='rate_limited')cloudRetryAt=Date.now()+Math.max(10,error.retryAfter||10)*1000;
         find('#cloudOutage strong').textContent=error.code==='rate_limited'?'额度限制 · 不是服务掉线':'云端暂不可用';
         const offline=cloudNetworkOffline||navigator.onLine===false;
-        const detail=error.code==='rate_limited'?(error.message||'云端当前请求较多，请稍后重试。'):offline?'当前设备已离线，恢复网络后重试。':error.code==='timeout'?'云端连接超时，请稍后重试。':error.code==='invalid_response'?'云端返回信息异常，请重试或联系管理员。':error.code==='service_unavailable'?'云端服务暂不可用，请稍后重试。':'当前网络无法连接云端。Wi-Fi 下持续失败时，可切换移动数据对比；这不表示口令错误。';
+        const detail=error.code==='rate_limited'?'云端暂时无法受理更多请求，请稍后重试。':offline?'当前设备已离线，恢复网络后重试。':error.code==='timeout'?'云端连接超时，请稍后重试。':error.code==='invalid_response'?'云端返回信息异常，请重试或联系管理员。':error.code==='service_unavailable'?'云端服务暂不可用，请稍后重试。':'当前网络无法连接云端。Wi-Fi 下持续失败时，可切换移动数据对比；这不表示口令错误。';
         const recovery=error.code==='rate_limited'&&error.retryAfter?`预计额度恢复：${new Date(cloudRetryAt).toLocaleString('zh-CN',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit',timeZone:'Asia/Shanghai'})}（北京时间）。`:'';
         const message=detail+recovery+(cloudOnly?'题目、草稿和画板仍保留。':'题目、草稿和画板仍保留，推荐改用本机解题。');
         const firstFailure=!cloudUnavailable;
@@ -431,8 +431,8 @@
         find('#engineStatus').textContent=cloudOnly?(selectedReady?'云端 AI 已就绪 · 结论与图形将在浏览器复算':'云端模型暂不可用 · 画板和草稿仍可使用'):selectedReady?(remote?'内置解题 + 在线智能增强已就绪':'内置解题 + 可选本机智能增强已就绪'):data.engine.available?(remote?'内置解题可用 · 在线增强模型未选择':'内置解题可用 · 可选择已安装模型增强'):data.engine.installed?'内置解题可用 · 智能增强组件可选':remote?'内置解题可用 · 在线增强暂不可用':'内置解题已就绪 · 无需安装额外模型';
         if(uncertainHealth)find('#engineStatus').textContent='模型检测暂时波动 · 不是断言服务掉线；实际解题结果以本次请求为准';
         const limits=data.limits;
-        if(limits&&limits.per_hour)find('#cloudUsageInfo').textContent=`免访问口令 · 每个浏览器每自然小时 ${limits.per_hour} 次云端请求（含识图与追问） · 全站每日 ${limits.daily} 次费用保护额度。`;
-        find('#cloudUsageInfo').hidden=!(limits&&limits.per_hour);
+        find('#cloudUsageInfo').textContent='';
+        find('#cloudUsageInfo').hidden=true;
         find('#pullModel').hidden=remote||cloudPrimary||selectedReady;
         find('#engineSetup').hidden=false;
         renderEngineRoute();

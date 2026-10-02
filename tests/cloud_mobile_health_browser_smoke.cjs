@@ -35,7 +35,7 @@ module.exports=async({page,context,assert,screenshot})=>{
   assert(healthCalls>beforeRelease,'Network recovery issues a fresh queued check');
   transport='limited';await page.locator('#retryCloudConnection').evaluate(n=>n.click());
   await page.waitForFunction(()=>document.querySelector('#cloudConnection').dataset.state==='busy');
-  assert.match(await page.locator('#cloudOutageMessage').textContent(),/本日次数已用完/);
+  assert.match(await page.locator('#cloudOutageMessage').textContent(),/稍后重试/);
   assert.doesNotMatch(await page.locator('#cloudOutageMessage').textContent(),/离线|口令错误|本机/);
   await screenshot('mobile-cloud-rate-limit-not-outage.png',null);
   transport='ok';await page.locator('#retryCloudConnection').click();
@@ -47,7 +47,7 @@ module.exports=async({page,context,assert,screenshot})=>{
   await page.waitForTimeout(150);
   assert.equal(modelAttempts,1,'A rejected solve is not automatically retried at the model endpoint');
   assert.equal(healthCalls,beforeLimitedSolve,'Cleanup does not erase the just-returned quota message with a green health badge');
-  assert.match(await page.locator('#cloudOutageMessage').textContent(),/本日解题次数已满/);
+  assert.match(await page.locator('#cloudOutageMessage').textContent(),/稍后重试/);
   await page.locator('#retryCloudConnection').click();await page.waitForFunction(()=>document.querySelector('#cloudConnection').dataset.state==='connected');
   transport='network';await page.locator('#retryCloudConnection').evaluate(n=>n.click());
   await page.locator('#cloudOutage').waitFor({state:'visible'});

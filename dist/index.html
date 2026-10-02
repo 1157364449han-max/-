@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="dongjiexi-version" content="0.50.0">
+  <meta name="dongjiexi-version" content="0.50.1">
   <meta name="description" content="高中解析几何动态图形工作台：从题干识别标准圆锥曲线，调节参数，观察交点与定值。">
   <meta name="theme-color" content="#0c1b33">
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -14,9 +14,9 @@
   <link rel="apple-touch-icon" href="icons/icon.svg">
   <link rel="stylesheet" href="vendor/katex/katex.min.css">
   <link rel="stylesheet" href="vendor/mathlive/mathlive-fonts.css">
-  <link rel="stylesheet" href="learning-ui.css?v=0.50.0">
-  <link rel="stylesheet" href="classroom.css?v=0.50.0">
-  <link rel="stylesheet" href="question-bank.css?v=0.50.0">
+  <link rel="stylesheet" href="learning-ui.css?v=0.50.1">
+  <link rel="stylesheet" href="classroom.css?v=0.50.1">
+  <link rel="stylesheet" href="question-bank.css?v=0.50.1">
   <style>
     :root { --ink:#0c1b33; --ink-2:#1a3152; --paper:#f6f8fb; --panel:#ffffff; --line:#d7e0eb; --muted:#64748b; --teal:#0f9f99; --teal-soft:#e1f7f4; --amber:#f2a33c; --amber-soft:#fff2d9; --red:#df5b62; --blue:#3f78d8; --shadow:0 10px 30px rgba(12,27,51,.09); }
     * { box-sizing:border-box; }
@@ -392,6 +392,15 @@
       .board-toolbar { align-items:flex-start; }
       .board-title-wrap { flex:0 0 100%;width:100%; }
       .board-toolbar .tool-actions { width:100%;justify-content:flex-start; }
+      /* Keep expanded tools from shrinking or overlapping the drawing surface. */
+      .workspace>.board-shell { height:auto;min-height:0;overflow:visible; }
+      .board-shell>.board-toolbar,.board-shell>.native-toolbar { flex-shrink:0; }
+      .board-shell>.native-toolbar { max-height:40dvh;overflow:auto;overscroll-behavior:contain; }
+      .toolbox-mobile-collapse { display:block;position:sticky;top:0;z-index:12;flex:0 0 100%;width:100%;min-height:44px!important; }
+      .board-shell>.canvas-wrap { flex:none;height:max(300px,calc(70dvh - 100px));min-height:300px;width:100%;overflow:hidden; }
+      .workspace>.panel { min-width:0;max-width:100%; }
+      .board-toolbar .tool-actions { flex-wrap:wrap;min-width:0; }
+      .workspace>.controls .panel-heading,.workspace>.inspect .panel-heading,.workspace>.inspect .inspector-switch { position:relative!important;top:auto!important; }
     }
     @media (max-width:460px) { .condition-grid,.condition-list { grid-template-columns:1fr; }.condition-grid .wide { grid-column:auto; } }
     /* Temporarily expose only the cloud route; keep the retained engines and bindings intact. */
@@ -399,12 +408,12 @@
     body[data-cloud-only="true"] #pullModel,body[data-cloud-only="true"] #useLocalSolver,
     body[data-cloud-only="true"] #cloudAuthUseLocal { display:none!important; }
   </style>
-  <link rel="stylesheet" href="theme.css?v=0.50.0">
+  <link rel="stylesheet" href="theme.css?v=0.50.1">
 </head>
 <body data-cloud-only="true">
   <main class="app">
     <header class="topbar">
-      <div class="brand"><span class="brand-mark">董</span><span class="brand-name">董解析</span><button class="version-button" id="versionButton" title="查看版本、更新记录和能力边界">v0.50.0 · 更新记录</button></div>
+      <div class="brand"><span class="brand-mark">董</span><span class="brand-name">董解析</span><button class="version-button" id="versionButton" title="查看版本、更新记录和能力边界">v0.50.1 · 更新记录</button></div>
       <div class="top-actions"><span class="top-note">云端解题 · 动态几何 · 我的题本</span><button id="openQuestionBank" class="button secondary" type="button" aria-haspopup="dialog">高考真题题库</button><button id="cloudOutageShortcut" class="install-button" type="button" title="云端暂不可用，点击查看连接状态；题稿会保留" hidden>云端中断 · 查看状态</button><button id="pwaInstall" class="install-button" hidden>安装到设备</button></div>
     </header>
     <section id="pwaBanner" class="pwa-banner" hidden role="status"><span id="pwaMessage"></span><button id="pwaUpdate" hidden>立即更新</button><button id="pwaDismiss">稍后</button></section>
@@ -589,39 +598,39 @@
   </dialog>
 
   <script src="runtime-config.js"></script>
-  <script src="runtime.js?v=0.50.0"></script>
+  <script src="runtime.js?v=0.50.1"></script>
   <script src="vendor/katex/katex.min.js"></script>
   <script src="vendor/katex/contrib/auto-render.min.js"></script>
-  <script src="math-input.js?v=0.50.0"></script>
-  <script src="number-display.js?v=0.50.0"></script>
-  <script src="label-layout.js?v=0.50.0"></script>
-  <script src="step-highlight.js?v=0.50.0"></script>
-  <script src="scene-audit.js?v=0.50.0"></script>
-  <script src="answer-geometry.js?v=0.50.0"></script>
-  <script src="scene-merge.js?v=0.50.0"></script>
-  <script src="tangent-solver.js?v=0.50.0"></script>
-  <script src="ellipse-distance.js?v=0.50.0"></script>
-  <script src="orthogonal-chord.js?v=0.50.0"></script>
-  <script src="axis-intercept-chord.js?v=0.50.0"></script>
-  <script src="parabola-locus.js?v=0.50.0"></script>
-  <script src="question-parts.js?v=0.50.0"></script>
-  <script src="goal-coverage.js?v=0.50.0"></script>
-  <script src="parabola-focal-data.js?v=0.50.0"></script>
-  <script src="circle-fold.js?v=0.50.0"></script>
-  <script src="circle-fold-view.js?v=0.50.0"></script>
-  <link rel="stylesheet" href="circle-fold.css?v=0.50.0">
-  <script src="hyperbola-iteration.js?v=0.50.0"></script>
-  <script src="conic-parameter.js?v=0.50.0"></script>
-  <script src="ellipse-focal-chord.js?v=0.50.0"></script>
-  <script src="external-ai.js?v=0.50.0"></script>
-  <script src="learning-ui.js?v=0.50.0"></script>
-  <script src="classroom.js?v=0.50.0"></script>
-  <script src="question-bank.js?v=0.50.0"></script>
-  <script src="construction-board.js?v=0.50.0"></script>
-  <script src="drag-board.js?v=0.50.0"></script>
-  <script src="equation-builder.js?v=0.50.0"></script>
-  <script src="math-keyboard.js?v=0.50.0"></script>
-  <script type="module" src="mathlive-adapter.js?v=0.50.0"></script>
+  <script src="math-input.js?v=0.50.1"></script>
+  <script src="number-display.js?v=0.50.1"></script>
+  <script src="label-layout.js?v=0.50.1"></script>
+  <script src="step-highlight.js?v=0.50.1"></script>
+  <script src="scene-audit.js?v=0.50.1"></script>
+  <script src="answer-geometry.js?v=0.50.1"></script>
+  <script src="scene-merge.js?v=0.50.1"></script>
+  <script src="tangent-solver.js?v=0.50.1"></script>
+  <script src="ellipse-distance.js?v=0.50.1"></script>
+  <script src="orthogonal-chord.js?v=0.50.1"></script>
+  <script src="axis-intercept-chord.js?v=0.50.1"></script>
+  <script src="parabola-locus.js?v=0.50.1"></script>
+  <script src="question-parts.js?v=0.50.1"></script>
+  <script src="goal-coverage.js?v=0.50.1"></script>
+  <script src="parabola-focal-data.js?v=0.50.1"></script>
+  <script src="circle-fold.js?v=0.50.1"></script>
+  <script src="circle-fold-view.js?v=0.50.1"></script>
+  <link rel="stylesheet" href="circle-fold.css?v=0.50.1">
+  <script src="hyperbola-iteration.js?v=0.50.1"></script>
+  <script src="conic-parameter.js?v=0.50.1"></script>
+  <script src="ellipse-focal-chord.js?v=0.50.1"></script>
+  <script src="external-ai.js?v=0.50.1"></script>
+  <script src="learning-ui.js?v=0.50.1"></script>
+  <script src="classroom.js?v=0.50.1"></script>
+  <script src="question-bank.js?v=0.50.1"></script>
+  <script src="construction-board.js?v=0.50.1"></script>
+  <script src="drag-board.js?v=0.50.1"></script>
+  <script src="equation-builder.js?v=0.50.1"></script>
+  <script src="math-keyboard.js?v=0.50.1"></script>
+  <script type="module" src="mathlive-adapter.js?v=0.50.1"></script>
   <script src="geogebra-bridge.js?v=0.7.0"></script>
   <script>
   (() => {
@@ -1697,8 +1706,8 @@ function motionStep(timestamp){if(!state.model){stopMotion(false);return;}const 
         const response=await fetch('releases.json',{cache:'no-store'});if(!response.ok)throw new Error('记录文件未能加载。');
         const data=await response.json();content.replaceChildren();button.textContent='v'+data.current+' · 更新记录';
         for(const release of data.releases){const section=document.createElement('section');section.append(element('h3','v'+release.version+' · '+release.title),element('time',release.date));
-          const list=document.createElement('ul');release.changes.forEach(change=>list.append(element('li',change)));section.append(list);
-          if(release.tested)section.append(element('p','已验证：'+release.tested));content.append(section);
+          const list=document.createElement('ul');release.changes.filter(change=>!/(?:每(?:自然)?小时|每日|每天|每\s*10\s*分钟).*\d+\s*次/.test(change)).forEach(change=>list.append(element('li',change)));section.append(list);
+          if(release.tested&&!/(?:每(?:自然)?小时|每日|每天|每\s*10\s*分钟).*\d+\s*次/.test(release.tested))section.append(element('p','已验证：'+release.tested));content.append(section);
         }
         content.append(element('h3','当前能力边界'));
         const limits=document.createElement('ul');data.limitations.forEach(limit=>limits.append(element('li',limit)));content.append(limits);
@@ -1707,6 +1716,6 @@ function motionStep(timestamp){if(!state.model){stopMotion(false);return;}const 
     document.getElementById('closeReleases').addEventListener('click',()=>dialog.close());
   })();
   </script>
-  <script src="pwa.js?v=0.50.0"></script>
+  <script src="pwa.js?v=0.50.1"></script>
 </body>
 </html>

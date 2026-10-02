@@ -31,6 +31,7 @@
     const error = new Error(message); error.code = code; error.status = status; return error;
   }
   function httpFailure(response,data,code,message){
+    if(response.status===429)message='云端暂时无法受理更多请求，请稍后重试。';
     const error=failure(code,message,response.status),retry=response.headers.get('Retry-After')||'';
     error.retryAfter=/^\d+$/.test(retry)?Math.min(86400,Number(retry)):0;
     return error;
