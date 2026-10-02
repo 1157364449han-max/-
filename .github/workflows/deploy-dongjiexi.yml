@@ -55,6 +55,7 @@ jobs:
           node tests/runtime_auth_contract_tests.cjs
           node tests/cloudflare_worker_tests.cjs
           node tests/recognition_contract_tests.cjs
+          node tests/public_cloud_tests.cjs
           node tests/external_ai_tests.cjs
           node tests/scene_consistency_tests.cjs
           node tests/label_layout_tests.cjs

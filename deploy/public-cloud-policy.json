@@ -1,0 +1,5 @@
+{
+  "apiBase": "https://dongjiexi-api.1157364449han.workers.dev",
+  "requiresAuth": false,
+  "note": "暂免访问口令；浏览器自动取得匿名签名凭证，保留个人频率与全站费用保护。"
+}

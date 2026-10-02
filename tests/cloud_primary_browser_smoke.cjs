@@ -1,7 +1,7 @@
 module.exports=async({page,context,assert})=>{
   await page.evaluate(async()=>{for(const r of await navigator.serviceWorker.getRegistrations())await r.unregister();for(const k of await caches.keys())await caches.delete(k);});
   await context.route('**/runtime-config.js',r=>r.fulfill({contentType:'application/javascript',body:'window.DONGJIEXI_CONFIG={deployment:"web",apiEnabled:true,requiresAuth:false};'}));
-  await context.route('**/api/health',r=>r.fulfill({json:{engine:{available:true,installed:true,remote:true,vision:false,models:['test-cloud']},default_model:'qwen3.5:4b'}}));
+  await context.route('**/api/health',r=>r.fulfill({json:{app:'董解析',engine:{available:true,installed:true,remote:true,vision:false,models:['test-cloud']},default_model:'qwen3.5:4b'}}));
   let jobs=0,rules=0;
   await context.route('**/api/solve',r=>{rules++;return r.fulfill({status:500,json:{error:'Must not use rule dispatch for cloud-primary'}});});
   await context.route('**/api/jobs',r=>{jobs++;return r.fulfill({json:{id:'test',status:'completed',result:{mode:'cloud-ai',title:'云端完整题意测试',restatement:r.request().postDataJSON().text,parts:[{index:0,status:'partial',answer:'模拟云端响应；不是实际解题能力验收。',steps:[]}],completion:{answered:0,total:1},scene:null}}});});

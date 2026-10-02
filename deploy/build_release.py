@@ -19,6 +19,7 @@ ROOT = Path(__file__).resolve().parents[1]
 STATIC_SUFFIXES = {'.html', '.js', '.mjs', '.css', '.json', '.webmanifest', '.svg', '.png', '.jpg', '.jpeg', '.ico', '.woff', '.woff2', '.ttf', '.eot', '.txt', '.md', '.map'}
 APP_FILES = {
     'deploy/cloudflare/worker.mjs', 'deploy/cloudflare/schema.sql', 'deploy/cloudflare/wrangler.jsonc', 'deploy/cloudflare/README.md',
+    'deploy/cloudflare/health-probe.mjs', 'deploy/public-cloud-policy.json',
     'cloud_inference.py', 'render.yaml',
     'server.py', 'learning_engine.py', 'verification_engine.py', 'requirements.txt', 'version.json',
     'Dockerfile', 'compose.yaml', '.dockerignore', '.gitignore', 'README.md', '使用说明.md', '更新日志.md',
@@ -34,6 +35,7 @@ APP_FILES = {
     'deploy/0.47.3-验证记录.md',
     'deploy/0.48.0-验证记录.md',
     'deploy/0.49.0-验证记录.md',
+    'deploy/0.50.0-验证记录.md',
     'deploy/runtime-config.web.example.js', '.github/workflows/deploy-dongjiexi.yml',
     'deploy/phone/README.md', 'deploy/phone/start.sh', 'deploy/phone/configure.sh',
     'deploy/phone/download-model.sh', 'deploy/phone/download-deepseek.sh', 'deploy/phone/serve-only.sh',
@@ -112,7 +114,12 @@ def build_release(source: Path, output: Path, api_base='', site_base='', commit=
         target = site / path.relative_to(source / 'dist')
         target.parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(path, target)
-    config = dict(version=version, deployment='web', apiBase=api_base, apiEnabled=bool(api_base), requiresAuth=bool(api_base), updateChannel='stable')
+    # Disable interactive authorization only for the explicitly published endpoint;
+    # another deployment must not silently inherit this temporary open policy.
+    policy_path = source / 'deploy/public-cloud-policy.json'
+    policy = json.loads(policy_path.read_text(encoding='utf-8-sig')) if policy_path.is_file() else {}
+    open_access = bool(api_base) and policy.get('requiresAuth') is False and policy.get('apiBase') == api_base
+    config = dict(version=version, deployment='web', apiBase=api_base, apiEnabled=bool(api_base), requiresAuth=bool(api_base) and not open_access, updateChannel='stable')
     (site / 'runtime-config.js').write_text('window.DONGJIEXI_CONFIG = Object.freeze(' + json.dumps(config, ensure_ascii=False) + ');\n', encoding='utf-8')
     (site / '.nojekyll').write_text('', encoding='utf-8')
     archive = site / 'downloads' / f'dongjiexi-v{version}.zip'

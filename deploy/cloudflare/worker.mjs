@@ -1,14 +1,17 @@
 import {SOLVE_SYSTEM, splitParts} from '../../dist/cloud-contract.mjs';
 import {VISION_MODEL, VISION_SYSTEM, validateImage} from '../../dist/recognition-contract.mjs';
+import {createHealthProbe} from './health-probe.mjs';
 const encoder=new TextEncoder(), decoder=new TextDecoder();
-const VERSION='0.44.0';
+const VERSION='0.45.0';
 class PublicError extends Error {constructor(status,message,retry=0){super(message);this.status=status;this.retry=retry;}}
 const bytes=value=>encoder.encode(value);
 const b64=data=>btoa(String.fromCharCode(...data)).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
 function un64(value){if(!/^[A-Za-z0-9_-]+$/.test(value))throw new Error('Invalid encoding');return Uint8Array.from(atob(value.replace(/-/g,'+').replace(/_/g,'/')),c=>c.charCodeAt(0));}
 async function hmac(secret,value){const key=await crypto.subtle.importKey('raw',bytes(secret),{name:'HMAC',hash:'SHA-256'},false,['sign']);return new Uint8Array(await crypto.subtle.sign('HMAC',key,bytes(value)));}
 async function equal(a,b){const [x,y]=await Promise.all([crypto.subtle.digest('SHA-256',bytes(a)),crypto.subtle.digest('SHA-256',bytes(b))]);const u=new Uint8Array(x),v=new Uint8Array(y);let difference=0;for(let i=0;i<u.length;i++)difference|=u[i]^v[i];return difference===0;}
-function requireConfig(env){if(!env.DB||!env.DONGJIEXI_ACCESS_KEY||!env.DONGJIEXI_MODEL_API_KEY||String(env.SESSION_SECRET||'').length<32)throw new PublicError(503,'云端尚未完成安全配置，请联系管理员。');}
+const publicAccess=env=>String(env.DONGJIEXI_PUBLIC_ACCESS)==='true';
+const configured=env=>!!(env.DB&&(publicAccess(env)||env.DONGJIEXI_ACCESS_KEY)&&env.DONGJIEXI_MODEL_API_KEY&&String(env.SESSION_SECRET||'').length>=32);
+function requireConfig(env){if(!configured(env))throw new PublicError(503,'云端尚未完成安全配置，请联系管理员。');}
 const clamp=(value,fallback,max)=>Number.isInteger(Number(value))&&Number(value)>0?Math.min(Number(value),max):fallback;
 const models=env=>String(env.DONGJIEXI_ALLOWED_MODELS||'deepseek-flash,deepseek-v4-pro').split(',').map(v=>v.trim()).filter(v=>/^[A-Za-z0-9._-]{1,80}$/.test(v));
 async function identity(request,env){return b64(await hmac(env.SESSION_SECRET,'ip:'+String(request.headers.get('CF-Connecting-IP')||'unknown')));}
@@ -25,7 +28,7 @@ async function limit(env,key,maximum,seconds){
   const now=Math.floor(Date.now()/1000),bucket=Math.floor(now/seconds),id=key+':'+bucket;
   // Atomic conditional UPSERT: renewing a session never resets the per-IP/global counters.
   const row=await env.DB.prepare('INSERT INTO counters (id, count, expires) VALUES (?1, 1, ?2) ON CONFLICT(id) DO UPDATE SET count=count+1 WHERE count < ?3 RETURNING count').bind(id,(bucket+1)*seconds+86400,maximum).first();
-  if(!row)throw new PublicError(429,'本时段请求额度已满，请稍后重试。画板与题稿仍可使用。',(bucket+1)*seconds-now);
+  if(!row)throw new PublicError(429,key==='global-day'?'全站本日云端请求额度已用完，并非服务掉线；请等待额度恢复。':key.startsWith('solve-hour:')?'当前浏览器每小时 40 次额度已用完，并非服务掉线；请等待额度恢复。':key.startsWith('ip-hour:')?'当前网络请求频率较高，请稍后重试，并非服务掉线。':'本时段请求额度已满，请稍后重试。画板与题稿仍可使用。',(bucket+1)*seconds-now);
   return id;
 }
 async function body(request,maximum=65536){
@@ -57,44 +60,35 @@ export function modelPayload(input,env){
   }
   return {model:input.model,messages,stream:true,max_tokens:kind==='chat'?3000:6000,thinking:{type:deep?'enabled':'disabled'},...(deep?{reasoning_effort:'high'}:{}),...(kind==='solve'?{response_format:{type:'json_object'}}:{})};
 }
-export function createHandler(upstreamFetch=(...args)=>fetch(...args)){return async(request,env,ctx)=>{
+export function createHandler(upstreamFetch=(...args)=>fetch(...args)){
+const probeHealth=createHealthProbe(upstreamFetch);
+return async(request,env,ctx)=>{
   const url=new URL(request.url),origin=request.headers.get('Origin')||'',allowed=String(env.DONGJIEXI_ALLOWED_ORIGINS||'https://dongjiexi.github.io').split(',').map(v=>v.trim());
   const headers={'Cache-Control':'no-store','X-Content-Type-Options':'nosniff','Vary':'Origin'};
-  if(origin&&allowed.includes(origin)){headers['Access-Control-Allow-Origin']=origin;headers['Access-Control-Allow-Methods']='GET, POST, OPTIONS';headers['Access-Control-Allow-Headers']='Content-Type, Authorization';headers['Access-Control-Max-Age']='600';}
+  if(origin&&allowed.includes(origin)){headers['Access-Control-Allow-Origin']=origin;headers['Access-Control-Allow-Methods']='GET, POST, OPTIONS';headers['Access-Control-Allow-Headers']='Content-Type, Authorization';headers['Access-Control-Expose-Headers']='Retry-After';headers['Access-Control-Max-Age']='600';}
   const json=(value,status=200,extra={})=>Response.json(value,{status,headers:{...headers,...extra}});
   try{
     if(origin&&!allowed.includes(origin))throw new PublicError(403,'请从董解析页面发起请求。');
     if(request.method==='OPTIONS')return new Response(null,{status:origin?204:403,headers});
     if(request.method==='GET'&&url.pathname==='/api/health'){
-      const configured=!!(env.DB&&env.DONGJIEXI_ACCESS_KEY&&env.DONGJIEXI_MODEL_API_KEY&&String(env.SESSION_SECRET||'').length>=32),authorized=configured&&await session(request,env);let available=[];
-      let probeError='';
-      if(authorized){
-        try{const probe=await upstreamFetch('https://api.deepseek.com/models',{headers:{Authorization:'Bearer '+env.DONGJIEXI_MODEL_API_KEY},redirect:'manual',signal:AbortSignal.timeout(7000)});
-          if(probe.ok){const data=await probe.json();const present=new Set((Array.isArray(data.data)?data.data:[]).map(p=>p.id));available=models(env).filter(m=>present.has(m));}
-          else probeError='upstream-http-'+probe.status;
-        }catch(error){
-          probeError=error.name==='TimeoutError'?'upstream-timeout':error.name==='SyntaxError'?'upstream-json':'upstream-network';
-          if(/Illegal invocation/i.test(String(error.message)))probeError='upstream-fetch-invocation';
-          else if(/not a function|not defined|not implemented/i.test(String(error.message)))probeError='upstream-runtime-unsupported';
-          else if(/redirect/i.test(String(error.message)))probeError='upstream-redirect';
-          else if(/DNS|resolve|hostname/i.test(String(error.message)))probeError='upstream-dns';
-          else if(/certificate|TLS|SSL/i.test(String(error.message)))probeError='upstream-tls';
-          else if(/1042|loop|same zone/i.test(String(error.message)))probeError='upstream-loop';
-          console.warn(JSON.stringify({code:probeError,error_type:['Error','TypeError','AbortError','TimeoutError'].includes(error.name)?error.name:'other',location:(String(error.stack).match(/worker\.mjs:\d+:\d+|index\.js:\d+:\d+/g)||[]).slice(0,3)}));
-        }
-      }
+      const installed=configured(env),signed=await session(request,env),authorized=installed&&(publicAccess(env)||(signed&&!signed.guest));
+      const health=authorized?await probeHealth(env,models(env),url):{models:[],status:'not-checked',checkedAt:null,error:''};
+      const available=health.models,probeError=health.error;
       const vision=available.includes(VISION_MODEL);
-      return json({app:'董解析',version:VERSION,deployment:'cloud',auth_required:true,auth_configured:configured,default_model:env.DONGJIEXI_MODEL_ID||'deepseek-flash',capabilities:{transport:'sse',symbolic_verification:'browser-supported-types',vision},engine:{available:available.length>0,models:available,installed:configured,remote:true,provider:'chat-completions',vision,vision_model:vision?VISION_MODEL:null,...(authorized&&probeError?{error_code:probeError}:{})}});
+      return json({app:'董解析',version:VERSION,deployment:'cloud',auth_required:!publicAccess(env),guest_session:publicAccess(env),auth_configured:installed,default_model:env.DONGJIEXI_MODEL_ID||'deepseek-flash',limits:{per_hour:publicAccess(env)?40:null,daily:clamp(env.DONGJIEXI_DAILY_JOBS,50,200)},capabilities:{transport:'sse',symbolic_verification:'browser-supported-types',vision},engine:{available:available.length>0,models:available,installed,remote:true,provider:'chat-completions',health_status:health.status,last_verified:health.checkedAt,vision,vision_model:vision?VISION_MODEL:null,...(authorized&&probeError?{error_code:probeError}:{})}});
     }
     if(request.method!=='POST'||!['/api/session','/api/stream','/api/recognize'].includes(url.pathname))throw new PublicError(404,'接口不存在。');
     requireConfig(env);
     if(url.pathname==='/api/session'){
-      const ip=await identity(request,env);await limit(env,'auth:'+ip,8,60);const input=await body(request);
-      if(typeof input.access_key!=='string'||input.access_key.length>256||!await equal(input.access_key.normalize('NFC').trim(),env.DONGJIEXI_ACCESS_KEY))throw new PublicError(401,'访问口令不正确。');
-      const token=b64(bytes(JSON.stringify({sub:ip,exp:Math.floor(Date.now()/1000)+3600,nonce:crypto.randomUUID()})));
-      return json({token:token+'.'+b64(await hmac(env.SESSION_SECRET,token)),expires_in:3600});
+      const ip=await identity(request,env),guest=publicAccess(env);await limit(env,(guest?'guest:':'auth:')+ip,guest?60:8,guest?600:60);const input=await body(request);
+      const validVisitor=typeof input.visitor_id==='string'&&/^guest-[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(input.visitor_id);
+      if(guest&&!validVisitor){if(!env.DONGJIEXI_ACCESS_KEY||typeof input.access_key!=='string'||input.access_key.length>256||!await equal(input.access_key.normalize('NFC').trim(),env.DONGJIEXI_ACCESS_KEY))throw new PublicError(400,'匿名连接标识无效，请刷新网页。');}
+      else if(!guest&&(typeof input.access_key!=='string'||input.access_key.length>256||!await equal(input.access_key.normalize('NFC').trim(),env.DONGJIEXI_ACCESS_KEY)))throw new PublicError(401,'访问口令不正确。');
+      const sub=guest&&validVisitor?b64(await hmac(env.SESSION_SECRET,'visitor:'+input.visitor_id.toLowerCase())):ip;
+      const token=b64(bytes(JSON.stringify({sub,exp:Math.floor(Date.now()/1000)+3600,nonce:crypto.randomUUID(),...(guest?{guest:true}:{})})));
+      return json({token:token+'.'+b64(await hmac(env.SESSION_SECRET,token)),expires_in:3600,guest});
     }
-    const auth=await session(request,env);if(!auth)throw new PublicError(401,'在线解题授权已失效，请重新输入访问口令。');
+    const auth=await session(request,env);if(!auth||(!publicAccess(env)&&auth.guest))throw new PublicError(401,publicAccess(env)?'匿名连接凭证已失效，网页可自动重建，无需访问口令。':'在线解题授权已失效，请重新输入访问口令。');
     const recognizing=url.pathname==='/api/recognize';
     const input=await body(request,recognizing?3*1024*1024:65536);
     if((input.kind==='recognize')!==recognizing)throw new PublicError(400,'图片识别与文字解题须使用各自接口。');
@@ -108,7 +102,10 @@ export function createHandler(upstreamFetch=(...args)=>fetch(...args)){return as
     try{
       // Busy rejections never consume quota. The IP limit still counts admitted
       // attempts to prevent retry abuse; daily quota counts accepted SSE calls.
-      await limit(env,'solve:'+auth.sub,clamp(env.DONGJIEXI_JOBS_PER_10_MINUTES,4,20),600);
+      if(publicAccess(env)){
+        await limit(env,'solve-hour:'+auth.sub,40,3600);
+        await limit(env,'ip-hour:'+await identity(request,env),400,3600);
+      }else await limit(env,'solve:'+auth.sub,clamp(env.DONGJIEXI_JOBS_PER_10_MINUTES,4,20),600);
       dailyReservation=await limit(env,'global-day',clamp(env.DONGJIEXI_DAILY_JOBS,50,200),86400);
       const response=await upstreamFetch('https://api.deepseek.com/chat/completions',{method:'POST',headers:{Authorization:'Bearer '+env.DONGJIEXI_MODEL_API_KEY,'Content-Type':'application/json'},body:JSON.stringify(payload),redirect:'manual',signal:controller.signal});
       if(!response.ok||!response.body){await response.body?.cancel();throw new PublicError(response.status===429?429:502,'云端模型请求失败，请稍后重试或联系管理员检查额度与配置。',response.status===429?10:0);}

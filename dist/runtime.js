@@ -1,12 +1,13 @@
 (function () {
   'use strict';
   const raw = window.DONGJIEXI_CONFIG || {};
+  let authRequired=raw.requiresAuth===true,guestRequired=false,guestPending=null,guestId='';
   const config = Object.freeze({
     version: String(raw.version || '0.43.3'),
     deployment: raw.deployment === 'web' ? 'web' : 'desktop',
     apiBase: String(raw.apiBase || '').trim().replace(/\/+$/, ''),
     apiEnabled: raw.apiEnabled !== false,
-    requiresAuth: raw.requiresAuth === true,
+    get requiresAuth(){return authRequired;},
     updateChannel: String(raw.updateChannel || 'stable')
   });
 
@@ -28,6 +29,32 @@
 
   function failure(code, message, status = 0) {
     const error = new Error(message); error.code = code; error.status = status; return error;
+  }
+  function httpFailure(response,data,code,message){
+    const error=failure(code,message,response.status),retry=response.headers.get('Retry-After')||'';
+    error.retryAfter=/^\d+$/.test(retry)?Math.min(86400,Number(retry)):0;
+    return error;
+  }
+  function acceptHealthPolicy(data){
+    if(!['董解析','智几何'].includes(data?.app)||!data.engine||typeof data.engine!=='object')return;
+    if(typeof data.auth_required==='boolean')authRequired=data.auth_required;
+    if(authRequired&&readSession()?.guest)clearSession();
+    guestRequired=data.auth_required===false&&data.guest_session===true;
+  }
+  async function ensureGuestSession(){
+    const existing=readSession();
+    if(!guestRequired||existing?.guest)return existing;
+    if(guestPending)return guestPending;
+    guestPending=(async()=>{
+      try{guestId=localStorage.getItem('dongjiexi:guest-id:v1')||guestId;}catch{}
+      if(!/^guest-[a-f0-9-]{36}$/i.test(guestId))guestId='guest-'+crypto.randomUUID();
+      try{localStorage.setItem('dongjiexi:guest-id:v1',guestId);}catch{}
+      const data=await request('/api/session',{visitor_id:guestId});
+      if(typeof data.token!=='string'||!data.token.trim()||data.guest!==true)throw failure('invalid_response','匿名连接信息无效，请重试；无需输入口令。');
+      const saved={token:data.token,guest:true,expiresAt:Date.now()+Math.max(60,Math.min(3600,Number(data.expires_in)||3600))*1000,apiBase:config.apiBase};
+      sessionStorage.setItem(sessionKey,JSON.stringify(saved));return saved;
+    })();
+    try{return await guestPending;}finally{guestPending=null;}
   }
 
   function apiUrl(path) {
@@ -72,14 +99,15 @@
     if (!response.ok) {
       const code = response.status === 401 ? (path === '/api/session' ? 'auth_rejected' : 'session_expired') :
         response.status === 429 ? 'rate_limited' : 'service_unavailable';
-      throw failure(code, data?.error || `云端服务暂不可用（HTTP ${response.status}），请稍后重试；这不表示访问口令错误。`, response.status);
+      throw httpFailure(response,data,code,data?.error || `云端服务暂不可用（HTTP ${response.status}），请稍后重试；这不表示访问口令错误。`);
     }
     if (!data) throw failure('invalid_response', '解题服务返回了无法识别的数据。');
+    if(path==='/api/health')acceptHealthPolicy(data);
     return data;
   }
 
   // Only this read-only endpoint is public. A probe never creates or replaces a session.
-  async function probeCloud() {
+  async function probeCloudOnce() {
     const url = apiUrl('/api/health'), session = readSession();
     const controller = new AbortController();
     // Gateway model probing takes up to 7s; allow mobile network transit too.
@@ -93,15 +121,23 @@
         try { data = await response.json(); }
         catch (error) { if (error.name === 'AbortError') throw error; if(response.ok)throw failure('invalid_response', '云端健康信息格式无效，请重试或联系管理员。'); }
       }
-      if (!response.ok) throw failure(response.status === 429 ? 'rate_limited' : 'service_unavailable', data?.error || `云端服务暂不可用（HTTP ${response.status}）。`, response.status);
+      if (!response.ok) throw httpFailure(response,data,response.status === 429 ? 'rate_limited' : 'service_unavailable', data?.error || `云端服务暂不可用（HTTP ${response.status}）。`);
       if (!data || !['董解析', '智几何'].includes(data.app) || !data.engine || typeof data.engine !== 'object')
         throw failure('invalid_response', '服务地址未返回董解析健康信息，请联系管理员。');
-      return {reachable: true, needsAuth: config.requiresAuth && !session, data};
+      acceptHealthPolicy(data);
+      return {reachable: true, needsAuth: config.requiresAuth && !readSession(), data};
     } catch (error) {
       if (controller.signal.aborted) throw failure('timeout', '云端连接超时，请稍后重试。画板与题稿仍可使用。');
       if (error.code) throw error;
       throw failure('network', '无法连接云端服务。这不表示访问口令错误。');
     } finally { clearTimeout(timer); }
+  }
+  async function probeCloud(){
+    try{return await probeCloudOnce();}catch(error){
+      if(!['network','timeout','service_unavailable'].includes(error.code)||globalThis.navigator?.onLine===false)throw error;
+      // Retry only the read-only health endpoint, never accepted inference.
+      await new Promise(resolve=>setTimeout(resolve,300));return probeCloudOnce();
+    }
   }
 
   async function authenticate(accessKey) {
@@ -115,8 +151,9 @@
     return data;
   }
 
-  async function streamJob(body, {signal, onProgress} = {}) {
-    const session=readSession();
+  async function streamJob(body, {signal, onProgress,guestRetry=true} = {}) {
+    if(signal?.aborted)throw Object.assign(new Error('任务已停止。'),{name:'AbortError'});
+    const session=guestRequired?await ensureGuestSession():readSession();
     if(config.requiresAuth&&!session)throw failure('session_expired','请先输入访问口令。',401);
     const controller=new AbortController(),abort=()=>controller.abort(signal?.reason);
     if(signal?.aborted)abort();else signal?.addEventListener('abort',abort,{once:true});
@@ -127,7 +164,8 @@
       if(!response.ok){
         const data=(response.headers.get('content-type')||'').includes('application/json')?await response.json():null;
         if(response.status===401)clearRejectedSession(session);
-        throw failure(response.status===401?'session_expired':response.status===429?'rate_limited':'service_unavailable',data?.error||'云端解题服务暂不可用。',response.status);
+        if(response.status===401&&guestRequired&&guestRetry&&!signal?.aborted)return await streamJob(body,{signal,onProgress,guestRetry:false});
+        throw httpFailure(response,data,response.status===401?'session_expired':response.status===429?'rate_limited':'service_unavailable',data?.error||'云端解题服务暂不可用。');
       }
       if(!(response.headers.get('content-type')||'').includes('text/event-stream')||!response.body)throw failure('invalid_response','云端没有返回流式答案。');
       reader=response.body.getReader();const decoder=new TextDecoder('utf-8',{fatal:true});

@@ -13,6 +13,15 @@ from deploy.build_release import build_release, checked_version, public_https
 
 
 class ReleaseBuildTests(unittest.TestCase):
+    def test_public_policy_only_matches_the_explicit_endpoint(self):
+        for endpoint, expected in [('https://dongjiexi-api.1157364449han.workers.dev', False), ('https://api.example.test', True)]:
+            with self.subTest(endpoint=endpoint), tempfile.TemporaryDirectory(prefix='dongjiexi-policy-') as directory:
+                output = Path(directory) / 'release'
+                build_release(ROOT, output, api_base=endpoint)
+                script = (output / 'site/runtime-config.js').read_text(encoding='utf-8')
+                config = json.loads(script.split('Object.freeze(', 1)[1].rsplit(');', 1)[0])
+                self.assertEqual(config['requiresAuth'], expected)
+
     def test_builds_independent_web_and_allowlisted_desktop_package(self):
         with tempfile.TemporaryDirectory(prefix='dongjiexi-build-') as directory:
             base = Path(directory)

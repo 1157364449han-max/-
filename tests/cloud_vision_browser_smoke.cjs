@@ -1,6 +1,6 @@
 module.exports=async({page,context,assert})=>{
   await context.route('**/runtime-config.js',route=>route.fulfill({contentType:'application/javascript',body:'window.DONGJIEXI_CONFIG={version:"0.25.0",deployment:"web",apiEnabled:true,apiBase:"",requiresAuth:false};'}));
-  await context.route('**/api/health',route=>route.fulfill({json:{engine:{available:true,installed:true,remote:true,vision:true,models:['test-vision']},default_model:'test-vision'}}));
+  await context.route('**/api/health',route=>route.fulfill({json:{app:'董解析',engine:{available:true,installed:true,remote:true,vision:true,models:['test-vision']},default_model:'test-vision'}}));
   let sent=null;
   await context.route('**/api/jobs',route=>{sent=route.request().postDataJSON();return route.fulfill({json:{id:'vision-test',status:'completed',result:{text:'已知抛物线 y²=4x。'}}});});
   await page.reload({waitUntil:'domcontentloaded'});

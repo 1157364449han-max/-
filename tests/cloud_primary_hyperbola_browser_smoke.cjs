@@ -1,6 +1,6 @@
 module.exports=async({page,context,assert})=>{
   await context.route('**/runtime-config.js',route=>route.fulfill({contentType:'application/javascript',body:'window.DONGJIEXI_CONFIG={deployment:"web",apiEnabled:true,requiresAuth:false};'}));
-  await context.route('**/api/health',route=>route.fulfill({json:{engine:{available:true,installed:true,remote:true,vision:false,models:['deepseek-flash']},default_model:'deepseek-flash'}}));
+  await context.route('**/api/health',route=>route.fulfill({json:{app:'董解析',engine:{available:true,installed:true,remote:true,vision:false,models:['deepseek-flash']},default_model:'deepseek-flash'}}));
   await context.route('**/api/jobs',route=>route.fulfill({json:{id:'hyperbola-cloud',status:'completed',result:{mode:'cloud-ai',title:'云端解答',restatement:'双曲线焦点垂弦',parts:[{index:0,label:'完整题目',status:'answered',answer:'$\\dfrac{\\sqrt{61}}{6}$',steps:['云端摘要与推导冲突。']}],completion:{answered:1,total:1},scene:{type:'hyperbola',a:2,b:1,h:0,k:0,orientation:'horizontal',points:{},lines:[],objects:[]}}}}));
   await page.reload({waitUntil:'domcontentloaded'});
   await page.waitForFunction(()=>document.querySelector('#modelName').value==='deepseek-flash');
