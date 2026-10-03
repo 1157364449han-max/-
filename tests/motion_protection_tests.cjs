@@ -44,3 +44,7 @@ test('invalid overrides are ignored and singular inversion does not invent R',()
 test('malformed persisted geometry baseline cannot replace a valid scene with impossible dimensions',()=>{
   const m=scene(),values={a:3,b:1,h:0,k:0};m.motionBaseline={values:{a:-5,b:20},shapes:[]};motion.capture(m,values);motion.restorePremises(m,values);assert.equal(values.a,3);assert.equal(values.b,1);
 });
+test('fixed named points restore too, without deleting later manual point additions',()=>{
+  const m=scene(),values={a:3,b:1,h:0,k:0};motion.capture(m,values);m.points.A=[4,2];m.points.N=[7,8];motion.restorePremises(m,values);assert.deepEqual(m.points.A,[0,-1]);assert.deepEqual(m.points.N,[7,8]);
+  m.motionBaseline.points={A:['bad',2]};motion.capture(m,values);motion.restorePremises(m,values);assert.deepEqual(m.points.A,[0,-1]);
+});

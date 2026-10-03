@@ -43,7 +43,7 @@
       if(kind==='hyperbola')return{t:Math.asinh((vertical?x:y)/b),branch:(vertical?y:x)<0?-1:1};
       return{t:vertical?x:y};
     };
-    return {type:'conic',q:{A,B:0,C,D,E,F},pointAt,project};
+    return {type:'conic',conicType:kind,q:{A,B:0,C,D,E,F},pointAt,project};
   }
   function quadratic(a,b,c){
     const scale=Math.max(Math.abs(a),Math.abs(b),Math.abs(c),1);a/=scale;b/=scale;c/=scale;
@@ -81,6 +81,7 @@
     const objects=()=>[...(api.model()?.lines||[]),...(api.model()?.objects||[])];
     function ensureIds(){let seq=0;const used=new Set(objects().map(o=>o.id).filter(Boolean));for(const obj of objects())if(!obj.id){let id;do{id='native-'+(++seq);}while(used.has(id));obj.id=id;used.add(id);}}
     const getObject=id=>objects().find(o=>o.id===id);
+    const driver=object=>window.DongMotionDomain?.driver(object,api.part?api.part():api.model()?.activePart)||object;
     const pointValue=p=>finitePoint(p)?{type:'point',x:p.x,y:p.y}:null;
     function resolve(id,seen=new Set(),cache=new Map()){
       if(cache.has(id))return cache.get(id);if(seen.has(id)||seen.size>80)return null;seen.add(id);
@@ -88,7 +89,7 @@
       try{
         const override=window.DongMotion?.overridden(api.model(),id,null);
         if(override){cache.set(id,override);return override;}
-        if(id==='$conic')result={type:'conic',q:api.coeffs(),pointAt:api.conicPoint,project:api.conicProject};
+        if(id==='$conic')result={type:'conic',conicType:api.model()?.type,q:api.coeffs(),pointAt:api.conicPoint,project:api.conicProject};
         else if(id==='$dynamic'){const t=api.angle()*Math.PI/180;result={type:'line',o:api.origin(),d:{x:Math.cos(t),y:Math.sin(t)}};}
         else if(id==='$dynamic2'&&api.angle2){const t=api.angle2()*Math.PI/180;result={type:'line',o:api.origin(),d:{x:Math.cos(t),y:Math.sin(t)}};}
         else if(String(id).startsWith('feature:'))result=pointValue(api.features().find(p=>p.name===id.slice(8)));
@@ -125,9 +126,12 @@
             if(obj.op==='intersection')result=pointValue(intersect(a,b)[obj.branch||0]);
             if(obj.op==='distance'&&a?.type==='point'&&b?.type==='point')result={type:'measure',...mul(add(a,b),.5),value:distance(a,b)};
             if(obj.op==='point_on'&&a){
-              if(validLine(a))result=pointValue(add(a.o,mul(a.d,obj.t)));
-              else if(validCircle(a))result=pointValue({x:a.x+a.r*Math.cos(obj.t),y:a.y+a.r*Math.sin(obj.t)});
-              else if(a.type==='conic')result=pointValue(a.pointAt?.(obj.t,obj.branch||1));
+              const spec=driver(obj);
+              if(spec.mode==='plane')result=pointValue(spec);
+              else if(validLine(a))result=pointValue(add(a.o,mul(a.d,spec.t)));
+              else if(validCircle(a))result=pointValue({x:a.x+a.r*Math.cos(spec.t),y:a.y+a.r*Math.sin(spec.t)});
+              else if(a.type==='conic')result=pointValue(a.pointAt?.(spec.t,spec.branch||1));
+              if(window.DongMotionDomain&&!window.DongMotionDomain.accepts(spec,result,spec))result=null;
             }
           }
         }
@@ -149,21 +153,37 @@
     }
     function descendants(id){const result=new Set([id]);let changed=true;while(changed){changed=false;for(const o of objects())if(!result.has(o.id)&&(o.refs||[]).some(ref=>result.has(ref))){result.add(o.id);changed=true;}}return result;}
     function pointOn(id,parameter){const shape=resolve(id);if(!shape)return null;if(validLine(shape))return add(shape.o,mul(shape.d,parameter.t));if(validCircle(shape))return{x:shape.x+shape.r*Math.cos(parameter.t),y:shape.y+shape.r*Math.sin(parameter.t)};return shape.type==='conic'?shape.pointAt?.(parameter.t,parameter.branch||1):null;}
+    function moveDriver(id,parameter){
+      const obj=getObject(id);if(obj?.op!=='point_on')return false;
+      const spec=driver(obj),domain=window.DongMotionDomain;
+      let next=parameter,point;
+      try{
+        if(spec.mode==='plane')point=parameter;
+        else{const shape=resolve(obj.refs[0]);if(!shape)return false;next=domain?domain.fit(spec,parameter,{periodic:validCircle(shape)||shape.conicType==='ellipse'||shape.conicType==='circle',hyperbola:shape.conicType==='hyperbola'}):parameter;point=pointOn(obj.refs[0],next);}
+        if(!finitePoint(point)||(domain?!domain.accepts(spec,point,next):window.DongMotion&&!window.DongMotion.permittedPoint(spec,point)))return false;
+      }catch{return false;}
+      const store=domain?domain.storage(obj,api.part?api.part():api.model()?.activePart):obj,fields=spec.mode==='plane'?['x','y']:['t','branch'];
+      const changed=fields.some(key=>next[key]!=null&&store[key]!==next[key]);
+      for(const key of fields)if(next[key]!=null)store[key]=next[key];
+      return changed;
+    }
+    function dragDriver(id,point){const obj=getObject(id);if(!obj)return false;const spec=driver(obj);return moveDriver(id,spec.mode==='plane'?point:project(obj.refs[0],point));}
     function invalidReason(id){
       if(resolve(id))return '';
       const object=getObject(id);if(!object)return '引用的对象不存在';
       if((object.refs||[]).some(ref=>!resolve(ref)))return '源对象未定义、缺失或构造关系循环';
+      if(object.op==='point_on')return '当前位置不满足动点范围，或范围配置无效';
       if(['tangent','normal'].includes(object.op)||linkedCurveLine(object))return '所选点不在曲线上，或曲线在此处退化';
       if(object.op==='ellipse_tangent_point')return '点在曲线内部时无实切线；点在曲线上时两条切线合并为一条';
       if(object.op==='intersection')return '当前无此分支的实交点（可能相离、相切合并或重合）';
       return '构造退化或参数无效';
     }
-    return {objects,ensureIds,getObject,resolve,project,pointOn,freePoint,descendants,intersect,invalidReason};
+    return {objects,ensureIds,getObject,resolve,project,pointOn,driver,moveDriver,dragDriver,freePoint,descendants,intersect,invalidReason};
   }
 
   function attach(api){
     const {state,canvas,ctx,xy}=api,$=id=>document.getElementById(id);
-    const engine=createEngine({model:()=>state.model,features:api.features,coeffs:api.coeffs,origin:api.origin,angle:()=>state.p.theta,angle2:api.angle2,conicPoint:api.conicPoint,conicProject:api.conicProject});
+    const engine=createEngine({model:()=>state.model,part:()=>state.activePart,features:api.features,coeffs:api.coeffs,origin:api.origin,angle:()=>state.p.theta,angle2:api.angle2,conicPoint:api.conicPoint,conicProject:api.conicProject});
     let tool=null,pending=[],staged=[],selected=null,hover=null,pointer=null,snapPreview=null;
     const titles={point:'点',line:'直线',line_angle:'过点直线',segment:'线段',ray:'射线',circle:'圆',midpoint:'中点',reflect_x:'x 轴对称点',reflect_y:'y 轴对称点',parallel:'平行线',perpendicular:'垂线',intersection:'交点',foot:'垂足',distance:'测距',tangent:'切线',normal:'法线'};
     const hint=text=>$('dragHint').textContent=text;
@@ -366,7 +386,7 @@
     }
     function move(target,p,dx,dy){const obj=engine.getObject(target.id);
       if(target.override){const initial=target.override,shape=initial.type==='point'?{type:'point',...p}:initial.type==='line'?{...initial,o:{x:initial.o.x+dx,y:initial.o.y+dy}}:{...initial,x:initial.x+dx,y:initial.y+dy};window.DongMotion.setOverride(state.model,target.id,shape);return;}
-      if(obj.op==='line_angle'){const origin=engine.resolve(obj.refs[0]);if(origin&&distance(origin,p)>EPS){snapPreview=null;const end=directionPoint(origin,p);obj.angle=((Math.atan2(end.y-origin.y,end.x-origin.x)*180/Math.PI)%180+180)%180;}}else if(obj.op==='point_on'){const v=engine.project(obj.refs[0],p),point=v&&engine.pointOn(obj.refs[0],v);if(v&&(!window.DongMotion||window.DongMotion.permittedPoint(obj,point)))Object.assign(obj,v);else hint('该位置被题设排除，已保持最近一次合法位置。');}else target.free?.forEach((ref,i)=>ref.set(api.snap({x:target.starts[i].x+dx,y:target.starts[i].y+dy})));}
+      if(obj.op==='line_angle'){const origin=engine.resolve(obj.refs[0]);if(origin&&distance(origin,p)>EPS){snapPreview=null;const end=directionPoint(origin,p);obj.angle=((Math.atan2(end.y-origin.y,end.x-origin.x)*180/Math.PI)%180+180)%180;}}else if(obj.op==='point_on'){if(!engine.dragDriver(obj.id,p))hint('已保留最近合法位置；该点受轨迹、范围或分支约束。');}else target.free?.forEach((ref,i)=>ref.set(api.snap({x:target.starts[i].x+dx,y:target.starts[i].y+dy})));}
     function removeObject(id){
       if(!engine.getObject(id))return;const removed=engine.descendants(id);
       api.transaction(()=>{state.model.objects=state.model.objects.filter(o=>!removed.has(o.id));state.model.lines=state.model.lines.filter(o=>!removed.has(o.id));});

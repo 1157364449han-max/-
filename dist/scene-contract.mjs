@@ -1,4 +1,5 @@
 // Shared geometry whitelist: cloud and clipboard use exactly the same data-only validation.
+import './motion-domain.js';
 const finite = n => typeof n === 'number' && Number.isFinite(n) && Math.abs(n) <= 100000;
 const forbidden = new Set(['__proto__', 'prototype', 'constructor']);
 const name = s => typeof s === 'string' && !forbidden.has(s) && /^[A-Za-z][A-Za-z0-9_₀₁₂₃′']{0,12}$/.test(s);
@@ -91,6 +92,7 @@ export function safeConstructionScene(raw, {partIndexes}={}) {
     if(!p||!name(p.name)||labels.has(p.name)){warn('曲线上动点名称无效或重复。');continue;}
     if(p.t!=null&&!finite(p.t)){warn('曲线上点的 t 参数无效。');continue;}
     labels.add(p.name);const node={id:'external-moving-'+i,kind:'construction',op:'point_on',refs:['$conic'],t:p.t??.9,label:p.name,visible:p.visible!==false,...scope(p)};
+    try{if(p.motionDomain!=null)node.motionDomain=globalThis.DongMotionDomain.validate(p.motionDomain);if(p.motionByPart!=null)node.motionByPart=globalThis.DongMotionDomain.validateProfiles(p.motionByPart,partIndexes);}catch(error){warn(error.message);continue;}
     reserve(node);nodes.push(node);
   }
   const moving = new Map(nodes.map(n=>[n.label,n.id]));
@@ -116,6 +118,10 @@ export function safeConstructionScene(raw, {partIndexes}={}) {
     }
     const node={id:c.id,kind:'construction',op:c.op,refs:c.refs.slice(),label:text(c.label,40)||c.id,visible:c.visible!==false,...scope(c)};
     if(c.op==='point_on'){if(!finite(c.t)||c.branch!=null&&![1,-1].includes(c.branch)){warn('曲线上点缺少有效 t 参数或分支。');continue;}node.t=c.t;node.branch=c.branch===-1?-1:1;}
+    if(c.motionDomain!=null||c.motionByPart!=null){
+      if(c.op!=='point_on'){warn('运动范围只能绑定到驱动点。');continue;}
+      try{if(c.motionDomain!=null)node.motionDomain=globalThis.DongMotionDomain.validate(c.motionDomain);if(c.motionByPart!=null)node.motionByPart=globalThis.DongMotionDomain.validateProfiles(c.motionByPart,partIndexes);}catch(error){warn(error.message);continue;}
+    }
     if(c.op==='line_angle'){if(!finite(c.angle)){warn('过点直线缺少角度。');continue;}node.angle=c.angle;}
     if(c.op==='reflect_axis'){if(!['x','y'].includes(c.axis)||!finite(c.axisValue??0)){warn('对称轴参数无效。');continue;}node.axis=c.axis;node.axisValue=c.axisValue??0;}
     if(['intersection','ellipse_tangent_point'].includes(c.op)){if(![0,1].includes(c.branch??0)){warn('交点分支必须为 0 或 1。');continue;}node.branch=c.branch??0;}

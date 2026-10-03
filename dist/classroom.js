@@ -44,7 +44,7 @@
     function leave(){casting=false;pen=false;document.body.classList.remove('classroom-mode');castbar.hidden=true;ink.hidden=true;ink.style.pointerEvents='none';find('#inkToggle').setAttribute('aria-pressed','false');if(document.fullscreenElement)document.exitFullscreen().catch(()=>{});api.render();}
     function enter(){
       if(!api.state.solution){api.setStatus('请先载入本题解析。',true);return;}
-      const part=currentPart();api.state.activePart=part.index;const data=study();data.mode='step';data.counts={};data.answers={};
+      const part=currentPart();api.state.activePart=part.index;api.partChanged?.();const data=study();data.mode='step';data.counts={};data.answers={};
       casting=true;document.body.classList.add('classroom-mode');castbar.hidden=false;ink.hidden=false;ink.style.pointerEvents='none';
       api.showLearning();api.renderSolution();api.refreshLayers();api.render();updateCastBar();requestAnimationFrame(showInk);persist();
     }
@@ -80,7 +80,7 @@
     find('#reviewAttempt').addEventListener('click',()=>{const notes=study()?.notes?.trim();if(!notes){api.setStatus('请先写下你的解题尝试或卡住的地方。',true);return;}find('#followupInput').value='请点评我的解题思路，指出第一处错误或需要补充的依据，先给改进提示，不直接重写完整答案。我的尝试：\n'+notes;find('#followupInput').focus();find('#followupInput').scrollIntoView({block:'nearest'});api.sendFeedback();});
     find('#startClassroom').addEventListener('click',enter);find('#exitClassroom').addEventListener('click',leave);
     find('#previousStep').addEventListener('click',()=>changeStep(-1));find('#nextStep').addEventListener('click',()=>changeStep(1));find('#classroomAnswer').addEventListener('click',answerToggle);
-    find('#classroomPart').addEventListener('change',event=>{api.state.activePart=Number(event.target.value);api.renderSolution();api.refreshLayers();api.render();persist();});
+    find('#classroomPart').addEventListener('change',event=>{api.state.activePart=Number(event.target.value);api.partChanged?.();api.renderSolution();api.refreshLayers();api.render();persist();});
     find('#lectureFont').addEventListener('change',event=>document.body.style.setProperty('--lecture-font',event.target.value+'px'));
     find('#classroomFullscreen').addEventListener('click',()=>{if(document.fullscreenElement)document.exitFullscreen().catch(()=>{});else document.documentElement.requestFullscreen().catch(()=>api.setStatus('浏览器未允许全屏，讲题布局仍可使用。'));});
     find('#inkToggle').addEventListener('click',()=>{pen=!pen;ink.style.pointerEvents=pen?'auto':'none';find('#inkToggle').setAttribute('aria-pressed',String(pen));api.setStatus(pen?'红笔为屏幕批注，不改变几何对象；关闭红笔后可拖动图形。':'已返回图形拖动。');});

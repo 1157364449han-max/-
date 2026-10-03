@@ -10,7 +10,7 @@ module.exports=async({page,context,assert})=>{
     return r.fulfill({contentType:'text/event-stream',body});
   });
   await page.evaluate(()=>localStorage.setItem('dongjiexi:solve-mode:v1','cloud'));await page.reload({waitUntil:'domcontentloaded'});
-  await page.waitForFunction(()=>document.querySelector('#engineStatus').classList.contains('ready'));
+  await page.waitForFunction(()=>document.querySelector('#engineStatus').classList.contains('ready')&&document.querySelector('#cloudConnection').dataset.state==='connected');
   await page.locator('#question').fill('已知椭圆 $x^2/4+y^2=1$，求离心率。');await page.locator('#solveButton').click();
   await page.waitForFunction(()=>document.querySelector('#solution').textContent.includes('边缘流式解题测试'));
   assert.equal(jobs,0);assert.equal(streams,1);assert((await page.locator('#solution .katex').count())>0);

@@ -91,6 +91,21 @@ class UpdateSafetyTests(unittest.TestCase):
         files['dist/goal-coverage.js']='fixture'
         self.refuse(files,'主页')
 
+    def test_motion_domain_release_missing_module_refuses_before_changes(self):
+        files=dict(self.files)
+        for name in ('dist/goal-coverage.js dist/answer-geometry.js dist/circle-fold.js '
+                     'dist/circle-fold-view.js dist/circle-fold.css dist/recognition-contract.mjs '
+                     'deploy/public-cloud-policy.json deploy/cloudflare/health-probe.mjs '
+                     'dist/circle-dot.js dist/question-bank.js dist/question-bank.json '
+                     'dist/question-bank.css dist/motion-protection.js').split():
+            files[name]='fixture'
+        files.update({'version.json':'{"name":"董解析","version":"0.51.3"}',
+                      'dist/app-version.json':'{"version":"0.51.3"}',
+                      'dist/releases.json':'{"current":"0.51.3"}',
+                      'dist/service-worker.js':"const VERSION = '0.51.3';",
+                      'dist/index.html':'<meta name="dongjiexi-version" content="0.51.3">'})
+        self.refuse(files,'必需')
+
     def test_private_and_user_paths_refuse(self):
         for name in ('private.env','.env','deploy/.dev.vars','deploy/cloudflare/wrangler.local.jsonc','models/new.gguf','董解析数据/draft.json','.git/config'):
             with self.subTest(name=name):

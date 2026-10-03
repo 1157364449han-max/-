@@ -21,6 +21,7 @@
     if (!item.scene) return null;
     const scene = JSON.parse(JSON.stringify(item.scene));
     scene.problemMotion = true;
+    scene.referenceScene = {id:item.id,revision:item.sceneRevision||1};
     scene.title = item.title;
     scene.lines = (scene.lines || []).map(line => {
       if (!Number.isFinite(line.a) || !Number.isFinite(line.b) || !Number.isFinite(line.c)) return line;
@@ -57,6 +58,41 @@
     };
     return {format: 'dongjiexi-lesson', version: 1, question: item.question, solution,
       scene: exact?.scene || sceneFor(item), activePart: parts[0].index, exploring: false};
+  }
+  // Upgrade ONLY an explicitly sourced reference lesson. Never match free-input
+  // questions to stored answers, and never replace an unbacked-up user draft.
+  function prepareUpgrade(record,item) {
+    if(record?.solution?.mode!=='reference-lesson'||record.solution.lessonSource?.id!==item?.id||!record.scene||item.solver||record.question?.trim()!==item.question.trim()||record.solution.restatement?.trim()!==item.question.trim())return null;
+    const previous=record.scene.referenceScene?.revision||1,revision=item.sceneRevision||1;
+    if(previous>=revision)return null;
+    const fresh=sceneFor(item),clone=value=>JSON.parse(JSON.stringify(value));
+    const owned=new Set((fresh.objects||[]).map(o=>o.id));
+    const saved=clone(record),old=saved.scene,manual=(old.objects||[]).filter(o=>o.source==='user'||!owned.has(o.id));
+    const manualLines=(old.lines||[]).filter(o=>o.source==='user'||!(item.scene.lines||[]).some(n=>n.id===o.id));
+    const names=new Set(Object.keys(fresh.points||{}));
+    (fresh.objects||[]).forEach(o=>{if(o.label)names.add(o.label);});
+    for(const obj of [...manual,...manualLines])if(owned.has(obj.id)||obj.label&&names.has(obj.label))throw new Error('手动对象与新参考图的编号或点名冲突；原稿保留，请先改名或导出图稿。');
+    // Known legacy reference points become dependent nodes in revision 2.
+    const remap=item.id==='2025-i-18'?{'feature:P':'inverse-moving-P','feature:M':'inverse-moving-M','feature:R':'inverse-derived-R'}:{};
+    const rewrite=value=>Array.isArray(value)?value.map(rewrite):value&&typeof value==='object'?Object.fromEntries(Object.entries(value).map(([k,v])=>[k,rewrite(v)])):typeof value==='string'&&Object.hasOwn(remap,value)?remap[value]:value;
+    fresh.objects.push(...manual.map(rewrite));
+    const knownNames=new Set([...names,...Object.keys(remap).map(k=>k.slice(8))]);
+    for(const [name,point] of Object.entries(old.points||{}))if(!knownNames.has(name))fresh.points[name]=clone(point);
+    fresh.lines=[...(fresh.lines||[]),...manualLines.map(rewrite)];
+    fresh.polygons=[...(fresh.polygons||[]),...(old.polygons||[]).map(rewrite)];
+    for(const o of fresh.objects){const prior=(old.objects||[]).find(n=>n.id===o.id);if(prior&&prior.visible!=null)o.visible=prior.visible;}
+    // Pose data can transfer within the same motion mode, never between parts.
+    for(const o of fresh.objects.filter(n=>n.op==='point_on')){
+      const prior=(old.objects||[]).find(n=>n.id===o.id);
+      if(prior&&Number.isFinite(prior.t))o.t=prior.t;
+      for(const [part,profile] of Object.entries(o.motionByPart||{})){
+        const before=prior?.motionByPart?.[part];
+        if(before?.mode===profile.mode)for(const key of profile.mode==='plane'?['x','y']:['t','branch'])if(Number.isFinite(before[key]))profile[key]=before[key];
+      }
+    }
+    saved.scene=fresh;saved.original=null;saved.exploring=false;
+    saved.solution.scene=clone(fresh);saved.solution.scene_notice=item.sceneNote;saved.solution.referenceSceneRevision=revision;
+    return saved;
   }
   function attach(api) {
     const find = selector => document.querySelector(selector);
@@ -149,7 +185,7 @@
     find('#bankResetFilters').addEventListener('click', () => {for(const id of ['bankSearch','bankPaper','bankYear','bankCurve','bankTopic']) find('#'+id).value = ''; render();});
     return {open: () => button.click()};
   }
-  const exported = {paperGroup, select, sceneFor, lesson, attach};
+  const exported = {paperGroup, select, sceneFor, lesson, prepareUpgrade, attach};
   if (typeof window !== 'undefined') window.DongQuestionBank = exported;
   if (typeof module !== 'undefined') module.exports = exported;
 })();

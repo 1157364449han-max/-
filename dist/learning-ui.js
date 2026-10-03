@@ -42,6 +42,7 @@
       requestAnimationFrame(()=>{api.render();window.scrollTo({top:Math.max(0,workspace.getBoundingClientRect().top+window.scrollY-mobileNav.offsetHeight),behavior:'instant'});});
     }));
     const notebookKey = 'dongjiexi:notebook:v1';
+    const backupKey = 'dongjiexi:lesson-backups:v1';
     const draftKey = 'dongjiexi:draft:v1';
     const modelKey = 'dongjiexi:model';
     const modeKey = 'dongjiexi:solve-mode:v1';
@@ -316,11 +317,13 @@
     function bindTabs(element) {
       element.querySelectorAll('[data-study-part]').forEach(button=>button.addEventListener('click',()=>{
         api.state.activePart=button.dataset.studyPart==='all'?null:Number(button.dataset.studyPart);
+        api.partChanged?.();
         renderSolution();api.refreshLayers();api.syncMotionButton?.();api.fitPart?.();api.render();api.remember();
       }));
     }
     function renderSolution() {
       const solution=api.state.solution;
+      checkReferenceUpgrade();
       foldView?.mount(solution);
       if(solution!==lastSolution||api.state.activePart!==lastStepPart||api.question.value!==lastStepQuestion)clearStepHighlight();
       lastStepPart=api.state.activePart;lastStepQuestion=api.question.value;
@@ -475,9 +478,40 @@
       finally{streamController=null;activeJob=null;busy(false);if(!rateLimited)refreshEngine();}
     }
     function snapshot() {
-      return {format:'dongjiexi-lesson',version:1,id:crypto.randomUUID(),savedAt:new Date().toISOString(),title:api.state.solution?.title||api.question.value.slice(0,32)||'未命名图稿',question:api.question.value,scene:api.state.model?api.sceneData():null,solution:api.state.solution||null,activePart:api.state.activePart,exploring:!!api.state.exploring};
+      return {format:'dongjiexi-lesson',version:1,id:crypto.randomUUID(),savedAt:new Date().toISOString(),title:api.state.solution?.title||api.question.value.slice(0,32)||'未命名图稿',question:api.question.value,scene:api.state.model?api.sceneData():null,original:api.state.original||null,solution:api.state.solution||null,activePart:api.state.activePart,exploring:!!api.state.exploring};
     }
     function readNotebook(){try{const entries=JSON.parse(localStorage.getItem(notebookKey)||'[]');return Array.isArray(entries)?entries:[];}catch{return [];}}
+    function readBackups(){const entries=JSON.parse(localStorage.getItem(backupKey)||'[]');if(!Array.isArray(entries))throw new Error('旧稿备份记录无法读取，已保留原数据。');return entries;}
+    let upgradeSolution=null,upgradeModel=null,upgradeQuestion='',upgradeItem=null,bankPromise=null;
+    function checkReferenceUpgrade(){
+      const notice=find('#lessonUpgradeNotice'),solution=api.state.solution,model=api.state.model;
+      if(!notice||!window.DongQuestionBank)return;
+      if(upgradeSolution===solution&&upgradeModel===model&&upgradeQuestion===api.question.value)return;
+      upgradeSolution=solution;upgradeModel=model;upgradeQuestion=api.question.value;upgradeItem=null;notice.hidden=true;
+      if(solution?.mode!=='reference-lesson'||!model||api.question.value.trim()!==solution.restatement?.trim())return;
+      bankPromise ||= fetch(new URL('question-bank.json',document.baseURI)).then(response=>{if(!response.ok)throw new Error('题库升级信息暂不可用');return response.json();}).catch(error=>{bankPromise=null;throw error;});
+      bankPromise.then(data=>{
+        if(api.state.solution!==solution||api.state.model!==model||api.question.value!==upgradeQuestion)return;
+        const item=data.items?.find(row=>row.id===solution.lessonSource?.id);
+        if(!item||item.solver||(model.referenceScene?.revision||1)>=(item.sceneRevision||1))return;
+        upgradeItem=item;notice.hidden=false;
+        find('#lessonUpgradeMessage').textContent='本题有新版动态图。升级会更新原题点线与参数，保留手动追加对象、解析和笔记；旧稿先备份到“我的题本”，不会自动覆盖。';
+      }).catch(()=>{/* Offline/unavailable metadata never blocks existing drafts. */});
+    }
+    find('#upgradeReferenceScene')?.addEventListener('click',()=>{
+      try{
+        if(!upgradeItem||api.state.solution!==upgradeSolution||api.state.model!==upgradeModel||api.question.value!==upgradeQuestion)throw new Error('题目已修改或切换，请重新查看升级提示。');
+        const before=snapshot(),next=window.DongQuestionBank.prepareUpgrade(before,upgradeItem);if(!next)return;
+        // Parse before backing up or clearing the live draft. Storage failure is
+        // atomic: no geometry is changed and no previous backup is removed.
+        api.modelFromJson(JSON.stringify(next.scene));
+        const backup=JSON.parse(JSON.stringify(before));backup.title='升级前备份 · '+backup.title;backup.upgradeBackup=true;
+        const entries=readBackups();
+        try{localStorage.setItem(backupKey,JSON.stringify([backup,...entries]));}catch{throw new Error('备份空间不足，未升级、未删除旧稿；请先导出题稿保存。');}
+        restoreLesson(next);saveLesson(true);find('#lessonUpgradeNotice').hidden=true;
+        api.setStatus('动态图已升级。手动对象和笔记已保留；升级前完整图稿可在“我的题本”中打开。');
+      }catch(error){api.setStatus(error.message||'升级未完成；原稿保留。',true);}
+    });
     function readDraft(){
       try{
         const draft=JSON.parse(localStorage.getItem(draftKey)||'null');
@@ -524,17 +558,18 @@
       }
       if(record.scene?.objects?.length>500)throw new Error('图稿对象超过 500 个。');
       const parsedScene=record.scene?api.modelFromJson(JSON.stringify(record.scene)):null;
+      const original=record.original?.model&&record.original?.values?api.modelFromJson(JSON.stringify({...record.original.model,...record.original.values})):null;
       clearStepHighlight();
       api.clear();api.question.value=record.question;
       api.state.solution=record.solution;api.state.activePart=record.activePart??null;
-      if(parsedScene)api.installScene(parsedScene,'题本');
-      api.state.exploring=!!record.exploring;find('#exploreNotice').hidden=!api.state.exploring;
+      if(parsedScene)api.installScene(parsedScene,'题本',{original,exploring:!!record.exploring});
+      api.state.exploring=!window.DongMotion.protectedScene(api.state.model)&&!!record.exploring;find('#exploreNotice').hidden=!api.state.exploring;
       renderSolution();api.refreshLayers();api.render();api.remember();api.setStatus('题目、解析、图形与追问已恢复。');
     }
     function renderNotebook() {
       const query=find('#notebookSearch').value.toLowerCase();
       const filter=find('#reviewFilter')?.value||'all';
-      const entries=readNotebook().filter(item=>(item.title+' '+item.question+' '+(item.solution?.study?.notes||'')).toLowerCase().includes(query)&&(filter==='all'||item.solution?.study?.review===filter));
+      const entries=[...readNotebook(),...readBackups()].filter(item=>(item.title+' '+item.question+' '+(item.solution?.study?.notes||'')).toLowerCase().includes(query)&&(filter==='all'||item.solution?.study?.review===filter));
       find('#notebookList').innerHTML=entries.length?entries.map(item=>`<article class="notebook-entry"><div><strong>${escapeText(item.title)}</strong><p>${escapeText(item.question.slice(0,100))}</p><small>${escapeText(new Date(item.savedAt).toLocaleString())}</small></div><button class="button secondary" data-open-lesson="${escapeText(item.id)}">打开</button></article>`).join(''):'<p>还没有符合条件的题目。解答后会自动保存，也可以点击“保存本题”。</p>';
       find('#notebookList').querySelectorAll('[data-open-lesson]').forEach(button=>button.addEventListener('click',()=>{try{restoreLesson(entries.find(item=>item.id===button.dataset.openLesson));find('#notebookDialog').close();}catch(error){report(error);}}));
     }
