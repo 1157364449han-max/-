@@ -18,6 +18,8 @@ const workflow = read('.github/workflows/deploy-dongjiexi.yml');
 assert.match(app.version, /^\d+\.\d+\.\d+$/);
 assert.equal(web.version, app.version);
 assert.equal(releases.current, app.version);
+assert.match(read('dist/runtime-config.js'),new RegExp(`version: '${app.version.replaceAll('.', '\\.')}'`),'Static desktop fallback must match the current release too');
+assert.ok(worker.includes("'./motion-domain.js'")&&html.includes(`motion-domain.js?v=${app.version}`),'Literal motion domains must be loaded and cached in the same release');
 assert.match(app.update_channel, /^https:\/\//);
 assert.match(worker, new RegExp(`VERSION = '${app.version.replaceAll('.', '\\.')}'`));
 assert.equal(manifest.start_url, './');

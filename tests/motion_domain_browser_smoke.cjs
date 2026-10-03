@@ -13,7 +13,7 @@ module.exports=async({page,assert,screenshot})=>{
   let xy;
   const fit=async()=>{await page.locator('#homeButton').click();const {rx,ry}=await geometry(),b=await page.locator('#canvas').boundingBox(),scale=Math.max(2*rx/b.width,2*ry/b.height);xy=p=>({x:b.x+b.width/2+p.x/scale,y:b.y+b.height/2-p.y/scale});};
   const drag=async(from,to)=>{const a=xy(from),b=xy(to);await page.mouse.move(a.x,a.y);await page.mouse.down();await page.mouse.move(b.x,b.y,{steps:10});await page.mouse.up();};
-  await page.locator('#openQuestionBank').click();await page.locator('#bankList button').first().waitFor();await page.locator('[data-bank-id="2025-i-18"]').click();await page.locator('[data-bank-action="full"]').click();
+  await page.locator('#openQuestionBank').click();await page.locator('#bankList button').first().waitFor();await page.locator('#bankResetFilters').click();await page.locator('[data-bank-id="2025-i-18"]').click();await page.locator('[data-bank-action="full"]').click();
   await page.locator('[data-study-part="201"]').click();await fit();await drag((await geometry()).P,{x:3,y:2});near((await geometry()).P.x,3);near((await geometry()).P.y,2);near((await geometry()).R.x,.5);near((await geometry()).R.y,-.5);
   assert(await page.locator('#motionPlay').isDisabled(),'plane P has no invented animation path');await drag((await geometry()).P,{x:0,y:2});assert(Math.abs((await geometry()).P.x)>1e-8,'excluded axis retains the last legal drag position');
   await drag((await geometry()).P,{x:3,y:2});near((await geometry()).P.x,3);
