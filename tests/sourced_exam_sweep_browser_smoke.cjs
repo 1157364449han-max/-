@@ -5,7 +5,7 @@ module.exports=async({page,context,assert,screenshot})=>{
   const replacements=new Set(additions.items.map(q=>q.replaces).filter(Boolean));
   const additionIds=new Set(additions.items.map(q=>q.id));
   const cases=[...bank.items.filter(q=>q.kind==='gaokao'&&!replacements.has(q.id)&&!additionIds.has(q.id)),...additions.items];
-  assert.equal(cases.length,12,'Count unique sourced questions, not repeated parts');
+  assert.equal(cases.length,18,'Count unique sourced questions, not repeated parts');
   await context.route('**/runtime-config.js',r=>r.fulfill({contentType:'application/javascript',body:'window.DONGJIEXI_CONFIG={deployment:"web",apiEnabled:false};'}));
   await page.evaluate(()=>{localStorage.setItem('dongjiexi:solve-mode:v1','local');localStorage.setItem('dongjiexi:local-workflow:v1','native');});
   await page.reload({waitUntil:'domcontentloaded'});

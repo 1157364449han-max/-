@@ -7,6 +7,14 @@ assert.equal(bank.select(data.items,{year:2024})[0].id,'2024-ii-19');
 assert.equal(bank.select(data.items,{kind:'classic'}).length,2);
 assert.equal(bank.select(data.items,{query:'不会匹配的文字'}).length,0);
 assert.equal(bank.select(data.items,{curve:'圆',topic:'切线'}).length,1);
+assert.equal(bank.select(data.items,{paper:'national-i'}).length,7);
+assert.equal(bank.select(data.items,{paper:'national-ii'}).length,4);
+assert.deepEqual(bank.select(data.items,{paper:'national-ii',year:2025}).map(i=>i.id),['2025-ii-16']);
+assert.equal(bank.select(data.items,{query:'全国二卷'}).length,4);
+assert.equal(bank.paperGroup({kind:'gaokao',paper:'新高考全国II卷'}),'national-ii');
+assert.equal(bank.paperGroup({kind:'gaokao',paper:'新课标全国I卷'}),'national-i');
+assert.equal(bank.paperGroup({kind:'gaokao',paper:'全国甲卷'}),'全国甲卷');
+assert.equal(bank.paperGroup({kind:'classic',paper:'全国Ⅰ卷变式'}),'');
 for(const item of data.items){
   if(item.solver)continue;
   const record=bank.lesson(item,'practice');

@@ -90,7 +90,9 @@ class QuestionPartsTests(unittest.TestCase):
 
     def test_all_sourced_questions_preserve_counts(self):
         bank = json.loads((ROOT/"dist/question-bank.json").read_text(encoding="utf-8"))
-        multi = {"2023-i-22": [1, 2], "2024-ii-19": [1, 2, 3], "2026-i-18": [1, 201, 202]}
+        multi = {"2023-i-22": [1, 2], "2024-ii-19": [1, 2, 3], "2026-i-18": [1, 201, 202],
+                 "2022-i-21": [1, 2], "2023-ii-21": [1, 2], "2024-i-16": [1, 2],
+                 "2025-i-18": [1, 201, 202], "2025-ii-16": [1, 2]}
         for item in bank["items"]:
             with self.subTest(id=item["id"]):
                 self.assertEqual(self.indexes(item["question"]), multi.get(item["id"], [0]))

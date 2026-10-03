@@ -52,7 +52,8 @@ test('text bound and invalid type have separate errors',()=>{
 });
 test('all bank and sourced regression questions preserve genuine counts and indices',()=>{
   const bank=JSON.parse(fs.readFileSync(path.join(__dirname,'../dist/question-bank.json'),'utf8'));
-  const multi={'2023-i-22':[1,2],'2024-ii-19':[1,2,3],'2026-i-18':[1,201,202]};
+  const multi={'2023-i-22':[1,2],'2024-ii-19':[1,2,3],'2026-i-18':[1,201,202],
+    '2022-i-21':[1,2],'2023-ii-21':[1,2],'2024-i-16':[1,2],'2025-i-18':[1,201,202],'2025-ii-16':[1,2]};
   for(const item of bank.items)assert.deepEqual(indexes(item.question),multi[item.id]||[0],item.id);
   const source=JSON.parse(fs.readFileSync(path.join(__dirname,'fixtures/sourced-exam-additions.json'),'utf8'));
   for(const item of source.items)assert.deepEqual(indexes(item.question),item.id==='2022-beijing-19-full'?[1,2]:[0],item.id);

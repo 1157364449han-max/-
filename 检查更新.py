@@ -96,6 +96,7 @@ def install_archive(archive, root=ROOT):
             (0, 49, 0): ("dist/recognition-contract.mjs",),
             (0, 50, 0): ("deploy/public-cloud-policy.json", "deploy/cloudflare/health-probe.mjs"),
             (0, 51, 0): ("dist/circle-dot.js",),
+            (0, 51, 1): ("dist/question-bank.js", "dist/question-bank.json", "dist/question-bank.css"),
         }
         for minimum, modules in added_modules.items():
             if version_tuple(config.get("version")) >= minimum and not all((source / name).is_file() for name in modules):

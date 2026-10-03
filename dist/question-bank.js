@@ -1,13 +1,21 @@
 /* Sourced lessons are deliberately separate from autonomous AI solving. */
 (function () {
   'use strict';
+  function paperGroup(item) {
+    if (item.kind !== 'gaokao') return '';
+    const paper = String(item.paper || '').replace(/\s/g, '');
+    if (/(?:全国|新高考|新课标).*(?:Ⅱ|II|二|2)卷/.test(paper)) return 'national-ii';
+    if (/(?:全国|新高考|新课标).*(?:Ⅰ|I|一|1)卷/.test(paper)) return 'national-i';
+    return paper;
+  }
   function select(items, filters = {}) {
     const query = String(filters.query || '').trim().toLocaleLowerCase();
     return items.filter(item => (!filters.kind || item.kind === filters.kind) &&
       (!filters.year || String(item.year) === String(filters.year)) &&
+      (!filters.paper || paperGroup(item) === filters.paper) &&
       (!filters.curve || item.curve === filters.curve) &&
       (!filters.topic || item.tags.includes(filters.topic)) &&
-      (!query || [item.title, item.paper, item.number, item.question, ...item.tags, ...(item.knowledge||[]).map(topic=>topic.description)].join(' ').toLocaleLowerCase().includes(query)));
+      (!query || [item.title, item.paper, paperGroup(item)==='national-i'?'全国一卷 新高考一卷 新课标一卷':paperGroup(item)==='national-ii'?'全国二卷 新高考二卷 新课标二卷':'', item.number, item.question, ...item.tags, ...(item.knowledge||[]).flatMap(topic=>[topic.name,topic.description])].join(' ').toLocaleLowerCase().includes(query)));
   }
   function sceneFor(item) {
     if (!item.scene) return null;
@@ -55,7 +63,8 @@
     const dialog = document.createElement('dialog'); dialog.id = 'questionBankDialog'; dialog.className = 'question-bank-dialog';
     dialog.setAttribute('aria-labelledby', 'questionBankTitle');
     dialog.innerHTML = '<header><div><h2 id="questionBankTitle">高考真题题库</h2><p class="help" id="bankCoverage">正在读取题库…</p></div><button id="closeQuestionBank" class="button secondary" type="button">关闭</button></header>' +
-      '<div class="bank-filters"><label>找题<input id="bankSearch" type="search" placeholder="题号、知识点、关键字"></label><label>题库<select id="bankKind"><option value="">全部</option><option value="gaokao">近五年高考真题</option><option value="classic">经典例题</option></select></label><label>年份<select id="bankYear"><option value="">全部年份</option></select></label><label>曲线<select id="bankCurve"><option value="">全部曲线</option><option>椭圆</option><option>双曲线</option><option>抛物线</option><option>圆</option></select></label><label>考点<select id="bankTopic"><option value="">全部考点</option></select></label></div>' +
+      '<div class="bank-paper-shortcuts" aria-label="全国卷快捷筛选"><button type="button" data-bank-paper="">全部卷别</button><button type="button" data-bank-paper="national-i">全国一卷</button><button type="button" data-bank-paper="national-ii">全国二卷</button><button type="button" id="bankResetFilters">清除筛选</button></div>' +
+      '<div class="bank-filters"><label>找题<input id="bankSearch" type="search" placeholder="题号、知识点、关键字"></label><label>题库<select id="bankKind"><option value="">全部</option><option value="gaokao">近五年高考真题</option><option value="classic">经典例题</option></select></label><label>卷别<select id="bankPaper"><option value="">全部卷别</option><option value="national-i">全国一卷（新高考／新课标）</option><option value="national-ii">全国二卷（新高考／新课标）</option></select></label><label>年份<select id="bankYear"><option value="">全部年份</option></select></label><label>曲线<select id="bankCurve"><option value="">全部曲线</option><option>椭圆</option><option>双曲线</option><option>抛物线</option><option>圆</option></select></label><label>考点<select id="bankTopic"><option value="">全部考点</option></select></label></div>' +
       '<p class="help">先看考点与学习目标，再选择题目；此处不会提前展示答案。</p><p id="bankResultCount" role="status" aria-live="polite"></p><div class="bank-layout"><nav id="bankList" aria-label="题目列表"></nav><section id="bankDetail" aria-label="题目详情"><p>选择一道题开始。</p></section></div>';
     document.body.append(dialog);
     let data = null, selected = null, loading = null;
@@ -103,7 +112,8 @@
     }
     function render() {
       if (!data) return;
-      const items = select(data.items, {query: find('#bankSearch').value, kind: find('#bankKind').value, year: find('#bankYear').value, curve: find('#bankCurve').value, topic: find('#bankTopic').value});
+      const items = select(data.items, {query: find('#bankSearch').value, kind: find('#bankKind').value, paper: find('#bankPaper').value, year: find('#bankYear').value, curve: find('#bankCurve').value, topic: find('#bankTopic').value});
+      dialog.querySelectorAll('[data-bank-paper]').forEach(node => node.setAttribute('aria-pressed', String(node.dataset.bankPaper === find('#bankPaper').value)));
       find('#questionBankTitle').textContent = find('#bankKind').value === 'classic' ? '经典例题' : find('#bankKind').value === 'gaokao' ? '高考真题题库' : '真题与经典题';
       find('#bankResultCount').textContent = `找到 ${items.length} / ${data.items.length} 道题 · 每题保留来源与收录范围`;
       const list = find('#bankList'); list.replaceChildren();
@@ -124,6 +134,7 @@
         const value = await response.json();
         if (value.schema !== 'dongjiexi-question-bank/v1' || !Array.isArray(value.items)) throw new Error('题库版本不兼容。');
         data = value; find('#bankCoverage').textContent = value.coverage;
+        for (const paper of [...new Set(value.items.map(paperGroup).filter(key => key && !key.startsWith('national-')))]) find('#bankPaper').add(new Option(paper, paper));
         for (const year of [...new Set(value.items.map(item => item.year).filter(Boolean))].sort((a,b) => b-a)) find('#bankYear').add(new Option(year, year));
         for (const topic of [...new Set(value.items.flatMap(item => item.tags))].sort()) find('#bankTopic').add(new Option(topic, topic));
       })().finally(() => {loading = null;});
@@ -134,10 +145,12 @@
       try {await load(); find('#bankKind').value='gaokao';render();} catch (error) {find('#bankCoverage').textContent = error.message;}
     });
     find('#closeQuestionBank').addEventListener('click', () => dialog.close());
-    for (const id of ['bankSearch', 'bankKind', 'bankYear', 'bankCurve', 'bankTopic']) find('#' + id).addEventListener(id === 'bankSearch' ? 'input' : 'change', render);
+    for (const id of ['bankSearch', 'bankKind', 'bankPaper', 'bankYear', 'bankCurve', 'bankTopic']) find('#' + id).addEventListener(id === 'bankSearch' ? 'input' : 'change', () => {if(id === 'bankKind' && find('#bankKind').value === 'classic') find('#bankPaper').value = ''; render();});
+    dialog.querySelectorAll('[data-bank-paper]').forEach(node => node.addEventListener('click', () => {find('#bankPaper').value = node.dataset.bankPaper; if(node.dataset.bankPaper) find('#bankKind').value = 'gaokao'; render();}));
+    find('#bankResetFilters').addEventListener('click', () => {for(const id of ['bankSearch','bankPaper','bankYear','bankCurve','bankTopic']) find('#'+id).value = ''; render();});
     return {open: () => button.click()};
   }
-  const exported = {select, sceneFor, lesson, attach};
+  const exported = {paperGroup, select, sceneFor, lesson, attach};
   if (typeof window !== 'undefined') window.DongQuestionBank = exported;
   if (typeof module !== 'undefined') module.exports = exported;
 })();
