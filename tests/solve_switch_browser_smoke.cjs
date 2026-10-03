@@ -19,10 +19,10 @@ module.exports=async({page,context,assert})=>{
   assert.equal(await page.locator('#modelSelectorRow').evaluate(element=>!element.hidden),true,'Cloud model selector remains available');
   await page.locator('[data-quick-conic="ellipse"]').click();
   const before=await page.locator('#sceneJson').inputValue();
-  const additions=JSON.parse(require('node:fs').readFileSync(require('node:path').join(__dirname,'fixtures/sourced-exam-additions.json'),'utf8'));
-  // This sourced planar-vector problem remains uncovered. Covered conic
+  const bank=JSON.parse(require('node:fs').readFileSync(require('node:path').join(__dirname,'../dist/question-bank.json'),'utf8'));
+  // This sourced circle-symmetry problem remains uncovered. Covered conic
   // engines bypass the request, which would make the late-reply race vacuous.
-  await page.locator('#question').fill(additions.items.find(item=>item.id==='2022-beijing-10').question);
+  await page.locator('#question').fill(bank.items.find(item=>item.id==='2022-beijing-3').question);
   await page.locator('#solveButton').click();
   for(let i=0;!started&&i<50;i++)await new Promise(resolve=>setTimeout(resolve,20));
   assert(started,'Slow solve request must start');

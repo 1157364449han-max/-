@@ -3,11 +3,11 @@ module.exports=async({page,context,assert,screenshot})=>{
   await page.locator('#bankList [data-bank-id="2023-i-6"]').waitFor();
   assert(await page.locator('#openQuestionBank').evaluate(node=>!!node.closest('.topbar')),'题库应是始终可见的独立入口');
   assert.equal(await page.locator('#bankKind').inputValue(),'gaokao');
-  assert.equal(await page.locator('#bankList button').count(),10);
+  assert.equal(await page.locator('#bankList button').count(),11);
   assert.match(await page.locator('#bankList').innerText(),/对称轴.*经过圆心/s);
   assert.equal(await page.locator('#bankDetail .bank-knowledge li').count(),2);
   await page.locator('#bankKind').selectOption('');
-  assert.equal(await page.locator('#bankList button').count(),12);
+  assert.equal(await page.locator('#bankList button').count(),13);
   assert.match(await page.locator('#bankCoverage').innerText(),/非全量/);
   for(const year of ['2022','2023','2024','2025','2026']){
     await page.locator('#bankYear').selectOption(year);

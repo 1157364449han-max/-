@@ -37,7 +37,7 @@ module.exports=async({page,context,assert,screenshot})=>{
   assert.equal(allContactNodes.filter(n=>n.op==='tangent').length,2,'The original question needs both tangents even if steps omit their names');
   await screenshot('cloud-provided-contacts-missing-tangents.png',null);
   raw={title:'未覆盖求解测试',parts:[{index:0,status:'needs_information',answer:'动直线斜率未知，图形不唯一，因此条件不足',steps:['无法确定唯一图形']}],scene:null};
-  await page.locator('#question').fill(source.items.find(q=>q.id==='2022-beijing-10').question);await page.locator('#solveButton').click();
+  await page.locator('#question').fill(bank.items.find(q=>q.id==='2022-beijing-3').question);await page.locator('#solveButton').click();
   await page.waitForFunction(()=>document.querySelector('#solution').textContent.includes('未覆盖求解测试'));
   assert.match(await page.locator('#solution').textContent(),/不代表原题缺少条件/);
   assert.equal(await page.locator('.answer-status').textContent(),'尚未完整解答');

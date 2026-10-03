@@ -14,7 +14,7 @@ ITEMS = {item['id']: item for item in DATA['items']}
 class QuestionBankTests(unittest.TestCase):
     def test_source_and_scope_contract(self):
         self.assertEqual(DATA['schema'], 'dongjiexi-question-bank/v1')
-        self.assertEqual(len(ITEMS), 12)
+        self.assertEqual(len(ITEMS), 13)
         self.assertEqual({i['year'] for i in ITEMS.values() if i['kind'] == 'gaokao'}, set(range(2022, 2027)))
         self.assertEqual(sum(i['kind'] == 'classic' for i in ITEMS.values()), 2)
         for item in ITEMS.values():

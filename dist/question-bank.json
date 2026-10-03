@@ -1,9 +1,18 @@
 {
   "schema": "dongjiexi-question-bank/v1",
-  "updated": "2026-09-30",
+  "updated": "2026-10-03",
   "coverage": "2022—2026 年精选，非全量试卷。小问节选与省略选项均单独标记。",
   "rights": "题面权利归原命题单位；来源链接供核对。讲解由董解析重新推导，不搬运第三方答案册。",
   "items": [
+    {
+      "id": "2022-beijing-10", "kind": "gaokao", "year": 2022, "paper": "北京卷", "number": "10", "scope": "完整题干（省略选项）", "title": "平面动点数量积范围", "curve": "圆", "tags": ["向量数量积", "取值范围", "柯西不等式"], "level": "中等",
+      "knowledge": [{"name":"几何建系","description":"用直角三角形的两直角边建坐标轴，将定长动点转成圆周条件。"},{"name":"数量积与取等","description":"展开同起点向量，用柯西不等式求全局界，并核对两个端点能否取得。"}],
+      "question": "在△ABC中，AC=3，BC=4，∠C=90°。P为△ABC所在平面内的动点，且PC=1，则向量 PA·PB 的取值范围是？",
+      "sources": [{"title":"2022 北京卷原卷 PDF，第2页第10题（既有原卷回归题面）","url":"https://m.shsbnu.net/pluginfile.php/54461/mod_folder/content/0/2022%E5%B9%B4%E6%96%B0%E9%AB%98%E8%80%83%E5%8C%97%E4%BA%AC%E6%95%B0%E5%AD%A6%E9%AB%98%E8%80%83%E7%9C%9F%E9%A2%98%E6%96%87%E6%A1%A3%E7%89%88%EF%BC%88%E5%8E%9F%E5%8D%B7%EF%BC%89.pdf"}],
+      "pitfall": "动点在三角形所在平面内，不限于三角形内部；两端均有合法取等点。",
+      "parts": [{"index":0,"label":"数量积范围","answer":"$[-4,6]$。","steps":["以C为原点建立坐标系，A=(3,0)，B=(0,4)。","由PC=1得x²+y²=1，展开PA·PB=1-3x-4y。","柯西不等式给出|3x+4y|≤5，两个端值分别在P=(3/5,4/5)和P=(-3/5,-4/5)取得。"]}],
+      "solver": "circle-dot-range"
+    },
     {
       "id": "2022-beijing-3", "kind": "gaokao", "year": 2022, "paper": "北京卷", "number": "3", "scope": "题干（省略选项）", "title": "圆的对称轴", "curve": "圆", "tags": ["圆心", "对称性"], "knowledge": [{"name":"圆心与标准式","description":"从圆的标准方程识别圆心，建立参数与坐标的关系。"},{"name":"圆的对称轴","description":"利用每条对称轴都经过圆心，将几何条件转成等式。"}], "level": "基础",
       "question": "若直线 $2x+y-1=0$ 是圆 $(x-a)^2+y^2=1$ 的一条对称轴，求 $a$。",

@@ -3,7 +3,8 @@ module.exports=async({page,context,assert,screenshot})=>{
   const bank=JSON.parse(fs.readFileSync(path.join(__dirname,'../dist/question-bank.json'),'utf8'));
   const additions=JSON.parse(fs.readFileSync(path.join(__dirname,'fixtures/sourced-exam-additions.json'),'utf8'));
   const replacements=new Set(additions.items.map(q=>q.replaces).filter(Boolean));
-  const cases=[...bank.items.filter(q=>q.kind==='gaokao'&&!replacements.has(q.id)),...additions.items];
+  const additionIds=new Set(additions.items.map(q=>q.id));
+  const cases=[...bank.items.filter(q=>q.kind==='gaokao'&&!replacements.has(q.id)&&!additionIds.has(q.id)),...additions.items];
   assert.equal(cases.length,12,'Count unique sourced questions, not repeated parts');
   await context.route('**/runtime-config.js',r=>r.fulfill({contentType:'application/javascript',body:'window.DONGJIEXI_CONFIG={deployment:"web",apiEnabled:false};'}));
   await page.evaluate(()=>{localStorage.setItem('dongjiexi:solve-mode:v1','local');localStorage.setItem('dongjiexi:local-workflow:v1','native');});
@@ -23,6 +24,7 @@ module.exports=async({page,context,assert,screenshot})=>{
       for(const [key,value] of Object.entries(item.testOracle))if(key!=='slope')parameterChecks.push({key,passed:Math.abs(result.scene[key==='a2'?'a':'b']**2-value)<1e-8});
     }
     rows.push({id:item.id,source:item.sources||additions.source,completion:result.completion,parts:result.parts.map(p=>({index:p.index,status:p.status,answer:p.answer})),verification:result.verification,parameterChecks,diagram});
+    if(item.id==='2022-beijing-10'&&!process.env.DONG_EXAM_BASELINE){assert.equal(result.completion.answered,1);assert.match(result.parts[0].answer,/\[-4,6\]/);assert.equal(diagram.missing.length,0);assert.equal(diagram.invalid.length,0);assert.equal(result.scene.dotExtrema.moving,'P');}
     if(item.id==='2022-ii-21-1'&&!process.env.DONG_EXAM_BASELINE){assert.equal(result.completion.answered,1);assert(Math.abs(result.scene.a**2-2)<1e-9&&Math.abs(result.scene.b**2-2)<1e-9);}
     if(item.id==='2023-i-22'&&!process.env.DONG_EXAM_BASELINE){
       assert.equal(result.completion.answered,2,JSON.stringify(rows.at(-1)));
