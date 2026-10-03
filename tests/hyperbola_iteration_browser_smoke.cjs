@@ -57,6 +57,7 @@ module.exports=async({page,context,assert,screenshot})=>{
   assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));
   assert.equal(await page.locator('.controls').isVisible(),false);await screenshot('hyperbola-iteration-mobile.png',null);
   await page.setViewportSize({width:1600,height:1050});
+  await page.locator('#unrestrictedMove').click();
   await page.locator('#parameterTarget').selectOption('$conic');await page.locator('#params input[data-key="b"][data-param-expression]').fill('4');
   assert.match(await page.locator('#metrics').innerText(),/原题|曲线|一致|等轴/,'Changing the actual curve invalidates the old theorem scene');
   // An arithmetic perturbation checks the parser, not a new teaching example.

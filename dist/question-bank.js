@@ -20,6 +20,7 @@
   function sceneFor(item) {
     if (!item.scene) return null;
     const scene = JSON.parse(JSON.stringify(item.scene));
+    scene.problemMotion = true;
     scene.title = item.title;
     scene.lines = (scene.lines || []).map(line => {
       if (!Number.isFinite(line.a) || !Number.isFinite(line.b) || !Number.isFinite(line.c)) return line;
@@ -63,7 +64,7 @@
     const dialog = document.createElement('dialog'); dialog.id = 'questionBankDialog'; dialog.className = 'question-bank-dialog';
     dialog.setAttribute('aria-labelledby', 'questionBankTitle');
     dialog.innerHTML = '<header><div><h2 id="questionBankTitle">高考真题题库</h2><p class="help" id="bankCoverage">正在读取题库…</p></div><button id="closeQuestionBank" class="button secondary" type="button">关闭</button></header>' +
-      '<div class="bank-paper-shortcuts" aria-label="全国卷快捷筛选"><button type="button" data-bank-paper="">全部卷别</button><button type="button" data-bank-paper="national-i">全国一卷</button><button type="button" data-bank-paper="national-ii">全国二卷</button><button type="button" id="bankResetFilters">清除筛选</button></div>' +
+      '<div class="bank-filter-actions"><button type="button" id="bankResetFilters">清除筛选</button></div>' +
       '<div class="bank-filters"><label>找题<input id="bankSearch" type="search" placeholder="题号、知识点、关键字"></label><label>题库<select id="bankKind"><option value="">全部</option><option value="gaokao">近五年高考真题</option><option value="classic">经典例题</option></select></label><label>卷别<select id="bankPaper"><option value="">全部卷别</option><option value="national-i">全国一卷（新高考／新课标）</option><option value="national-ii">全国二卷（新高考／新课标）</option></select></label><label>年份<select id="bankYear"><option value="">全部年份</option></select></label><label>曲线<select id="bankCurve"><option value="">全部曲线</option><option>椭圆</option><option>双曲线</option><option>抛物线</option><option>圆</option></select></label><label>考点<select id="bankTopic"><option value="">全部考点</option></select></label></div>' +
       '<p class="help">先看考点与学习目标，再选择题目；此处不会提前展示答案。</p><p id="bankResultCount" role="status" aria-live="polite"></p><div class="bank-layout"><nav id="bankList" aria-label="题目列表"></nav><section id="bankDetail" aria-label="题目详情"><p>选择一道题开始。</p></section></div>';
     document.body.append(dialog);
@@ -113,7 +114,6 @@
     function render() {
       if (!data) return;
       const items = select(data.items, {query: find('#bankSearch').value, kind: find('#bankKind').value, paper: find('#bankPaper').value, year: find('#bankYear').value, curve: find('#bankCurve').value, topic: find('#bankTopic').value});
-      dialog.querySelectorAll('[data-bank-paper]').forEach(node => node.setAttribute('aria-pressed', String(node.dataset.bankPaper === find('#bankPaper').value)));
       find('#questionBankTitle').textContent = find('#bankKind').value === 'classic' ? '经典例题' : find('#bankKind').value === 'gaokao' ? '高考真题题库' : '真题与经典题';
       find('#bankResultCount').textContent = `找到 ${items.length} / ${data.items.length} 道题 · 每题保留来源与收录范围`;
       const list = find('#bankList'); list.replaceChildren();
@@ -146,7 +146,6 @@
     });
     find('#closeQuestionBank').addEventListener('click', () => dialog.close());
     for (const id of ['bankSearch', 'bankKind', 'bankPaper', 'bankYear', 'bankCurve', 'bankTopic']) find('#' + id).addEventListener(id === 'bankSearch' ? 'input' : 'change', () => {if(id === 'bankKind' && find('#bankKind').value === 'classic') find('#bankPaper').value = ''; render();});
-    dialog.querySelectorAll('[data-bank-paper]').forEach(node => node.addEventListener('click', () => {find('#bankPaper').value = node.dataset.bankPaper; if(node.dataset.bankPaper) find('#bankKind').value = 'gaokao'; render();}));
     find('#bankResetFilters').addEventListener('click', () => {for(const id of ['bankSearch','bankPaper','bankYear','bankCurve','bankTopic']) find('#'+id).value = ''; render();});
     return {open: () => button.click()};
   }

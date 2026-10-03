@@ -26,6 +26,7 @@ module.exports=async({page,assert,screenshot})=>{
   assert.match(await page.locator('#metrics').innerText(),/△OAB · 面积\s*2\/3/);
   await screenshot('orthogonal-chord.png','.board-shell');
   await page.locator('#parameterTarget').selectOption('$conic');
+  await page.locator('#unrestrictedMove').click();
   await page.locator('#params input[data-key="a"][data-param-expression]').fill('2');
   assert.match(await page.locator('#metrics').innerText(),/定圆半径平方\s*4\/5/,'改动半轴后定圆与最值须同步变化');
   await page.locator('[data-inspector-view="lesson"]').click();

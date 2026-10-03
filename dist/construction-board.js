@@ -86,6 +86,8 @@
       if(cache.has(id))return cache.get(id);if(seen.has(id)||seen.size>80)return null;seen.add(id);
       let result=null;
       try{
+        const override=window.DongMotion?.overridden(api.model(),id,null);
+        if(override){cache.set(id,override);return override;}
         if(id==='$conic')result={type:'conic',q:api.coeffs(),pointAt:api.conicPoint,project:api.conicProject};
         else if(id==='$dynamic'){const t=api.angle()*Math.PI/180;result={type:'line',o:api.origin(),d:{x:Math.cos(t),y:Math.sin(t)}};}
         else if(id==='$dynamic2'&&api.angle2){const t=api.angle2()*Math.PI/180;result={type:'line',o:api.origin(),d:{x:Math.cos(t),y:Math.sin(t)}};}
@@ -109,6 +111,10 @@
             if(obj.op==='line_angle'&&a?.type==='point'&&Number.isFinite(obj.angle)){const angle=obj.angle*Math.PI/180;result={type:'line',o:a,d:{x:Math.cos(angle),y:Math.sin(angle)}};}
             if(obj.op==='circle'&&a?.type==='point'&&b?.type==='point')result={type:'circle',x:a.x,y:a.y,r:distance(a,b)};
             if(obj.op==='midpoint'&&a?.type==='point'&&b?.type==='point')result=pointValue(mul(add(a,b),.5));
+            if(obj.op==='inverse'&&a?.type==='point'&&b?.type==='point'&&Number.isFinite(obj.power)&&obj.power>0){
+              const delta=sub(b,a),d2=dot(delta,delta);
+              if(d2>EPS*EPS)result=pointValue(add(a,mul(delta,obj.power/d2)));
+            }
             if(obj.op==='reflect_axis'&&a?.type==='point'){const value=Number(obj.axisValue)||0;result=pointValue(obj.axis==='y'?{x:2*value-a.x,y:a.y}:{x:a.x,y:2*value-a.y});}
             if(obj.op==='reflect_center'&&a?.type==='point'&&b?.type==='point')result=pointValue({x:2*b.x-a.x,y:2*b.y-a.y});
             if(['parallel','perpendicular'].includes(obj.op)&&a?.type==='point'&&validLine(b))result={type:'line',o:a,d:obj.op==='parallel'?b.d:{x:-b.d.y,y:b.d.x}};
@@ -137,6 +143,7 @@
       return null;
     }
     function freePoint(id){
+      if(window.DongMotion&&!window.DongMotion.editable(api.model(),id))return null;
       if(String(id).startsWith('feature:')){const name=id.slice(8),model=api.model();if(model.points?.[name]&&!model.pointBindings?.[name])return {get:()=>({x:model.points[name][0],y:model.points[name][1]}),set:p=>model.points[name]=[p.x,p.y]};return null;}
       const obj=getObject(id);return obj?.kind==='point'?{get:()=>({x:obj.x,y:obj.y}),set:p=>Object.assign(obj,p)}:null;
     }
@@ -325,7 +332,7 @@
         if(shape.type==='point'){api.point(shape,color,obj.label);const s=xy(shape.x,shape.y);ctx.save();ctx.strokeStyle=color;ctx.strokeRect(s.x-6,s.y-6,12,12);ctx.restore();}
         else if(shape.type==='line'){const ends=api.clip(shape);if(ends){api.path([ends.a,ends.b],color,2.2);api.annotation(obj.label,ends.b,color);}}
         else if(shape.type==='circle'){api.path(Array.from({length:181},(_,i)=>({x:shape.x+shape.r*Math.cos(i*Math.PI/90),y:shape.y+shape.r*Math.sin(i*Math.PI/90)})),color,2.2);api.annotation(obj.label,{x:shape.x+shape.r,y:shape.y},color);}
-        else if(shape.type==='measure')api.annotation(obj.label+' = '+fmt(shape.value),shape,'#886012');
+        else if(shape.type==='measure'){const atMaximum=!state.model.unrestrictedMotion&&Number.isFinite(obj.maximum)&&Math.abs(shape.value-obj.maximum)<1e-7;api.annotation(obj.label+' = '+fmt(shape.value)+(atMaximum?'（达到最大值）':''),shape,atMaximum?'#bc355c':'#886012');}
       }
       for(const obj of staged)if(obj.kind==='point')api.point(obj,'#f09819',obj.label);
       if(['tangent','normal'].includes(tool)&&pending.length===1&&finitePoint(hover)){const line=curveLine(hover,engine.resolve(pending[0]),tool==='normal'),ends=line&&api.clip(line);if(ends){ctx.save();ctx.setLineDash([5,5]);api.path([ends.a,ends.b],'#f09819',1.6);ctx.restore();}}
@@ -339,12 +346,16 @@
     function hit(screen,touch){
       const threshold=touch?22:13;
       const point=pointAt(screen,threshold),obj=point&&engine.getObject(point.id);
-      if(obj?.kind==='construction')return {type:'native',id:obj.id,label:obj.label};
+      if(obj?.kind==='construction')return {type:'native',id:obj.id,label:obj.label,point:{x:point.x,y:point.y}};
       const line=shapeAt(screen),object=line&&engine.getObject(line.id);if(object&&(object.kind==='construction'||linkedCurveLine(object)||['circle','conic'].includes(object.kind)))return {type:'native',id:line.id,label:title(line.id)};
       return null;
     }
     function begin(target){
       select(target.id);const obj=engine.getObject(target.id);
+      if(window.DongMotion?.unrestricted(state.model)&&(obj.kind==='construction'||linkedCurveLine(obj))){
+        const shape=engine.resolve(target.id);
+        if(['point','line','circle'].includes(shape?.type)){target.override=JSON.parse(JSON.stringify(shape));return true;}
+      }
       if(['circle','conic'].includes(obj.kind)){hint('已选中曲线。双击可编辑参数；拖动蓝色中心或半轴手柄可调整形状。');return false;}
       if(obj.op==='line_angle')return true;
       if(obj.op==='point_on')return true;
@@ -353,7 +364,9 @@
       if(!free.length||free.some(p=>!p)){hint('这个对象由构造关系决定，不能独立拖动。请拖动它依赖的源点；依赖关系已显示在右侧。');return false;}
       target.free=free;target.starts=free.map(p=>p.get());return true;
     }
-    function move(target,p,dx,dy){const obj=engine.getObject(target.id);if(obj.op==='line_angle'){const origin=engine.resolve(obj.refs[0]);if(origin&&distance(origin,p)>EPS){snapPreview=null;const end=directionPoint(origin,p);obj.angle=((Math.atan2(end.y-origin.y,end.x-origin.x)*180/Math.PI)%180+180)%180;}}else if(obj.op==='point_on'){const v=engine.project(obj.refs[0],p);if(v)Object.assign(obj,v);}else target.free?.forEach((ref,i)=>ref.set(api.snap({x:target.starts[i].x+dx,y:target.starts[i].y+dy})));}
+    function move(target,p,dx,dy){const obj=engine.getObject(target.id);
+      if(target.override){const initial=target.override,shape=initial.type==='point'?{type:'point',...p}:initial.type==='line'?{...initial,o:{x:initial.o.x+dx,y:initial.o.y+dy}}:{...initial,x:initial.x+dx,y:initial.y+dy};window.DongMotion.setOverride(state.model,target.id,shape);return;}
+      if(obj.op==='line_angle'){const origin=engine.resolve(obj.refs[0]);if(origin&&distance(origin,p)>EPS){snapPreview=null;const end=directionPoint(origin,p);obj.angle=((Math.atan2(end.y-origin.y,end.x-origin.x)*180/Math.PI)%180+180)%180;}}else if(obj.op==='point_on'){const v=engine.project(obj.refs[0],p),point=v&&engine.pointOn(obj.refs[0],v);if(v&&(!window.DongMotion||window.DongMotion.permittedPoint(obj,point)))Object.assign(obj,v);else hint('该位置被题设排除，已保持最近一次合法位置。');}else target.free?.forEach((ref,i)=>ref.set(api.snap({x:target.starts[i].x+dx,y:target.starts[i].y+dy})));}
     function removeObject(id){
       if(!engine.getObject(id))return;const removed=engine.descendants(id);
       api.transaction(()=>{state.model.objects=state.model.objects.filter(o=>!removed.has(o.id));state.model.lines=state.model.lines.filter(o=>!removed.has(o.id));});

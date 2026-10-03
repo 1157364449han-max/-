@@ -26,6 +26,7 @@ module.exports=async({page,context,assert,screenshot})=>{
   await page.locator('#toolboxToggle').click();await page.locator('#undoDrag').click();assert((await scene()).objects.some(object=>object.id===added.id),'Clearing manual additions is undoable');await page.locator('#redoDrag').click();assert(!(await scene()).objects.some(object=>object.id===added.id));
   await screenshot('draft-original-and-manual-clear.png',null);
   // Invalid editable expressions never mutate the valid scene; a slider correction clears stale validity.
+  await page.locator('#unrestrictedMove').click();
   await page.locator('#parameterTarget').selectOption('$conic');const p=page.locator('#params input[data-key="p"][data-param-expression]');await p.fill('√(');assert.equal((await scene()).p,1);assert.equal(await p.evaluate(element=>element.validity.valid),false);await page.locator('#params input[data-key="p"][type="range"]').evaluate(element=>{element.value='2';element.dispatchEvent(new Event('input',{bubbles:true}));element.dispatchEvent(new Event('change',{bubbles:true}));});assert.equal((await scene()).p,2);assert.equal(await p.evaluate(element=>element.validity.valid),true,'Valid slider input must clear the prior text validation error');
   // Invalid explicit main-curve values are errors, not default values or unbounded viewports.
   await page.locator('#sceneJson').evaluate(element=>{element.closest('details').open=true;});const prior=await read();

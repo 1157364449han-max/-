@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="dongjiexi-version" content="0.51.1">
+  <meta name="dongjiexi-version" content="0.51.2">
   <meta name="description" content="高中解析几何动态图形工作台：从题干识别标准圆锥曲线，调节参数，观察交点与定值。">
   <meta name="theme-color" content="#0c1b33">
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -14,9 +14,9 @@
   <link rel="apple-touch-icon" href="icons/icon.svg">
   <link rel="stylesheet" href="vendor/katex/katex.min.css">
   <link rel="stylesheet" href="vendor/mathlive/mathlive-fonts.css">
-  <link rel="stylesheet" href="learning-ui.css?v=0.51.1">
-  <link rel="stylesheet" href="classroom.css?v=0.51.1">
-  <link rel="stylesheet" href="question-bank.css?v=0.51.1">
+  <link rel="stylesheet" href="learning-ui.css?v=0.51.2">
+  <link rel="stylesheet" href="classroom.css?v=0.51.2">
+  <link rel="stylesheet" href="question-bank.css?v=0.51.2">
   <style>
     :root { --ink:#0c1b33; --ink-2:#1a3152; --paper:#f6f8fb; --panel:#ffffff; --line:#d7e0eb; --muted:#64748b; --teal:#0f9f99; --teal-soft:#e1f7f4; --amber:#f2a33c; --amber-soft:#fff2d9; --red:#df5b62; --blue:#3f78d8; --shadow:0 10px 30px rgba(12,27,51,.09); }
     * { box-sizing:border-box; }
@@ -408,12 +408,12 @@
     body[data-cloud-only="true"] #pullModel,body[data-cloud-only="true"] #useLocalSolver,
     body[data-cloud-only="true"] #cloudAuthUseLocal { display:none!important; }
   </style>
-  <link rel="stylesheet" href="theme.css?v=0.51.1">
+  <link rel="stylesheet" href="theme.css?v=0.51.2">
 </head>
 <body data-cloud-only="true">
   <main class="app">
     <header class="topbar">
-      <div class="brand"><span class="brand-mark">董</span><span class="brand-name">董解析</span><button class="version-button" id="versionButton" title="查看版本、更新记录和能力边界">v0.51.1 · 更新记录</button></div>
+      <div class="brand"><span class="brand-mark">董</span><span class="brand-name">董解析</span><button class="version-button" id="versionButton" title="查看版本、更新记录和能力边界">v0.51.2 · 更新记录</button></div>
       <div class="top-actions"><span class="top-note">云端解题 · 动态几何 · 我的题本</span><button id="openQuestionBank" class="button secondary" type="button" aria-haspopup="dialog">高考真题题库</button><button id="cloudOutageShortcut" class="install-button" type="button" title="云端暂不可用，点击查看连接状态；题稿会保留" hidden>云端中断 · 查看状态</button><button id="pwaInstall" class="install-button" hidden>安装到设备</button></div>
     </header>
     <section id="pwaBanner" class="pwa-banner" hidden role="status"><span id="pwaMessage"></span><button id="pwaUpdate" hidden>立即更新</button><button id="pwaDismiss">稍后</button></section>
@@ -493,6 +493,7 @@
         <div class="drag-toolbar" aria-label="画板操作">
           <span class="toolbar-caption">操作</span>
           <button id="moveMode" aria-pressed="true" title="拖动点和直线">选择 / 拖动</button>
+          <button id="unrestrictedMove" type="button" aria-pressed="false" title="仅在自由探索时脱离题设约束">无限制移动</button>
           <button id="panMode" aria-pressed="false">平移视野</button>
           <button id="motionPlay" aria-pressed="false" disabled title="连续播放动点、动直线及其从属构造">▶ 播放联动</button>
           <button id="undoDrag" disabled title="Ctrl+Z">撤销</button><button id="redoDrag" disabled title="Ctrl+Y">重做</button>
@@ -509,7 +510,8 @@
           <span class="tool-group"><button data-construct="tangent" aria-pressed="false" title="先选曲线，再选曲线上的点">切线</button><button data-construct="normal" aria-pressed="false" title="过曲线上一点、垂直于该点切线的直线">法线</button></span>
           <span class="tool-group"><button id="saveNativeFile" title="导出完整构造依赖">保存图稿</button><label class="native-file">打开图稿<input type="file" id="openNativeFile" accept=".json,application/json"></label></span>
         </div>
-        <div id="dragHint" class="drag-hint" role="status">拖点改坐标；拖直线平移，选中后拖手柄旋转；拖空白处移动视野。</div>
+        <div id="motionConstraintStatus" class="drag-hint" role="status" aria-live="polite">按构造移动；开启“无限制移动”可自由探索。</div>
+        <div id="dragHint" class="drag-hint" role="status">拖动动点沿轨迹；拖空白处移动视野。</div>
         <div id="snapStatus" class="snap-status" role="status" aria-live="polite"></div>
         <div class="canvas-wrap">
           <canvas id="canvas" aria-label="解析几何动态画板"></canvas>
@@ -556,7 +558,7 @@
           <section>
             <h2 class="panel-title">实时读数</h2>
             <div id="metrics"><p class="help">交点、弦长与坐标会显示在这里。</p></div>
-            <div id="exploreNotice" class="explore-notice" hidden>当前是拖动后的探索图，题设条件已变化。下面的答案对应原题；可撤销或点击“还原当前图”。</div>
+            <div id="exploreNotice" class="explore-notice" hidden>当前为探索图：按题设移动保留已声明约束；无限制移动可能改变题设。解析仍对应原题，可撤销或还原。</div>
             <section id="solution" class="solution" hidden aria-live="polite"></section>
             <section id="followupPanel" class="learning-chat" hidden><h3>继续追问本题</h3><div id="chatMessages"></div><div class="followup-chips"><button data-followup="请解释当前小问中最关键的一步，并写出中间计算。">解释关键步骤</button><button data-followup="请检查本题解答是否遗漏斜率不存在、退化情况、定义域和端点。">检查遗漏情况</button><button data-followup="请尝试用另一种高中数学方法解答当前小问。">换一种方法</button></div><textarea id="followupInput" aria-label="追问内容" placeholder="例如：第二问为什么可以这样用韦达定理？"></textarea><button id="sendFollowup" class="button primary">发送追问</button></section>
             <details class="compact-section"><summary>最值探索与定位</summary><div class="scan">
@@ -598,40 +600,41 @@
   </dialog>
 
   <script src="runtime-config.js"></script>
-  <script src="runtime.js?v=0.51.1"></script>
+  <script src="runtime.js?v=0.51.2"></script>
   <script src="vendor/katex/katex.min.js"></script>
   <script src="vendor/katex/contrib/auto-render.min.js"></script>
-  <script src="math-input.js?v=0.51.1"></script>
-  <script src="number-display.js?v=0.51.1"></script>
-  <script src="label-layout.js?v=0.51.1"></script>
-  <script src="step-highlight.js?v=0.51.1"></script>
-  <script src="scene-audit.js?v=0.51.1"></script>
-  <script src="answer-geometry.js?v=0.51.1"></script>
-  <script src="scene-merge.js?v=0.51.1"></script>
-  <script src="tangent-solver.js?v=0.51.1"></script>
-  <script src="ellipse-distance.js?v=0.51.1"></script>
-  <script src="circle-dot.js?v=0.51.1"></script>
-  <script src="orthogonal-chord.js?v=0.51.1"></script>
-  <script src="axis-intercept-chord.js?v=0.51.1"></script>
-  <script src="parabola-locus.js?v=0.51.1"></script>
-  <script src="question-parts.js?v=0.51.1"></script>
-  <script src="goal-coverage.js?v=0.51.1"></script>
-  <script src="parabola-focal-data.js?v=0.51.1"></script>
-  <script src="circle-fold.js?v=0.51.1"></script>
-  <script src="circle-fold-view.js?v=0.51.1"></script>
-  <link rel="stylesheet" href="circle-fold.css?v=0.51.1">
-  <script src="hyperbola-iteration.js?v=0.51.1"></script>
-  <script src="conic-parameter.js?v=0.51.1"></script>
-  <script src="ellipse-focal-chord.js?v=0.51.1"></script>
-  <script src="external-ai.js?v=0.51.1"></script>
-  <script src="learning-ui.js?v=0.51.1"></script>
-  <script src="classroom.js?v=0.51.1"></script>
-  <script src="question-bank.js?v=0.51.1"></script>
-  <script src="construction-board.js?v=0.51.1"></script>
-  <script src="drag-board.js?v=0.51.1"></script>
-  <script src="equation-builder.js?v=0.51.1"></script>
-  <script src="math-keyboard.js?v=0.51.1"></script>
-  <script type="module" src="mathlive-adapter.js?v=0.51.1"></script>
+  <script src="math-input.js?v=0.51.2"></script>
+  <script src="number-display.js?v=0.51.2"></script>
+  <script src="label-layout.js?v=0.51.2"></script>
+  <script src="step-highlight.js?v=0.51.2"></script>
+  <script src="scene-audit.js?v=0.51.2"></script>
+  <script src="answer-geometry.js?v=0.51.2"></script>
+  <script src="scene-merge.js?v=0.51.2"></script>
+  <script src="tangent-solver.js?v=0.51.2"></script>
+  <script src="ellipse-distance.js?v=0.51.2"></script>
+  <script src="circle-dot.js?v=0.51.2"></script>
+  <script src="orthogonal-chord.js?v=0.51.2"></script>
+  <script src="axis-intercept-chord.js?v=0.51.2"></script>
+  <script src="parabola-locus.js?v=0.51.2"></script>
+  <script src="question-parts.js?v=0.51.2"></script>
+  <script src="goal-coverage.js?v=0.51.2"></script>
+  <script src="parabola-focal-data.js?v=0.51.2"></script>
+  <script src="circle-fold.js?v=0.51.2"></script>
+  <script src="circle-fold-view.js?v=0.51.2"></script>
+  <link rel="stylesheet" href="circle-fold.css?v=0.51.2">
+  <script src="hyperbola-iteration.js?v=0.51.2"></script>
+  <script src="conic-parameter.js?v=0.51.2"></script>
+  <script src="ellipse-focal-chord.js?v=0.51.2"></script>
+  <script src="external-ai.js?v=0.51.2"></script>
+  <script src="learning-ui.js?v=0.51.2"></script>
+  <script src="classroom.js?v=0.51.2"></script>
+  <script src="question-bank.js?v=0.51.2"></script>
+  <script src="construction-board.js?v=0.51.2"></script>
+  <script src="motion-protection.js?v=0.51.2"></script>
+  <script src="drag-board.js?v=0.51.2"></script>
+  <script src="equation-builder.js?v=0.51.2"></script>
+  <script src="math-keyboard.js?v=0.51.2"></script>
+  <script type="module" src="mathlive-adapter.js?v=0.51.2"></script>
   <script src="geogebra-bridge.js?v=0.7.0"></script>
   <script>
   (() => {
@@ -653,7 +656,7 @@
     const metricsEl = $('#metrics');
     const scanResult = $('#scanResult');
     const state = { model:null, p:{}, grid:true, guides:true, activePart:null, solution:null, view:{xmin:-5,xmax:5,ymin:-4,ymax:4}, cssW:0, cssH:0, original:null };
-    let dragController = null, nativeController = null, stepHighlighter = null;
+    let dragController = null, nativeController = null, stepHighlighter = null, motionController = null;
     let motionFrame = null, motionPrevious = 0, motionElapsed = 0;
     let pendingSceneSource = '题干条件';
     const equationBuilder = window.DongEquationBuilder.attach({typeSelect:$('#objectType'),templateSelect:$('#equationTemplate'),fields:$('#equationFields'),preview:$('#equationPreview'),error:$('#equationBuilderError')});
@@ -1019,7 +1022,7 @@
       learningUI?.clearStepHighlight();stepHighlighter?.clear();
       labelSceneKey++;boardLabels.clear();
       $('#dragHint').textContent='拖点改坐标；拖直线平移，选中后拖手柄旋转；拖空白处移动视野。';$('#snapStatus').textContent='';
-      stopMotion(false);extremeScan=null;scanResult.textContent='—';$('#jumpMinimum').hidden=$('#jumpMaximum').hidden=true;nativeController?.reset();parameterTarget='';state.model=scene.model; state.p=scene.values; nativeController?.engine.ensureIds();state.original=cloneScene(restored?.original||scene); state.exploring=restored?.exploring===true; dragController?.reset(); $('#exploreNotice').hidden=!state.exploring; homeView(); buildParams(); updateSceneJson(); refreshLayers();syncMotionButton();
+      stopMotion(false);extremeScan=null;scanResult.textContent='—';$('#jumpMinimum').hidden=$('#jumpMaximum').hidden=true;nativeController?.reset();parameterTarget='';state.model=scene.model; state.p=scene.values; nativeController?.engine.ensureIds();if(!state.model.isFreeBoard&&!['场景配置','快捷新建','图稿文件','自由画板','本地自由画板'].includes(source)&&question.value.trim())state.model.problemMotion=true;state.model.unrestrictedMotion=false;delete state.model.motionOverrides;window.DongMotion.capture(state.model,state.p);window.DongMotion.restorePremises(state.model,state.p);motionController?.sync();state.original=cloneScene(restored?.original||scene); state.exploring=restored?.exploring===true; dragController?.reset(); $('#exploreNotice').hidden=!state.exploring; homeView(); buildParams(); updateSceneJson(); refreshLayers();syncMotionButton();
       boardTitle.textContent=state.model.title || '已载入图形'; emptyState.hidden=true;
       setStatus(`${source}已转为「${typeName()}」模型。请核对方程和动直线经过的点，再调节参数。`); render();
       const prompt=question.value;
@@ -1054,6 +1057,7 @@
     }
     $('#parameterTarget').addEventListener('change',e=>{parameterTarget=e.target.value;buildParams();});
     function buildObjectParams(object){
+      if(!window.DongMotion.editable(state.model,object.id)){paramsEl.innerHTML='<p class="help">题设对象已锁定。点击画板上的“无限制移动”后可修改；关闭后恢复题设约束。</p>';return;}
       const spec=window.DongEquationBuilder.editSpec(object);if(!spec)return;
       const fields=document.createElement('div');fields.className='equation-fields';fields.id='selectedParameterFields';
       for(const field of spec.template.fields){
@@ -1079,14 +1083,16 @@
       if(parameterTarget==='$iteration'){buildIterationParams();return;}
       if(!['$conic','$dynamic'].includes(parameterTarget)){const object=nativeController?.engine.getObject(parameterTarget);if(object)buildObjectParams(object);return;}
       const selectedKeys=keys().filter(key=>parameterTarget==='$dynamic'?key.startsWith('theta'):!key.startsWith('theta'));
+      const locked=parameterTarget==='$conic'&&!window.DongMotion.editable(state.model,'$conic');
+      if(locked){const note=document.createElement('p');note.className='help';note.textContent='题设曲线参数已锁定。开启“无限制移动”才能修改；关闭后恢复题设。';paramsEl.append(note);}
       selectedKeys.forEach((key) => {
         const [baseMin,baseMax,step]=ranges[key]; const min=Math.min(baseMin,P(key)),max=Math.max(key==='theta'&&state.model.orthogonalChord?360:baseMax,P(key)); const wrap=document.createElement('div'); wrap.className='param';
         const label=document.createElement('label'); label.htmlFor='r-'+key; label.textContent=labels[key];
         const range=document.createElement('input'); range.dataset.key=key; range.id='r-'+key; range.type='range'; range.min=min; range.max=max; range.step=step; range.value=P(key);
         const input=document.createElement('input'); input.dataset.key=key; input.dataset.paramExpression='true'; input.type='text'; input.inputMode='decimal'; input.value=window.DongNumber.input(P(key),state.model.parameterExpressions?.[key]); input.setAttribute('aria-label',labels[key]+'，支持分数、根号和 π');
-        const change=(value,preserve=false) => { let n;try{n=window.DongEquationBuilder.scalar(value);}catch{return false;}if(!Number.isFinite(n)||Math.abs(n)>100000||(['a','b','r','p'].includes(key)&&n<=0))return false;if(state.model.type==='ellipse'&&(key==='a'&&n<P('b')||key==='b'&&n>P('a')))return false;input.setCustomValidity('');if(n===state.p[key]&&state.model.parameterExpressions?.[key]===String(value))return true;state.p[key]=n;state.model.parameterExpressions||={};state.model.parameterExpressions[key]=String(value);state.exploring=true;range.min=Math.min(min,n);range.max=Math.max(max,n);range.value=n;if(!preserve)input.value=window.DongNumber.input(n);updateSceneJson();updateParameterEquation();render();return true; };
+        const change=(value,preserve=false) => { if(parameterTarget==='$conic'&&!window.DongMotion.editable(state.model,'$conic'))return false;let n;try{n=window.DongEquationBuilder.scalar(value);}catch{return false;}if(!Number.isFinite(n)||Math.abs(n)>100000||(['a','b','r','p'].includes(key)&&n<=0))return false;if(state.model.type==='ellipse'&&(key==='a'&&n<P('b')||key==='b'&&n>P('a')))return false;input.setCustomValidity('');if(n===state.p[key]&&state.model.parameterExpressions?.[key]===String(value))return true;state.p[key]=n;state.model.parameterExpressions||={};state.model.parameterExpressions[key]=String(value);state.exploring=true;range.min=Math.min(min,n);range.max=Math.max(max,n);range.value=n;if(!preserve)input.value=window.DongNumber.input(n);updateSceneJson();updateParameterEquation();render();return true; };
         range.addEventListener('input',e=>change(e.target.value));input.addEventListener('input',e=>{input.setCustomValidity(change(e.target.value,true)?'':'请输入有效参数，绝对值不超过 100000；椭圆须满足 a ≥ b > 0。');});input.addEventListener('change',e=>{if(!change(e.target.value,true))input.reportValidity();});input.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.isComposing){e.preventDefault();if(!change(e.target.value,true))input.reportValidity();}});trackParameterHistory(input,range);
-        wrap.append(label,range,input); paramsEl.append(wrap);
+        range.disabled=input.disabled=locked;wrap.append(label,range,input); paramsEl.append(wrap);
       });
     }
     function sceneData(){return {schemaVersion:2,...state.model,...state.p,dynamicLine:state.model.showDynamic!==false,inferred_from_conditions:state.model.inferredFromConditions===true,activePart:state.activePart};}
@@ -1117,7 +1123,7 @@
       // A complete graph is not visible if the viewport only fits its conic.
       // Fit finite visible named/derived points on install or explicit Home;
       // do not recenter every drag frame or undo the user's zoom/pan.
-      const fitPoints=[...nativeFeatures().filter(featureVisible),...(state.model.objects||[]).filter(visibleForPart).map(o=>nativeController?.engine.resolve(o.id)).filter(o=>o?.type==='point')];
+      const fitPoints=[...nativeFeatures().filter(p=>p.nativeDynamic?state.model.showDynamic!==false&&state.model.showConic!==false&&visibleForPart({part:state.model.dynamicLinePart,parts:state.model.dynamicLineParts}):featureVisible(p)),...(state.model.objects||[]).filter(visibleForPart).map(o=>nativeController?.engine.resolve(o.id)).filter(o=>o?.type==='point')];
       for(const point of fitPoints)if(Number.isFinite(point.x)&&Number.isFinite(point.y)){rx=Math.max(rx,Math.abs(point.x)*1.18);ry=Math.max(ry,Math.abs(point.y)*1.18);}
       state.view={xmin:-rx,xmax:rx,ymin:-ry,ymax:ry};
       if(state.model.parabolaFocalData){for(const point of nativeFeatures()){if(Number.isFinite(point.x)&&Number.isFinite(point.y)){rx=Math.max(rx,Math.abs(point.x)*1.2);ry=Math.max(ry,Math.abs(point.y)*1.2);}}state.view={xmin:-rx,xmax:rx,ymin:-ry,ymax:ry};}
@@ -1140,7 +1146,7 @@
       if (t==='parabola') { const d=P('direction')||1; const f=state.model.orientation==='vertical'?{x:h,y:k+d*P('p')}:{x:h+d*P('p'),y:k}; items.push({name:'F',...f,kind:'focus'},{name:'V',x:h,y:k,kind:'vertex'},{name:'O',x:0,y:0,kind:'point'}); }
       const byName=new Map(items.map(item=>[item.name,item]));
       Object.entries(state.model.points||{}).forEach(([name,coords])=>{if(!state.model.pointBindings?.[name])byName.set(name,{name,x:+coords[0],y:+coords[1],kind:'point'});});
-      return [...byName.values()];
+      return [...byName.values()].map(feature=>({...feature,...window.DongMotion.overridden(state.model,'feature:'+feature.name,{x:feature.x,y:feature.y})}));
     }
     function lineOrigin(theta=P('theta')) {
       if(state.model?.orthogonalChord)return window.DongOrthogonalChord.origin(state.model,state.p,theta);
@@ -1360,7 +1366,18 @@
     function motionSources(){if(!state.model)return{points:[],line:false};const points=(state.model.objects||[]).filter(item=>{if(item.kind!=='construction'||item.op!=='point_on'||!visibleForPart(item))return false;const source=item.refs?.[0],shape=nativeController?.engine.resolve(source);return ['conic','circle'].includes(shape?.type)&&(source==='$conic'?state.model.showConic!==false:visibleForPart(nativeController.engine.getObject(source)||{}));});const line=state.model.showDynamic!==false&&visibleForPart({part:state.model.dynamicLinePart,parts:state.model.dynamicLineParts});return{points,line};}
     function syncMotionButton(){const button=$('#motionPlay'),sources=motionSources(),available=!!state.model&&(sources.line||sources.points.length>0);button.disabled=!available;button.setAttribute('aria-pressed',String(motionFrame!==null));button.textContent=motionFrame===null?'▶ 播放联动':'⏸ 暂停联动';}
     function stopMotion(commit=true){if(motionFrame!==null)cancelAnimationFrame(motionFrame);motionFrame=null;motionPrevious=0;syncMotionButton();if(commit&&state.model)updateSceneJson();}
-function motionStep(timestamp){if(!state.model){stopMotion(false);return;}const sources=motionSources();if(!sources.line&&!sources.points.length){stopMotion(true);return;}const dt=motionPrevious?Math.min(.06,(timestamp-motionPrevious)/1000):0;motionPrevious=timestamp;motionElapsed+=dt;sources.points.forEach((item,index)=>{const source=item.refs?.[0]==='$conic'?state.model:nativeController.engine.getObject(item.refs?.[0]),type=source?.conicType||source?.type||source?.kind;if(['ellipse','circle'].includes(type))item.t=(Number(item.t)||0)+dt*.8;else item.t=2.4*Math.sin(motionElapsed*.85+index*.7);});if(sources.line){state.p.theta=((Number(state.p.theta)||0)+dt*28)%(state.model.orthogonalChord?360:180);document.querySelectorAll('#params input[data-key="theta"]').forEach(input=>input.value=input.type==='range'?state.p.theta:num(state.p.theta,2));}state.exploring=true;render();motionFrame=requestAnimationFrame(motionStep);}
+    function motionStep(timestamp){
+      if(!state.model){stopMotion(false);return;}
+      const sources=motionSources();if(!sources.line&&!sources.points.length){stopMotion(true);return;}
+      const dt=motionPrevious?Math.min(.06,(timestamp-motionPrevious)/1000):0;motionPrevious=timestamp;motionElapsed+=dt;
+      sources.points.forEach((item,index)=>{
+        const source=item.refs?.[0]==='$conic'?state.model:nativeController.engine.getObject(item.refs?.[0]),type=source?.conicType||source?.type||source?.kind;
+        const next={...item,t:['ellipse','circle'].includes(type)?(Number(item.t)||0)+dt*.8:2.4*Math.sin(motionElapsed*.85+index*.7)};
+        if(window.DongMotion.permittedPoint(item,nativeController.engine.pointOn(item.refs[0],next)))item.t=next.t;
+      });
+      if(sources.line){state.p.theta=((Number(state.p.theta)||0)+dt*28)%(state.model.orthogonalChord?360:180);document.querySelectorAll('#params input[data-key="theta"]').forEach(input=>input.value=input.type==='range'?state.p.theta:num(state.p.theta,2));}
+      state.exploring=!window.DongMotion.protectedScene(state.model)||window.DongMotion.unrestricted(state.model);render();motionFrame=requestAnimationFrame(motionStep);
+    }
     function toggleMotion(){if(motionFrame!==null){stopMotion(true);setStatus('已暂停联动演示；当前位置已保留。');return;}const sources=motionSources();if(!sources.line&&!sources.points.length){setStatus('当前题目没有可播放的动点或动直线。',true);return;}motionElapsed=0;motionPrevious=0;motionFrame=requestAnimationFrame(motionStep);syncMotionButton();setStatus(`正在播放联动：${sources.points.length?'曲线上动点':''}${sources.points.length&&sources.line?'、':''}${sources.line?'动直线':''}变化时，从属点线会实时重算。`);}
     function metric(label,value,good=false){return `<div class="metric"><div class="metric-label">${label}</div><div class="metric-value${good?' good':''}">${value}</div></div>`;}
     function drawMetrics(ins,extra=[]){if(!state.model)return;const o=lineOrigin(),labels=state.model.dynamicIntersectionLabels||['A','B'];let html=metric('动直线经过',`${exactNumber(o.x)}, ${exactNumber(o.y)} · θ = ${exactNumber(P('theta'),1)}°`);if(ins.length===2){const [a,b]=ins;const L=Math.hypot(a.x-b.x,a.y-b.y);html+=metric(`交点 ${escapeHtml(labels[0])}`,`(${exactNumber(a.x)}, ${exactNumber(a.y)})`)+metric(`交点 ${escapeHtml(labels[1])}`,`(${exactNumber(b.x)}, ${exactNumber(b.y)})`)+metric(`|${escapeHtml(labels.join(''))}|`,exactNumber(L,5),true);}else if(ins.length===1){const relation=ins[0].tangent?'相切（二次重根）':ins[0].linearIntersection?'一个有限交点（联立降为一次，不能据此判相切）':'一个实交点（需进一步核验是否相切）';html+=metric('交点',relation+'：('+exactNumber(ins[0].x)+', '+exactNumber(ins[0].y)+')');}else html+=metric('交点','当前直线与曲线无实交点');if(state.model.showDynamic===false||!visibleForPart({part:state.model.dynamicLinePart,parts:state.model.dynamicLineParts}))html='';const fc=state.model.focusChord,engine=nativeController?.engine;if(fc&&engine){const q=engine.resolve(fc.intersection),m=engine.resolve(fc.midpoint),t1=engine.resolve(fc.tangents?.[0]),t2=engine.resolve(fc.tangents?.[1]);if(q?.type==='point')html+=metric(`${fc.q||'Q'}（两切线交点）`,`(${exactNumber(q.x)}, ${exactNumber(q.y)})`,true);if(m?.type==='point')html+=metric(`${fc.m||'M'}（弦中点）`,`(${exactNumber(m.x)}, ${exactNumber(m.y)})`);if(t1?.type==='line'&&t2?.type==='line'){const denominator=Math.hypot(t1.d.x,t1.d.y)*Math.hypot(t2.d.x,t2.d.y),cosine=denominator?(t1.d.x*t2.d.x+t1.d.y*t2.d.y)/denominator:NaN;html+=metric('两切线方向点积',Number.isFinite(cosine)?exactNumber(cosine,8):'未定义',Number.isFinite(cosine)&&Math.abs(cosine)<1e-7);}html+=metric(`△${fc.source}${fc.endpoints.join('')} 面积`,'0（共线）',true);}for(const item of state.model.objects||[]){if(item.kind==='construction'&&item.source==='question'&&item.op==='midpoint'&&visibleForPart(item)){const shape=engine?.resolve(item.id);html+=metric(`${escapeHtml(item.label)}（中点）`,shape?.type==='point'?`(${exactNumber(shape.x)}, ${exactNumber(shape.y)})`:'暂未定位');}}for(const group of extra){html+=metric(escapeHtml(group.label)+' ∩ 曲线',group.points.length?group.points.map(p=>`${p.name} (${exactNumber(p.x)}, ${exactNumber(p.y)})`).join('<br>'):'无实交点');if(group.points.length===2)html+=metric('该直线截弦长度',exactNumber(Math.hypot(group.points[0].x-group.points[1].x,group.points[0].y-group.points[1].y),5),true);}metricsEl.innerHTML=html||'<p class="help">显示直线以查看交点与弦长。</p>';drawPolygonMetrics();}
@@ -1483,12 +1500,13 @@ function motionStep(timestamp){if(!state.model){stopMotion(false);return;}const 
       scope.value=part==null?'all':String(part);
       $('#addConicDialog').showModal();$('#addConicFields input')?.focus();
     }
-    function editConic(id){const object=nativeController?.engine.getObject(id);if(editableConic(object))openAddConic(object.kind==='circle'?'circle':object.conicType,object);}
+    function editConic(id){const object=nativeController?.engine.getObject(id);if(!window.DongMotion.editable(state.model,id)){setStatus('题设曲线已锁定；点击“无限制移动”后才能改动。',true);return;}if(editableConic(object))openAddConic(object.kind==='circle'?'circle':object.conicType,object);}
     function appendConic(){
       try{
         const result=addConicBuilder.read(),obj=result.object,name=$('#addConicName').value.trim();
         const current=editingConicId?nativeController.engine.getObject(editingConicId):null;
         if(editingConicId&&!editableConic(current))throw new Error('原曲线已不在画板中，请关闭后重新选择。');
+        if(editingConicId&&!window.DongMotion.editable(state.model,editingConicId))throw new Error('题设曲线已锁定；请先开启“无限制移动”。');
         const used=new Set([...(state.model?.objects||[]),...(state.model?.lines||[])].filter(item=>item.id!==editingConicId).map(item=>item.label).concat(nativeFeatures().map(item=>item.name)));
         if(name&&used.has(name))throw new Error('该名称已在当前图形中使用，请换一个名称。');
         let seq=1;while(used.has(`C${seq}`))seq++;
@@ -1510,7 +1528,7 @@ function motionStep(timestamp){if(!state.model){stopMotion(false);return;}const 
         setStatus(`已添加 ${obj.label}：${obj.equation||result.equation||''}。拖动蓝色手柄调整，可继续在曲线上建点或与直线求交。`);
       }catch(error){$('#addConicError').textContent=error.message;}
     }
-    function clear(){stopMotion(false);extremeScan=null;nativeController?.reset();dragController?.reset();state.model=null;state.p={};parameterTarget='';refreshParameterTargets();state.original=null;state.activePart=null;state.solution=null;state.exploring=false;$('#exploreNotice').hidden=true;paramsEl.innerHTML='<p class="help">载入图形后可直接调节参数。</p>';equationEl.textContent='—';metricsEl.innerHTML='<p class="help">交点、弦长与坐标会显示在这里。</p>';scanResult.textContent='—';$('#extremeHitStatus').textContent='';$('#jumpMinimum').hidden=$('#jumpMaximum').hidden=true;$('#layers').innerHTML='';$('#solution').hidden=true;boardTitle.textContent='未载入图形';emptyState.hidden=false;try{localStorage.removeItem('zhigeometry:last');}catch{}setInputPanelCollapsed(false);syncMotionButton();setStatus('已清空。');render();}
+    function clear(){stopMotion(false);extremeScan=null;nativeController?.reset();dragController?.reset();state.model=null;state.p={};motionController?.sync();parameterTarget='';refreshParameterTargets();state.original=null;state.activePart=null;state.solution=null;state.exploring=false;$('#exploreNotice').hidden=true;paramsEl.innerHTML='<p class="help">载入图形后可直接调节参数。</p>';equationEl.textContent='—';metricsEl.innerHTML='<p class="help">交点、弦长与坐标会显示在这里。</p>';scanResult.textContent='—';$('#extremeHitStatus').textContent='';$('#jumpMinimum').hidden=$('#jumpMaximum').hidden=true;$('#layers').innerHTML='';$('#solution').hidden=true;boardTitle.textContent='未载入图形';emptyState.hidden=false;try{localStorage.removeItem('zhigeometry:last');}catch{}setInputPanelCollapsed(false);syncMotionButton();setStatus('已清空。');render();}
     function freeNumber(raw){try{return window.DongEquationBuilder.scalar(raw);}catch{throw new Error('数值可填写整数、小数、分数、π 或根式。');}}
     function parseFreeObject(type,raw,label){
       const s=normalize(raw).replace(/\*/g,'');if(!s)throw new Error('请输入方程或坐标。');
@@ -1661,7 +1679,7 @@ function motionStep(timestamp){if(!state.model){stopMotion(false);return;}const 
     function showSolution(d){state.solution=d;const parts=Array.isArray(d.parts)?d.parts:[];state.activePart=parts.length>1?parts[0].index:null;renderSolution();}
     async function solveLocal(){return learningUI?.solve();}
     function zoom(f){if(!state.model)return;const v=state.view,cx=(v.xmin+v.xmax)/2,cy=(v.ymin+v.ymax)/2,w=(v.xmax-v.xmin)*f,h=(v.ymax-v.ymin)*f;state.view={xmin:cx-w/2,xmax:cx+w/2,ymin:cy-h/2,ymax:cy+h/2};render();}
-    function resetParams(){if(!state.original){setStatus('请先载入图形。',true);return;}learningUI?.clearStepHighlight();stepHighlighter?.clear();const before=dragController?.checkpoint(),source=cloneScene(state.original);state.model=source.model;state.p=source.values;state.exploring=false;homeView();buildParams();updateSceneJson();refreshLayers();if(before)dragController?.record(before);setStatus('已还原到本题初始参数。');render();}
+    function resetParams(){if(!state.original){setStatus('请先载入图形。',true);return;}learningUI?.clearStepHighlight();stepHighlighter?.clear();const before=dragController?.checkpoint(),source=cloneScene(state.original);state.model=source.model;state.p=source.values;state.exploring=false;motionController?.sync();homeView();buildParams();updateSceneJson();refreshLayers();if(before)dragController?.record(before);setStatus('已还原到本题初始参数。');render();}
     function clearManualObjects(){if(!state.model)return;const count=[...(state.model.objects||[]),...(state.model.lines||[])].filter(object=>object.source==='user').length;if(!count){setStatus('没有本次手动添加的对象；题设与解析构造已保留。');return;}stopMotion(false);nativeTransaction(()=>{state.model.objects=(state.model.objects||[]).filter(object=>object.source!=='user');state.model.lines=(state.model.lines||[]).filter(object=>object.source!=='user');});setStatus(`已清除 ${count} 个手动对象；题设、推导对象及依赖关系保留，可撤销。`);}
     function restoreLocal(){try{const saved=JSON.parse(localStorage.getItem('zhigeometry:last')||'null');if(!saved)return;question.value=saved.question||'';state.solution=saved.solution||null;state.activePart=saved.activePart??null;state.grid=saved.grid!==false;state.guides=saved.guides!==false;$('#gridToggle').checked=state.grid;$('#guideToggle').checked=state.guides;let original=null,legacyBaseline=false;try{if(saved.original?.model&&saved.original?.values)original=modelFromJson(JSON.stringify({...saved.original.model,...saved.original.values}));else if(saved.exploring&&saved.solution?.scene)original=modelFromJson(JSON.stringify(saved.solution.scene));}catch{}if(saved.scene){legacyBaseline=!!saved.exploring&&!original;installScene(modelFromJson(JSON.stringify(saved.scene)),'上次保存',{original,exploring:!!saved.exploring});}state.exploring=!!saved.exploring;$('#exploreNotice').hidden=!state.exploring;if(state.solution)renderSolution();if(state.model)updateSceneJson();setStatus(legacyBaseline?'已保留旧版草稿的当前图稿；旧草稿没有原题快照，当前图稿暂作为还原基准。':'已恢复上次的题目和学习进度。');}catch(error){setStatus('草稿未能完整恢复；原存储记录未删除。'+(error.message||''),true);}}
     $('#parseButton').addEventListener('click',parseAndInstall);$('#clearButton').addEventListener('click',clear);$('#applyJson').addEventListener('click',applyJson);$('#exportJson').addEventListener('click',exportJson);$('#pngButton').addEventListener('click',exportPng);$('#copyButton').addEventListener('click',copyForCodex);$('#scanButton').addEventListener('click',scan);$('#extremeMetric').addEventListener('change',()=>{extremeScan=null;scanResult.textContent='请选择“寻找最大 / 最小”开始扫描。';$('#jumpMinimum').hidden=$('#jumpMaximum').hidden=true;render();});$('#jumpMinimum').addEventListener('click',()=>jumpExtreme('min'));$('#jumpMaximum').addEventListener('click',()=>jumpExtreme('max'));$('#solveButton').addEventListener('click',solveLocal);$('#motionPlay').addEventListener('click',toggleMotion);$('#addObject').addEventListener('click',addFreeObject);$('#clearObjects').addEventListener('click',clearManualObjects);$('#objectType').addEventListener('change',updateObjectHint);$('#gridToggle').addEventListener('change',e=>{state.grid=e.target.checked;remember();render();});$('#guideToggle').addEventListener('change',e=>{state.guides=e.target.checked;remember();render();});$('#zoomIn').addEventListener('click',()=>zoom(.8));$('#zoomOut').addEventListener('click',()=>zoom(1.25));$('#homeButton').addEventListener('click',()=>{homeView();render();});$('#resetParams').addEventListener('click',resetParams);$('#saveLocal').addEventListener('click',()=>{remember();setStatus('已保存在这台设备的浏览器中。');});
@@ -1696,8 +1714,9 @@ function motionStep(timestamp){if(!state.model){stopMotion(false);return;}const 
       nativeHit:(p,touch)=>nativeController.hit(p,touch),nativeBegin:t=>nativeController.begin(t),nativeMove:(t,p,dx,dy)=>nativeController.move(t,p,dx,dy),constructing:()=>nativeController.active(),
       picked(target){if(target?.type==='native')return;const object=target?.obj||target?.line;nativeController.select(object?.id||(target?.name?'feature:'+target.name:null));},
       liveChanged(){equationEl.textContent=equationText();updateParameterEquation();$('#exploreNotice').hidden=!state.exploring;for(const input of paramsEl.querySelectorAll('input')){const key=input.dataset.key;if(key){input.value=input.type==='range'?P(key):window.DongNumber.input(P(key),state.model.parameterExpressions?.[key]);}}},
-      changed(){$('#gridToggle').checked=state.grid;$('#guideToggle').checked=state.guides;buildParams();updateSceneJson();refreshLayers();}
+      changed(){$('#gridToggle').checked=state.grid;$('#guideToggle').checked=state.guides;buildParams();updateSceneJson();refreshLayers();motionController?.sync();}
     });
+    motionController=window.DongMotion.attach({state,stopMotion:()=>stopMotion(false),checkpoint:()=>dragController.checkpoint(),record:before=>dragController.record(before),changed(){buildParams();updateSceneJson();refreshLayers();},render,hint:text=>$('#dragHint').textContent=text});
     const pointHoverCard=$('#pointHoverCard'),canvasWrap=canvas.parentElement;let pointHoverKey='';
     function hidePointHover(){pointHoverCard.hidden=true;pointHoverKey='';}
     canvas.addEventListener('pointermove',event=>{
@@ -1717,7 +1736,7 @@ function motionStep(timestamp){if(!state.model){stopMotion(false);return;}const 
     new ResizeObserver(()=>render()).observe(canvas.parentElement);
     stepHighlighter=window.DongStepHighlight.attach({entries:stepGraphEntries,model:()=>state.model,part:()=>state.activePart,ctx,xy,clip:clipNativeLine,render});
     window.DongBoardStep=Object.freeze({snapshot:()=>stepHighlighter.snapshot()});
-    learningUI=window.DongLearning.attach({state,question,sceneData,setStatus,showSolution,remember,clear,render,refreshLayers,syncMotionButton,installScene,modelFromJson,download,canvas,solveDeterministic:browserDeterministicSolution,enrichSolvedScene,highlightStep:input=>stepHighlighter.highlight(input),clearStepHighlight:()=>{stepHighlighter.clear();render();}});
+    learningUI=window.DongLearning.attach({state,question,fitPart:()=>{if(state.model?.problemMotion)homeView();},sceneData,setStatus,showSolution,remember,clear,render,refreshLayers,syncMotionButton,installScene,modelFromJson,download,canvas,solveDeterministic:browserDeterministicSolution,enrichSolvedScene,highlightStep:input=>stepHighlighter.highlight(input),clearStepHighlight:()=>{stepHighlighter.clear();render();}});
     window.addEventListener('resize',()=>{if(innerWidth<=760)setInputPanelCollapsed(false);else render();});document.addEventListener('visibilitychange',()=>{if(document.hidden&&motionFrame!==null)stopMotion(true);});updateObjectHint();refreshLayers();syncMotionButton();render();restoreLocal();try{if(localStorage.getItem('dongjiexi:input-collapsed')==='1')setInputPanelCollapsed(true);}catch{}refreshEngine();
   })();
   </script>
@@ -1746,6 +1765,6 @@ function motionStep(timestamp){if(!state.model){stopMotion(false);return;}const 
     document.getElementById('closeReleases').addEventListener('click',()=>dialog.close());
   })();
   </script>
-  <script src="pwa.js?v=0.51.1"></script>
+  <script src="pwa.js?v=0.51.2"></script>
 </body>
 </html>

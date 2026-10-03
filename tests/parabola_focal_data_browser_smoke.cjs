@@ -41,6 +41,7 @@ module.exports=async({page,context,assert,screenshot})=>{
   await screenshot('parabola-focal-data-three-parts.png',null);
   await page.reload({waitUntil:'domcontentloaded'});saved=await read();assert(saved.scene.parabolaFocalData,'Draft retains the model and dependency graph');
   await page.locator('[data-inspector-view="geometry"]').click();await page.locator('#parameterTarget').selectOption('$conic');
+  await page.locator('#unrestrictedMove').click();
   await page.locator('#params input[data-key="p"][data-param-expression]').fill('2');
   const explored=JSON.parse(await page.locator('#sceneJson').inputValue());
   assert.equal(explored.points.F[0],2);assert.equal(explored.points.K[0],-2);assert.equal(explored.lines.find(l=>l.id==='focal-data-directrix').x,-2);

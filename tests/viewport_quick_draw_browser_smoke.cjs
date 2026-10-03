@@ -20,9 +20,11 @@ module.exports=async({page,assert,screenshot})=>{
     return false;
   },{x,y,rx,ry,zooms});
   await page.locator('[data-quick-conic="parabola"]').click();
+  await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));await page.locator('#homeButton').click();
   for(let i=0;i<10;i++)await page.locator('#zoomOut').click();
   assert.equal(await coloredAt({x:16*16/(4*1.5),y:16,rx:7.5,ry:6,zooms:10}),true,'抛物线应延伸到当前视野内的远端');
   await page.locator('[data-quick-conic="hyperbola"]').click();
+  await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));await page.locator('#homeButton').click();
   for(let i=0;i<8;i++)await page.locator('#zoomOut').click();
   const y=16,x=3*Math.sqrt(1+(y/2)**2);
   assert.equal(await coloredAt({x,y,rx:5.25,ry:3.8,zooms:8}),true,'双曲线应延伸到当前视野内的远端');

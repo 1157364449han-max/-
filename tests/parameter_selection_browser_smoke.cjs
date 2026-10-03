@@ -7,6 +7,8 @@ module.exports=async({page,assert,screenshot})=>{
   assert.equal(await page.locator('#params input').count(),0,'未选择方程时不应直接展开主曲线参数');
   await page.locator('[data-inspector-view="geometry"]').click();
   await page.locator('#parameterTarget').selectOption('$conic');
+  assert.equal(await page.locator('#params input[data-key="a"][data-param-expression]').isDisabled(),true,'题设曲线默认锁定');
+  await page.locator('#unrestrictedMove').click();
   await page.locator('#params input[data-key="a"][data-param-expression]').fill('√8');
   await page.locator('#params input[data-key="h"][data-param-expression]').fill('1/3');
   const main=await data();assert(Math.abs(main.a-Math.sqrt(8))<1e-10);assert.equal(main.h,1/3);

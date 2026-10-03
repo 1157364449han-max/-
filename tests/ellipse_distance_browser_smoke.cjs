@@ -26,6 +26,7 @@ module.exports=async({page,assert,screenshot})=>{
   assert(Math.abs(2*Math.cos(moved.t)+2*Math.sqrt(5)/3)<1e-8);
   await screenshot('ellipse-distance.png','.board-shell');
   await page.locator('#parameterTarget').selectOption('$conic');
+  await page.locator('#unrestrictedMove').click();
   await page.locator('#params input[data-key="b"][data-param-expression="true"]').evaluate(el=>{el.value='0.5';el.dispatchEvent(new Event('input',{bubbles:true}));});
   const changed=JSON.parse(await page.locator('#sceneJson').inputValue());
   assert.equal(changed.b,0.5);

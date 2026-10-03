@@ -2,17 +2,17 @@ module.exports=async({page,assert,screenshot})=>{
   const ids=['2022-i-21','2023-ii-21','2024-i-12','2024-i-16','2025-i-18','2025-ii-16'];
   await page.locator('#openQuestionBank').click();
   await page.locator('#bankList button').first().waitFor();
-  await page.locator('[data-bank-paper="national-i"]').click();
+  assert.equal(await page.locator('[data-bank-paper]').count(),0,'卷别只有一个选择入口');
+  await page.locator('#bankPaper').selectOption('national-i');
   assert.equal(await page.locator('#bankList button').count(),7);
   assert.equal(await page.locator('#bankPaper').inputValue(),'national-i');
-  assert.equal(await page.locator('[data-bank-paper="national-i"]').getAttribute('aria-pressed'),'true');
   await page.locator('#bankYear').selectOption('2024');
   assert.equal(await page.locator('#bankList button').count(),2);
-  await page.locator('[data-bank-paper="national-ii"]').click();
+  await page.locator('#bankPaper').selectOption('national-ii');
   assert.equal(await page.locator('#bankList button').count(),1,'年份与卷别应取交集');
   assert(await page.locator('[data-bank-id="2024-ii-19"]').count());
   await page.locator('#bankResetFilters').click();
-  await page.locator('[data-bank-paper="national-ii"]').click();
+  await page.locator('#bankPaper').selectOption('national-ii');
   assert.equal(await page.locator('#bankList button').count(),4);
   await page.locator('#bankYear').selectOption('2025');
   await page.locator('[data-bank-id="2025-ii-16"]').click();
@@ -47,7 +47,7 @@ module.exports=async({page,assert,screenshot})=>{
   }
   await page.setViewportSize({width:320,height:740});
   await page.locator('#bankResetFilters').click();
-  await page.locator('[data-bank-paper="national-ii"]').click();
+  await page.locator('#bankPaper').selectOption('national-ii');
   assert(await page.locator('#questionBankDialog').evaluate(n=>n.scrollWidth<=n.clientWidth+2));
   await screenshot('national-ii-bank-mobile.png','#questionBankDialog');
 };

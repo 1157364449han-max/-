@@ -3,7 +3,7 @@
   'use strict';
   const canonical=s=>String(s||'').replace(/\\(?:prime)/g,'′').replace(/'/g,'′').replace(/[_{}\s]/g,'').replace(/[₀₁₂₃₄₅₆₇₈₉]/g,c=>'₀₁₂₃₄₅₆₇₈₉'.indexOf(c)).toUpperCase();
   const plain=s=>String(s||'').replace(/\\(?:left|right|,|;|!)/g,'').replace(/\\(?:triangle|Delta)/g,'△').replace(/\\prime/g,'′').replace(/[_{}$\s]/g,'').replace(/'/g,'′');
-  const pointOps=new Set(['point_on','midpoint','reflect_axis','reflect_center','foot','ellipse_tangent_point','intersection']);
+  const pointOps=new Set(['point_on','inverse','midpoint','reflect_axis','reflect_center','foot','ellipse_tangent_point','intersection']);
   const finite=p=>p&&Number.isFinite(p.x)&&Number.isFinite(p.y);
   function declared(text){
     // A symbolic family P_n is not a distinct point named P. Numeric indices

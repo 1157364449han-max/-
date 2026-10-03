@@ -100,8 +100,13 @@ class NationalBankTests(unittest.TestCase):
         self.assertEqual(s.simplify(R[1]/R[0]-3*P[1]/P[0]), 0)
         self.assertEqual(s.simplify((P-M).dot(P-M)-(3*s.sqrt(2)+3*s.sqrt(3))**2), 0)
         scene = ITEMS['2025-i-18']['scene']
+        nodes = {o['label']: o for o in scene['objects']}
+        circle = next(o for o in scene['objects'] if o['id'] == 'locus-circle')
+        actual_p = [circle['h']+circle['r']*math.cos(nodes['P']['t']), circle['k']+circle['r']*math.sin(nodes['P']['t'])]
+        actual_m = [scene['a']*math.cos(nodes['M']['t']), scene['b']*math.sin(nodes['M']['t'])]
+        actual_r = [float(A[i])+nodes['R']['power']*(actual_p[i]-float(A[i]))/sum((actual_p[j]-float(A[j]))**2 for j in (0, 1)) for i in (0, 1)]
         for name, exact in (('P', P), ('M', M), ('R', R)):
-            for actual, value in zip(scene['points'][name], exact):
+            for actual, value in zip({'P': actual_p, 'M': actual_m, 'R': actual_r}[name], exact):
                 self.assertAlmostEqual(actual, float(value))
         self.assertIn('不包含', ITEMS['2025-i-18']['sceneNote'])
 

@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '0.51.1';
+const VERSION = '0.51.2';
 const CACHE = `dongjiexi-app-${VERSION}`;
 const CORE = [
   './question-parts.js', './parabola-focal-data.js', './goal-coverage.js',
@@ -16,6 +16,7 @@ const CORE = [
   './runtime-config.js', './runtime.js', './recognition-contract.mjs', './scene-contract.mjs', './scene-audit.js', './cloud-contract.mjs', './external-contract.mjs', './external-ai.js', './pwa.js', './theme.css', './learning-ui.css', './learning-ui.js', './classroom.css',
   './classroom.js', './construction-board.js', './drag-board.js', './equation-builder.js', './math-keyboard.js', './mathlive-adapter.js', './geogebra-bridge.js',
   './question-bank.js', './question-bank.css', './question-bank.json',
+  './motion-protection.js',
   './releases.json', './icons/icon.svg', './icons/maskable.svg',
   './vendor/katex/katex.min.css', './vendor/katex/katex.min.js',
   './vendor/katex/contrib/auto-render.min.js',

@@ -25,7 +25,7 @@
     function redoAction(){if(!redo.length)return;undo.push(snapshot());restore(redo.pop());syncButtons();hint('已重做一次操作。');}
     function resolvePoint(name) {
       if(Object.prototype.hasOwnProperty.call(state.model.points||{},name)&&!state.model.pointBindings?.[name]) {
-        return {get:()=>({x:state.model.points[name][0],y:state.model.points[name][1]}),set:p=>{state.model.points[name]=[p.x,p.y];}};
+        return {get:()=>window.DongMotion.overridden(state.model,'feature:'+name,{x:state.model.points[name][0],y:state.model.points[name][1]}),set:p=>{if(window.DongMotion.unrestricted(state.model))window.DongMotion.setOverride(state.model,'feature:'+name,{type:'point',...p});else state.model.points[name]=[p.x,p.y];}};
       }
       const object=(state.model.objects||[]).find(o=>o.kind==='point'&&o.label===name);
       return object ? {get:()=>({x:object.x,y:object.y}),set:p=>Object.assign(object,p)} : null;
@@ -51,9 +51,7 @@
     function handles() {
       if(!state.model)return [];
       const list=[],m=state.model,p=state.p,vertical=m.orientation==='vertical';
-      if(m.showFeatures!==false){
-        for(const [name,coords] of Object.entries(m.points||{}))if(!m.pointBindings?.[name]&&visible({parts:m.pointParts?.[name]}))list.push({type:'point',name,point:{x:coords[0],y:coords[1]},label:`点 ${name}`});
-      }
+      for(const [name,coords] of Object.entries(m.points||{}))if(!m.pointBindings?.[name]&&visible({parts:m.pointParts?.[name]}))list.push({type:'point',name,point:window.DongMotion.overridden(m,'feature:'+name,{x:coords[0],y:coords[1]}),label:`点 ${name}`});
       for(const obj of m.objects||[]){if(!visible(obj))continue;
         if(obj.kind==='point')list.push({type:'userPoint',obj,point:{x:obj.x,y:obj.y},label:`点 ${obj.label}`});
         if(obj.kind==='circle') {
@@ -97,8 +95,10 @@
     function hitTest(p,touch=false) {
       const threshold=touch?22:12;
       const candidates=handles().map(h=>({...h,distance:distance(p,xy(h.point.x,h.point.y))})).filter(h=>h.distance<threshold);
+      const native=api.nativeHit?.(p,touch);
+      if(native?.point)candidates.push({...native,distance:distance(p,xy(native.point.x,native.point.y))});
       if(candidates.length){candidates.sort((a,b)=>a.distance-b.distance);return candidates[0];}
-      const native=api.nativeHit?.(p,touch);if(native)return native;
+      if(native)return native;
       const m=state.model;
       for(const line of [...m.objects||[],...m.lines||[]]){
         if(!visible(line)||!['line','slope','vertical','through_points'].includes(line.kind))continue;
@@ -115,6 +115,7 @@
     function begin(event) {
       if(!state.model||event.button>0||drag)return;
       const pos=screen(event),target=mode==='pan'?null:hitTest(pos,event.pointerType==='touch');
+      if(target&&!window.DongMotion.dragAllowed(state.model,target)){api.picked?.(target);hint('这是题设固定对象；点击“无限制移动”才能改动。');api.render();event.preventDefault();return;}
       if(target?.type==='native'&&!api.nativeBegin(target))return;
       api.picked?.(target);
       selection=target?.type==='rotateLine'?{type:'line',line:target.line}:target;
@@ -140,7 +141,7 @@
       if(!t){const sx=(pos.x-drag.pos.x)/state.cssW*(drag.view.xmax-drag.view.xmin),sy=(pos.y-drag.pos.y)/state.cssH*(drag.view.ymax-drag.view.ymin);state.view={xmin:drag.view.xmin-sx,xmax:drag.view.xmax-sx,ymin:drag.view.ymin+sy,ymax:drag.view.ymax+sy};api.render();return;}
       const v={x:snapped(current.x),y:snapped(current.y)};
       if(t.type==='native')api.nativeMove(t,v,dx,dy);
-      if(t.type==='point')m.points[t.name]=[v.x,v.y];
+      if(t.type==='point'){if(window.DongMotion.unrestricted(m))window.DongMotion.setOverride(m,'feature:'+t.name,{type:'point',...v});else m.points[t.name]=[v.x,v.y];}
       if(t.type==='userPoint')Object.assign(t.obj,v);
       if(t.type==='circleCenter'){t.obj.h=v.x;t.obj.k=v.y;}
       if(t.type==='circleRadius')t.obj.r=Math.max(.05,distance(v,{x:t.obj.h,y:t.obj.k}));
@@ -166,7 +167,7 @@
       if(t.type==='rotateLine'){
         if(distance(t.pivot,v)>.01)applyLine(t.line,t.pivot,Math.atan2(v.y-t.pivot.y,v.x-t.pivot.x));
       }
-      state.exploring=true;
+      state.exploring=window.DongMotion.unrestricted(m)||!window.DongMotion.protectedScene(m);
       hint(t.type==='line'||t.type==='rotateLine'?`${t.line.kind==='through_points'?t.line.label:lineLabel(t.line)}`:`${t.label} · (${fmt(v.x)}, ${fmt(v.y)})`);
       api.liveChanged();api.render();
     }
@@ -176,12 +177,13 @@
       if(canvas.hasPointerCapture(event.pointerId))canvas.releasePointerCapture(event.pointerId);
       canvas.style.cursor='crosshair';
       if(cancel){if(previous.target)restore(previous.before);else{state.view=previous.view;api.render();}hint('已取消这次拖动。');return;}
-      if(previous.moved&&previous.target){record(previous.before);api.changed();api.render();hint('已更新方程与关联图形。Ctrl+Z 可撤销；原题解析保留原条件。');}
+      if(previous.moved&&previous.target){record(previous.before);api.changed();api.render();hint(window.DongMotion.unrestricted(state.model)?'已自由移动；图稿可能不满足题设，关闭“无限制移动”恢复约束。':'已按构造约束重算关联图形。Ctrl+Z 可撤销；解析仍对应原题。');}
     }
     function draw() {
       if(!state.model||mode==='pan'||api.constructing?.())return;
       ctx.save();
       for(const h of handles()){
+        if(!window.DongMotion.dragAllowed(state.model,h))continue;
         const p=xy(h.point.x,h.point.y);if(p.x<0||p.y<0||p.x>state.cssW||p.y>state.cssH)continue;
         const color=h.type==='dynamic'?'#b7790e':'#356cb0';
         ctx.beginPath();ctx.arc(p.x,p.y,h.type==='dynamic'?7:6,0,Math.PI*2);ctx.fillStyle='#ffffff';ctx.fill();ctx.lineWidth=2;ctx.strokeStyle=color;ctx.stroke();
